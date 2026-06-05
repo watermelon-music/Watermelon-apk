@@ -80,6 +80,11 @@ ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version
 # Serialization
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 
+# Firebase
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version = "32.8.0" }
+firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx" }
+firebase-play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version = "21.2.0" }
+
 # Coroutines
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 

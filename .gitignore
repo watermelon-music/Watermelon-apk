@@ -1,35 +1,58 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-captures
-.externalNativeBuild
-.cxx
-local.properties
-*.apk
-*.ap_
-*.aab
-*.log
-/.idea
-/.gradle
-/build
-*/build
+# Gradle
+.gradle/
+build/
+**/build/
 !gradle-wrapper.jar
 !gradlew
 !gradlew.bat
 
-# Local environment and secret files
-.env
-.env.*
-.envrc
+# Local configuration
+local.properties
+/local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+.cxx/
+.externalNativeBuild/
+captures/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# APK / AAB / Artifacts
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+
+# Keystores / Secrets
 *.jks
 *.keystore
 *.p12
 *.pem
+.env
+.env.*
+.envrc
+
+# Signing
+app/release/
+app/debug/
+
+# Firebase / Google Services (uncomment if you do NOT want to commit them)
+# app/google-services.json
+
+# Misc
+*.swp
+*.swo
+*~
+
+# Kotlin compile daemon
+.kotlin/

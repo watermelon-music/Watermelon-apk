@@ -77,6 +77,9 @@ dependencies {
     // Serialization
     implementation(libs.kotlinx.serialization.json)
 
+    // Media3
+    implementation(libs.media3.exoplayer)
+
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

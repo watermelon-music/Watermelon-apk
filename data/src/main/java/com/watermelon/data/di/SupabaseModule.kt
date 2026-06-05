@@ -1,5 +1,6 @@
 package com.watermelon.data.di
 
+import com.watermelon.data.BuildConfig
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

@@ -1,7 +1,5 @@
 package com.watermelon.domain.repository
 
-import androidx.media3.common.Player
-
 interface StreamingRepository {
     fun play(url: String)
     fun pause()
@@ -12,6 +10,12 @@ interface StreamingRepository {
     fun isPlaying(): Boolean
     fun currentPosition(): Long
     fun duration(): Long
-    fun addListener(listener: Player.Listener)
-    fun removeListener(listener: Player.Listener)
+    fun addListener(callback: Callback)
+    fun removeListener(callback: Callback)
+
+    interface Callback {
+        fun onPlaybackStateChanged(isBuffering: Boolean)
+        fun onIsPlayingChanged(isPlaying: Boolean)
+        fun onPositionDiscontinuity()
+    }
 }

@@ -11,21 +11,19 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.watermelon.core.navigation.Routes
-import com.watermelon.domain.model.Song
 import com.watermelon.feature.auth.ForgotPasswordScreen
 import com.watermelon.feature.auth.LoginScreen
 import com.watermelon.feature.auth.RegisterScreen
 import com.watermelon.feature.home.HomeScreen
 import com.watermelon.feature.player.PlayerScreen
-import com.watermelon.feature.player.PlayerViewModel
 import kotlinx.coroutines.delay
 
 @Composable
 fun WatermelonNavHost(
     modifier: Modifier = Modifier,
-    navController: NavHostController,
-    playerViewModel: PlayerViewModel,
+    navController: NavHostController = rememberNavController(),
     startDestination: String = Routes.SPLASH
 ) {
     NavHost(
@@ -82,17 +80,7 @@ fun WatermelonNavHost(
         }
         composable(Routes.HOME) {
             HomeScreen(
-                onSearchClick = { navController.navigate(Routes.SEARCH) },
-                onSongClick = { song: Song ->
-                    playerViewModel.loadAndPlay(
-                        song.audioUrl ?: "",
-                        song.title,
-                        song.artistName,
-                        song.coverUrl ?: ""
-                    )
-                    navController.navigate(Routes.PLAYER)
-                },
-                onPlaylistClick = { navController.navigate(Routes.PLAYLIST_DETAIL) }
+                onSongClick = { navController.navigate(Routes.PLAYER) }
             )
         }
         composable(Routes.SEARCH) {
@@ -109,8 +97,7 @@ fun WatermelonNavHost(
         }
         composable(Routes.PLAYER) {
             PlayerScreen(
-                onBackClick = { navController.popBackStack() },
-                viewModel = playerViewModel
+                onBackClick = { navController.popBackStack() }
             )
         }
         composable(Routes.QUEUE) {

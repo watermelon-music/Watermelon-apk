@@ -2,6 +2,7 @@ package com.watermelon.feature.player
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.Player
 import com.watermelon.domain.repository.StreamingRepository
 import com.watermelon.domain.repository.UrlExtractorRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,16 +33,20 @@ class PlayerViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
 
-    private val listener = object : StreamingRepository.Callback {
-        override fun onPlaybackStateChanged(isBuffering: Boolean) {
-            _uiState.update { it.copy(isBuffering = isBuffering) }
+    private val listener = object : Player.Listener {
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            _uiState.update { it.copy(isBuffering = playbackState == Player.STATE_BUFFERING) }
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             _uiState.update { it.copy(isPlaying = isPlaying) }
         }
 
-        override fun onPositionDiscontinuity() {
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int
+        ) {
             updatePosition()
         }
     }

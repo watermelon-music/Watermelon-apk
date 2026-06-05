@@ -12,27 +12,6 @@ class StreamingRepositoryImpl @Inject constructor(
     private val player: ExoPlayer
 ) : StreamingRepository {
 
-    private val listeners = mutableListOf<StreamingRepository.Callback>()
-    private val listener = object : Player.Listener {
-        override fun onPlaybackStateChanged(playbackState: Int) {
-            listeners.forEach { it.onPlaybackStateChanged(playbackState == Player.STATE_BUFFERING) }
-        }
-        override fun onIsPlayingChanged(isPlaying: Boolean) {
-            listeners.forEach { it.onIsPlayingChanged(isPlaying) }
-        }
-        override fun onPositionDiscontinuity(
-            oldPosition: Player.PositionInfo,
-            newPosition: Player.PositionInfo,
-            reason: Int
-        ) {
-            listeners.forEach { it.onPositionDiscontinuity() }
-        }
-    }
-
-    init {
-        player.addListener(listener)
-    }
-
     override fun play(url: String) {
         val mediaItem = MediaItem.fromUri(url)
         player.setMediaItem(mediaItem)
@@ -53,11 +32,11 @@ class StreamingRepositoryImpl @Inject constructor(
     override fun currentPosition(): Long = player.currentPosition
     override fun duration(): Long = if (player.duration > 0) player.duration else 0L
 
-    override fun addListener(callback: StreamingRepository.Callback) {
-        listeners.add(callback)
+    override fun addListener(listener: Player.Listener) {
+        player.addListener(listener)
     }
 
-    override fun removeListener(callback: StreamingRepository.Callback) {
-        listeners.remove(callback)
+    override fun removeListener(listener: Player.Listener) {
+        player.removeListener(listener)
     }
 }

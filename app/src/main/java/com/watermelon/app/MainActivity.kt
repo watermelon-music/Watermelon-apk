@@ -3,6 +3,7 @@ package com.watermelon.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -15,6 +16,7 @@ import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.watermelon.app.navigation.BottomNavBar
 import com.watermelon.app.navigation.WatermelonNavHost
 import com.watermelon.core.designsystem.theme.WatermelonTheme
 import com.watermelon.core.navigation.Routes
@@ -40,20 +42,49 @@ class MainActivity : ComponentActivity() {
                     val currentBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentRoute = currentBackStackEntry?.destination?.route
 
+                    val hideMiniPlayerRoutes = setOf(
+                        Routes.PLAYER,
+                        Routes.SPLASH,
+                        Routes.LOGIN,
+                        Routes.REGISTER,
+                        Routes.FORGOT_PASSWORD,
+                        Routes.ONBOARDING
+                    )
+
+                    val showBottomNav = currentRoute in setOf(
+                        Routes.HOME,
+                        Routes.SEARCH,
+                        Routes.LIBRARY,
+                        Routes.SETTINGS
+                    )
+
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
                         bottomBar = {
-                            if (
-                                currentRoute != Routes.PLAYER &&
-                                currentRoute != Routes.SPLASH &&
-                                currentRoute != Routes.LOGIN &&
-                                currentRoute != Routes.REGISTER
-                            ) {
-                                MiniPlayer(
-                                    modifier = Modifier,
-                                    onClick = { navController.navigate(Routes.PLAYER) },
-                                    viewModel = playerViewModel
-                                )
+                            Column {
+                                if (currentRoute !in hideMiniPlayerRoutes) {
+                                    MiniPlayer(
+                                        modifier = Modifier,
+                                        onClick = { navController.navigate(Routes.PLAYER) },
+                                        viewModel = playerViewModel
+                                    )
+                                }
+                                if (showBottomNav) {
+                                    BottomNavBar(
+                                        currentRoute = currentRoute,
+                                        onNavigate = { route ->
+                                            if (currentRoute != route) {
+                                                navController.navigate(route) {
+                                                    popUpTo(Routes.HOME) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
                             }
                         }
                     ) { padding ->

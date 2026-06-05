@@ -19,5 +19,6 @@ interface StreamingRepository {
         fun onPositionDiscontinuity()
         fun onDurationChanged(durationMs: Long)
         fun onPlaybackError(error: String)
+        fun onPlaybackCompleted()
     }
 }

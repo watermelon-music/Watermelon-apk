@@ -1,13 +1,16 @@
 package com.watermelon.feature.player
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -18,11 +21,11 @@ import kotlinx.coroutines.delay
 @Composable
 fun PlayerScreen(
     onBackClick: () -> Unit,
+    onQueueClick: () -> Unit = {},
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    // Poll position while playing
     val isPlaying = state.isPlaying
     LaunchedEffect(isPlaying) {
         while (isPlaying) {
@@ -39,6 +42,11 @@ fun PlayerScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
+                },
+                actions = {
+                    IconButton(onClick = onQueueClick) {
+                        Icon(Icons.Filled.QueueMusic, contentDescription = "Queue")
+                    }
                 }
             )
         }
@@ -50,14 +58,14 @@ fun PlayerScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Artwork
             Card(
                 modifier = Modifier
                     .size(280.dp)
                     .aspectRatio(1f),
-                shape = MaterialTheme.shapes.large
+                shape = MaterialTheme.shapes.large,
+                elevation = CardDefaults.cardElevation(8.dp)
             ) {
                 AsyncImage(
                     model = state.artworkUrl.takeIf { it.isNotBlank() },
@@ -74,7 +82,7 @@ fun PlayerScreen(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = state.currentArtist.takeIf { it.isNotBlank() } ?: "Unknown Artist",
                 style = MaterialTheme.typography.bodyLarge,
@@ -83,9 +91,8 @@ fun PlayerScreen(
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Progress slider
             val sliderValue = if (state.durationMs > 0) state.positionMs.toFloat() / state.durationMs.toFloat() else 0f
             Slider(
                 value = sliderValue.coerceIn(0f, 1f),
@@ -105,14 +112,28 @@ fun PlayerScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Controls
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { /* TODO: previous */ }) {
-                    Icon(Icons.Filled.SkipPrevious, contentDescription = "Previous", modifier = Modifier.size(40.dp))
+                IconButton(onClick = { viewModel.toggleShuffle() }) {
+                    Icon(
+                        imageVector = Icons.Filled.Shuffle,
+                        contentDescription = "Shuffle",
+                        tint = if (state.isShuffleOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(
+                    onClick = { viewModel.playPrevious() },
+                    enabled = state.hasPrevious
+                ) {
+                    Icon(
+                        Icons.Filled.SkipPrevious,
+                        contentDescription = "Previous",
+                        modifier = Modifier.size(40.dp),
+                        tint = if (state.hasPrevious) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                    )
                 }
                 FilledIconButton(
                     onClick = { viewModel.togglePlayPause() },
@@ -128,14 +149,32 @@ fun PlayerScreen(
                         )
                     }
                 }
-                IconButton(onClick = { /* TODO: next */ }) {
-                    Icon(Icons.Filled.SkipNext, contentDescription = "Next", modifier = Modifier.size(40.dp))
+                IconButton(
+                    onClick = { viewModel.playNext() },
+                    enabled = state.hasNext
+                ) {
+                    Icon(
+                        Icons.Filled.SkipNext,
+                        contentDescription = "Next",
+                        modifier = Modifier.size(40.dp),
+                        tint = if (state.hasNext) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                    )
+                }
+                IconButton(onClick = { viewModel.toggleRepeat() }) {
+                    val (icon, desc) = when (state.repeatMode) {
+                        RepeatMode.ONE -> Icons.Filled.RepeatOne to "Repeat One"
+                        else -> Icons.Filled.Repeat to "Repeat"
+                    }
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = desc,
+                        tint = if (state.repeatMode != RepeatMode.NONE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Volume slider (simple)
             var volume by remember { mutableFloatStateOf(1f) }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -155,11 +194,27 @@ fun PlayerScreen(
 
             if (state.errorMessage != null) {
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = state.errorMessage!!,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = state.errorMessage ?: "",
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(onClick = {
+                            viewModel.togglePlayPause()
+                        }) {
+                            Text("Retry")
+                        }
+                    }
+                }
             }
         }
     }

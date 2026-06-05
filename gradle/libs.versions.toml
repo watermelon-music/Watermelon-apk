@@ -22,6 +22,7 @@ ktor = "2.3.12"
 serialization = "1.6.2"
 coroutines = "1.7.3"
 ksp = "1.9.22-1.0.17"
+newpipe-extractor = "v0.24.2"
 junit = "4.13.2"
 androidx-junit = "1.1.5"
 espresso = "3.5.1"
@@ -87,6 +88,9 @@ firebase-play-services-auth = { group = "com.google.android.gms", name = "play-s
 
 # Coroutines
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+
+# YouTube
+newpipe-extractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor", version.ref = "newpipe-extractor" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

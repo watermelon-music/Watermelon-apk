@@ -1,26 +1,36 @@
 package com.watermelon.app.navigation
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import com.watermelon.app.R
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.watermelon.core.navigation.Routes
 import com.watermelon.domain.model.Song
 import com.watermelon.feature.auth.ForgotPasswordScreen
 import com.watermelon.feature.auth.LoginScreen
 import com.watermelon.feature.auth.RegisterScreen
+import com.watermelon.feature.downloads.DownloadsScreen
 import com.watermelon.feature.home.HomeScreen
+import com.watermelon.feature.library.LibraryScreen
 import com.watermelon.feature.player.PlayerScreen
 import com.watermelon.feature.player.PlayerViewModel
+import com.watermelon.feature.player.QueueScreen
+import com.watermelon.feature.playlist.PlaylistDetailScreen
 import com.watermelon.feature.search.SearchScreen
-import com.watermelon.feature.settings.SettingsScreen
 import com.watermelon.feature.settings.SettingsScreen
 import kotlinx.coroutines.delay
 
@@ -47,10 +57,10 @@ fun WatermelonNavHost(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "Watermelon",
-                    style = MaterialTheme.typography.displayLarge,
-                    color = MaterialTheme.colorScheme.primary
+                Image(
+                    painter = painterResource(id = R.drawable.flash_logo),
+                    contentDescription = "Watermelon",
+                    modifier = Modifier.size(200.dp)
                 )
             }
         }
@@ -88,51 +98,66 @@ fun WatermelonNavHost(
                 onSearchClick = { navController.navigate(Routes.SEARCH) },
                 onSettingsClick = { navController.navigate(Routes.SETTINGS) },
                 onSongClick = { song: Song ->
-                    playerViewModel.loadAndPlay(
-                        song.audioUrl ?: "",
-                        song.title,
-                        song.artistName,
-                        song.coverUrl ?: ""
-                    )
+                    playerViewModel.playSong(song)
                     navController.navigate(Routes.PLAYER)
                 },
-                onPlaylistClick = { navController.navigate(Routes.PLAYLIST_DETAIL) }
+                onPlaylistClick = { playlist ->
+                    navController.navigate("playlist_detail/${playlist.id}")
+                }
             )
         }
         composable(Routes.SEARCH) {
             SearchScreen(
                 onBackClick = { navController.popBackStack() },
                 onSongClick = { song: Song ->
-                    playerViewModel.loadAndPlay(
-                        song.audioUrl ?: "",
-                        song.title,
-                        song.artistName,
-                        song.coverUrl ?: ""
-                    )
+                    playerViewModel.playSong(song)
                     navController.navigate(Routes.PLAYER)
                 }
             )
         }
         composable(Routes.LIBRARY) {
-            // TODO: LibraryScreen
+            LibraryScreen(
+                onBackClick = { navController.popBackStack() },
+                onPlaylistClick = { playlist ->
+                    navController.navigate("playlist_detail/${playlist.id}")
+                },
+                onSongClick = { song: Song ->
+                    playerViewModel.playSong(song)
+                    navController.navigate(Routes.PLAYER)
+                }
+            )
         }
-        composable(Routes.PLAYLIST_DETAIL) {
-            // TODO: PlaylistDetailsScreen
-        }
-        composable(Routes.CREATE_PLAYLIST) {
-            // TODO: CreatePlaylistScreen
+        composable(
+            route = "playlist_detail/{playlistId}",
+            arguments = listOf(navArgument("playlistId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val playlistId = backStackEntry.arguments?.getString("playlistId") ?: ""
+            PlaylistDetailScreen(
+                playlistId = playlistId,
+                onBackClick = { navController.popBackStack() },
+                onSongClick = { song: Song ->
+                    playerViewModel.playSong(song)
+                    navController.navigate(Routes.PLAYER)
+                }
+            )
         }
         composable(Routes.PLAYER) {
             PlayerScreen(
                 onBackClick = { navController.popBackStack() },
+                onQueueClick = { navController.navigate(Routes.QUEUE) },
                 viewModel = playerViewModel
             )
         }
         composable(Routes.QUEUE) {
-            // TODO: QueueScreen
+            QueueScreen(
+                onBackClick = { navController.popBackStack() },
+                viewModel = playerViewModel
+            )
         }
         composable(Routes.DOWNLOADS) {
-            // TODO: DownloadsScreen
+            DownloadsScreen(
+                onBackClick = { navController.popBackStack() }
+            )
         }
         composable(Routes.PROFILE) {
             // TODO: ProfileScreen

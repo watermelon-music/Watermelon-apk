@@ -23,6 +23,9 @@ class StreamingRepositoryImpl @Inject constructor(
                     listeners.forEach { it.onDurationChanged(dur) }
                 }
             }
+            if (playbackState == Player.STATE_ENDED) {
+                listeners.forEach { it.onPlaybackCompleted() }
+            }
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {

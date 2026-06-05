@@ -80,6 +80,9 @@ dependencies {
     // Media3
     implementation(libs.media3.exoplayer)
 
+    // YouTube
+    implementation(libs.newpipe.extractor)
+
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

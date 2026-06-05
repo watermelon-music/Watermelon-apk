@@ -6,7 +6,7 @@ import com.watermelon.data.repository.MusicCatalogRepositoryImpl
 import com.watermelon.data.repository.MusicRepositoryImpl
 import com.watermelon.data.repository.StreamingRepositoryImpl
 import com.watermelon.data.repository.UserActionsRepositoryImpl
-import com.watermelon.data.repository.YtDlpUrlExtractorMockImpl
+import com.watermelon.data.remote.youtube.NewPipeUrlExtractorImpl
 import com.watermelon.domain.repository.AuthRepository
 import com.watermelon.domain.repository.MusicCatalogRepository
 import com.watermelon.domain.repository.MusicRepository
@@ -51,5 +51,5 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindUrlExtractorRepository(impl: YtDlpUrlExtractorMockImpl): UrlExtractorRepository
+    abstract fun bindUrlExtractorRepository(impl: NewPipeUrlExtractorImpl): UrlExtractorRepository
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,12 +22,12 @@ import kotlinx.coroutines.delay
 fun MiniPlayer(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
+    onDismiss: () -> Unit = {},
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
     val isPlaying = state.isPlaying
 
-    // Poll position
     LaunchedEffect(isPlaying) {
         while (isPlaying) {
             delay(500)
@@ -42,18 +43,20 @@ fun MiniPlayer(
                 if (state.durationMs > 0) state.positionMs.toFloat() / state.durationMs.toFloat() else 0f
             },
             modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp)
                 .clickable(onClick = onClick),
-            shape = MaterialTheme.shapes.small
+            shape = MaterialTheme.shapes.small,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -78,10 +81,20 @@ fun MiniPlayer(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                IconButton(onClick = { viewModel.togglePlayPause() }) {
+                IconButton(onClick = { viewModel.togglePlayPause() }, modifier = Modifier.size(40.dp)) {
                     Icon(
                         imageVector = if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                         contentDescription = if (state.isPlaying) "Pause" else "Play"
+                    )
+                }
+                IconButton(
+                    onClick = { viewModel.playNext() },
+                    enabled = state.hasNext,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.SkipNext,
+                        contentDescription = "Next"
                     )
                 }
             }

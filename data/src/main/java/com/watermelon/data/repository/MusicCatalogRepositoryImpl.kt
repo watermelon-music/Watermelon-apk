@@ -16,12 +16,12 @@ import javax.inject.Singleton
 class MusicCatalogRepositoryImpl @Inject constructor() : MusicCatalogRepository {
 
     private val mockSongs = listOf(
-        Song("1","Blinding Lights","1","The Weeknd",null,null,200000L,"https://picsum.photos/seed/s1/300/300",null,"Pop","2020"),
-        Song("2","Levitating","2","Dua Lipa",null,null,203000L,"https://picsum.photos/seed/s2/300/300",null,"Pop","2020"),
-        Song("3","God's Plan","3","Drake",null,null,198000L,"https://picsum.photos/seed/s3/300/300",null,"Hip-Hop","2018"),
-        Song("4","Save Your Tears","1","The Weeknd",null,null,215000L,"https://picsum.photos/seed/s4/300/300",null,"Pop","2020"),
-        Song("5","Don't Start Now","2","Dua Lipa",null,null,183000L,"https://picsum.photos/seed/s5/300/300",null,"Pop","2019"),
-        Song("6","One Dance","3","Drake",null,null,174000L,"https://picsum.photos/seed/s6/300/300",null,"Hip-Hop","2016")
+        Song("1","Blinding Lights","1","The Weeknd",null,null,200000L,"https://picsum.photos/seed/s1/300/300","https://www.nasa.gov/wp-content/uploads/2015/01/590320main_ringtone_apollo11_countdown.mp3","Pop","2020"),
+        Song("2","Levitating","2","Dua Lipa",null,null,203000L,"https://picsum.photos/seed/s2/300/300","https://archive.org/download/testmp3testfile/mpthreetest.mp3","Pop","2020"),
+        Song("3","God's Plan","3","Drake",null,null,198000L,"https://picsum.photos/seed/s3/300/300","https://www.nasa.gov/wp-content/uploads/2015/01/590320main_ringtone_apollo11_countdown.mp3","Hip-Hop","2018"),
+        Song("4","Save Your Tears","1","The Weeknd",null,null,215000L,"https://picsum.photos/seed/s4/300/300","https://archive.org/download/testmp3testfile/mpthreetest.mp3","Pop","2020"),
+        Song("5","Don't Start Now","2","Dua Lipa",null,null,183000L,"https://picsum.photos/seed/s5/300/300","https://www.nasa.gov/wp-content/uploads/2015/01/590320main_ringtone_apollo11_countdown.mp3","Pop","2019"),
+        Song("6","One Dance","3","Drake",null,null,174000L,"https://picsum.photos/seed/s6/300/300","https://archive.org/download/testmp3testfile/mpthreetest.mp3","Hip-Hop","2016")
     )
 
     private val mockPlaylists = listOf(

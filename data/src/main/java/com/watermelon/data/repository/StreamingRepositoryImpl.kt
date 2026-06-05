@@ -15,17 +15,30 @@ class StreamingRepositoryImpl @Inject constructor(
     private val listeners = mutableListOf<StreamingRepository.Callback>()
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
-            listeners.forEach { it.onPlaybackStateChanged(playbackState == Player.STATE_BUFFERING) }
+            val isBuffering = playbackState == Player.STATE_BUFFERING
+            listeners.forEach { it.onPlaybackStateChanged(isBuffering) }
+            if (playbackState == Player.STATE_READY) {
+                val dur = player.duration
+                if (dur > 0) {
+                    listeners.forEach { it.onDurationChanged(dur) }
+                }
+            }
         }
+
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             listeners.forEach { it.onIsPlayingChanged(isPlaying) }
         }
+
         override fun onPositionDiscontinuity(
             oldPosition: Player.PositionInfo,
             newPosition: Player.PositionInfo,
             reason: Int
         ) {
             listeners.forEach { it.onPositionDiscontinuity() }
+        }
+
+        override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+            listeners.forEach { it.onPlaybackError(error.localizedMessage ?: "Playback error") }
         }
     }
 

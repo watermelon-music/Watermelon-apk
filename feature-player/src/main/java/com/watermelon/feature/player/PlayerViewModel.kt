@@ -44,6 +44,16 @@ class PlayerViewModel @Inject constructor(
         override fun onPositionDiscontinuity() {
             updatePosition()
         }
+
+        override fun onDurationChanged(durationMs: Long) {
+            _uiState.update { it.copy(durationMs = durationMs) }
+        }
+
+        override fun onPlaybackError(error: String) {
+            _uiState.update {
+                it.copy(isBuffering = false, isPlaying = false, errorMessage = error)
+            }
+        }
     }
 
     init {

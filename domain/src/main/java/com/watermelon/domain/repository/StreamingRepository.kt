@@ -17,5 +17,7 @@ interface StreamingRepository {
         fun onPlaybackStateChanged(isBuffering: Boolean)
         fun onIsPlayingChanged(isPlaying: Boolean)
         fun onPositionDiscontinuity()
+        fun onDurationChanged(durationMs: Long)
+        fun onPlaybackError(error: String)
     }
 }

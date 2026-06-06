@@ -1,6 +1,5 @@
 package com.watermelon.domain.repository
 
-import com.watermelon.domain.model.Playlist
 import com.watermelon.domain.model.Song
 import kotlinx.coroutines.flow.Flow
 

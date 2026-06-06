@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -109,14 +110,35 @@ fun PlaylistDetailScreen(
                 modifier = Modifier.padding(bottom = WatermelonSpacing.md)
             )
 
+            val songs = remember(playlistId) {
+                getMockSongsForPlaylist(playlistId)
+            }
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
             ) {
-                items(emptyList<Song>()) { song ->
+                items(songs, key = { it.id }) { song ->
                     PlaylistSongItem(song = song, onClick = { onSongClick(song) })
                 }
             }
         }
+    }
+}
+
+private fun getMockSongsForPlaylist(playlistId: String): List<Song> {
+    val pool = listOf(
+        Song("dQw4w9WgXcQ","Never Gonna Give You Up","rick","Rick Astley",null,null,213000L,"https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg","https://www.youtube.com/watch?v=dQw4w9WgXcQ","Pop","1987"),
+        Song("9bZkp7q19f0","Gangnam Style","psy","PSY",null,null,253000L,"https://i.ytimg.com/vi/9bZkp7q19f0/hqdefault.jpg","https://www.youtube.com/watch?v=9bZkp7q19f0","K-Pop","2012"),
+        Song("kJQP7kiw5Fk","Despacito","luis","Luis Fonsi",null,null,229000L,"https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg","https://www.youtube.com/watch?v=kJQP7kiw5Fk","Latin","2017"),
+        Song("JGwWNGJdvx8","Shape of You","ed","Ed Sheeran",null,null,234000L,"https://i.ytimg.com/vi/JGwWNGJdvx8/hqdefault.jpg","https://www.youtube.com/watch?v=JGwWNGJdvx8","Pop","2017"),
+        Song("RgKAFK5djSk","See You Again","wiz","Wiz Khalifa",null,null,230000L,"https://i.ytimg.com/vi/RgKAFK5djSk/hqdefault.jpg","https://www.youtube.com/watch?v=RgKAFK5djSk","Hip-Hop","2015"),
+        Song("OPf0YbXqDm0","Uptown Funk","mark","Mark Ronson",null,null,270000L,"https://i.ytimg.com/vi/OPf0YbXqDm0/hqdefault.jpg","https://www.youtube.com/watch?v=OPf0YbXqDm0","Funk","2014"),
+        Song("CevxZvSJLk8","Roar","katy","Katy Perry",null,null,231000L,"https://i.ytimg.com/vi/CevxZvSJLk8/hqdefault.jpg","https://www.youtube.com/watch?v=CevxZvSJLk8","Pop","2013"),
+        Song("pRpeEdMmmQ0","Waka Waka","shakira","Shakira",null,null,220000L,"https://i.ytimg.com/vi/pRpeEdMmmQ0/hqdefault.jpg","https://www.youtube.com/watch?v=pRpeEdMmmQ0","Pop","2010")
+    )
+    return when (playlistId) {
+        "p1" -> pool.take(4)
+        "p2" -> pool.drop(2).take(4)
+        else -> pool.shuffled().take(4)
     }
 }
 

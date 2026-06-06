@@ -12,6 +12,16 @@ import kotlinx.serialization.Serializable
     val created_at: String? = null
 )
 
+@Serializable
+ data class PlaylistSongEntryDto(
+    val playlist_id: String,
+    val song_id: String,
+    val song_title: String,
+    val song_artist: String,
+    val song_cover_url: String? = null,
+    val position: Int = 0
+)
+
 fun PlaylistDto.toDomain(): Playlist = Playlist(
     id = id,
     name = name,

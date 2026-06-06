@@ -4,12 +4,14 @@ import com.watermelon.data.repository.AuthRepositoryImpl
 import com.watermelon.data.repository.DownloadRepositoryImpl
 import com.watermelon.data.repository.MusicCatalogRepositoryImpl
 import com.watermelon.data.repository.MusicRepositoryImpl
+import com.watermelon.data.repository.PlaylistRepositoryImpl
 import com.watermelon.data.repository.StreamingRepositoryImpl
 import com.watermelon.data.repository.UserActionsRepositoryImpl
 import com.watermelon.data.remote.youtube.NewPipeUrlExtractorImpl
 import com.watermelon.domain.repository.AuthRepository
 import com.watermelon.domain.repository.MusicCatalogRepository
 import com.watermelon.domain.repository.MusicRepository
+import com.watermelon.domain.repository.PlaylistRepository
 import com.watermelon.domain.repository.StreamingRepository
 import com.watermelon.domain.repository.DownloadRepository
 import com.watermelon.domain.repository.UrlExtractorRepository

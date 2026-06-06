@@ -1,11 +1,13 @@
 package com.watermelon.data.repository
 
 import com.watermelon.data.dto.PlaylistDto
+import com.watermelon.data.dto.PlaylistSongEntryDto
 import com.watermelon.data.dto.toDomain
 import com.watermelon.domain.model.Playlist
 import com.watermelon.domain.model.Song
 import com.watermelon.domain.repository.PlaylistRepository
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -45,22 +47,24 @@ class PlaylistRepositoryImpl @Inject constructor(
     }
 
     override suspend fun addSongToPlaylist(playlistId: String, song: Song): Result<Unit> = runCatching {
-        val entry = mapOf(
-            "playlist_id" to playlistId,
-            "song_id" to song.id,
-            "song_title" to song.title,
-            "song_artist" to song.artistName,
-            "song_cover_url" to song.coverUrl,
-            "position" to 0
+        val dto = PlaylistSongEntryDto(
+            playlist_id = playlistId,
+            song_id = song.id,
+            song_title = song.title,
+            song_artist = song.artistName,
+            song_cover_url = song.coverUrl,
+            position = 0
         )
-        client.postgrest["user_playlist_songs"].insert(entry)
+        client.postgrest["user_playlist_songs"].insert(dto)
     }
 
     override suspend fun removeSongFromPlaylist(playlistId: String, songId: String): Result<Unit> = runCatching {
         client.postgrest["user_playlist_songs"]
             .delete {
-                filter { eq("playlist_id", playlistId) }
-                filter { eq("song_id", songId) }
+                filter {
+                    eq("playlist_id", playlistId)
+                    eq("song_id", songId)
+                }
             }
     }
 

@@ -3,7 +3,6 @@ package com.watermelon.data.repository
 import com.watermelon.data.local.dao.UserActionDao
 import com.watermelon.data.local.entity.UserActionEntity
 import com.watermelon.data.local.entity.toSong
-import com.watermelon.domain.model.Playlist
 import com.watermelon.domain.model.Song
 import com.watermelon.domain.repository.UserActionsRepository
 import kotlinx.coroutines.flow.Flow

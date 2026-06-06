@@ -20,7 +20,9 @@ class NewPipeUrlExtractorImpl @Inject constructor(
         repeat(3) { attempt ->
             runCatching {
                 val streamInfo = StreamInfo.getInfo(youtube, sourceUrl)
-                val audioStream = streamInfo.audioStreams.maxByOrNull { it.averageBitrate }
+                val audioStream = streamInfo.audioStreams
+                    .filter { it.isUrl }
+                    .maxByOrNull { it.averageBitrate }
                     ?: throw IllegalStateException("No audio stream available")
                 return@withContext Result.success(audioStream.content)
             }.onFailure { e ->

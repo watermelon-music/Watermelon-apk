@@ -32,6 +32,7 @@ fun SearchScreen(
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
     val results by viewModel.results.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -63,6 +64,16 @@ fun SearchScreen(
 
             Spacer(modifier = Modifier.height(WatermelonSpacing.md))
 
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+                Spacer(modifier = Modifier.height(WatermelonSpacing.md))
+            }
+
             if (query.isBlank()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -74,7 +85,7 @@ fun SearchScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            } else if (results.isEmpty()) {
+            } else if (!isLoading && results.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center

@@ -182,25 +182,6 @@ fun PlayerScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            var volume by remember { mutableFloatStateOf(1f) }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Filled.VolumeMute, contentDescription = null)
-                Slider(
-                    value = volume,
-                    onValueChange = {
-                        volume = it
-                        viewModel.setVolume(it)
-                    },
-                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
-                )
-                Icon(Icons.Filled.VolumeUp, contentDescription = null)
-            }
-
             if (state.errorMessage != null) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Card(

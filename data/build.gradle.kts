@@ -81,9 +81,13 @@ dependencies {
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.exoplayer.dash)
     implementation(libs.media3.exoplayer.hls)
+    implementation(libs.media3.datasource.okhttp)
 
     // YouTube
     implementation(libs.newpipe.extractor)
+
+    // Logging
+    implementation(libs.timber)
 
     // Hilt
     implementation(libs.hilt.android)

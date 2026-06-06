@@ -86,6 +86,10 @@ dependencies {
     // YouTube
     implementation(libs.newpipe.extractor)
 
+    // yt-dlp
+    implementation(libs.youtubedl.android.library)
+    implementation(libs.youtubedl.android.ffmpeg)
+
     // Logging
     implementation(libs.timber)
 

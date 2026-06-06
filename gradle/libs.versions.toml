@@ -25,6 +25,7 @@ ksp = "1.9.22-1.0.17"
 newpipe-extractor = "v0.26.2"
 junit = "4.13.2"
 timber = "5.0.1"
+youtubedl-android = "0.18.1"
 androidx-junit = "1.1.5"
 espresso = "3.5.1"
 
@@ -95,6 +96,10 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 
 # YouTube
 newpipe-extractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor", version.ref = "newpipe-extractor" }
+
+# yt-dlp Android
+youtubedl-android-library = { group = "io.github.junkfood02.youtubedl-android", name = "library", version.ref = "youtubedl-android" }
+youtubedl-android-ffmpeg = { group = "io.github.junkfood02.youtubedl-android", name = "ffmpeg", version.ref = "youtubedl-android" }
 
 # Logging
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }

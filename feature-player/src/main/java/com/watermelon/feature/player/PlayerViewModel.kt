@@ -154,6 +154,12 @@ class PlayerViewModel @Inject constructor(
         updateQueueState()
     }
 
+    fun retryCurrent() {
+        if (currentIndex in internalQueue.indices) {
+            playCurrent()
+        }
+    }
+
     fun togglePlayPause() {
         if (streamingRepository.isPlaying()) {
             streamingRepository.pause()

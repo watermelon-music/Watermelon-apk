@@ -57,9 +57,11 @@ class MainActivity : ComponentActivity() {
 
                     val isPlaying by playerViewModel.uiState.collectAsState()
                     LaunchedEffect(isPlaying.isPlaying) {
+                        val intent = Intent(activity, PlaybackService::class.java)
                         if (isPlaying.isPlaying) {
-                            val intent = Intent(activity, PlaybackService::class.java)
                             activity.startForegroundService(intent)
+                        } else {
+                            activity.stopService(intent)
                         }
                     }
 

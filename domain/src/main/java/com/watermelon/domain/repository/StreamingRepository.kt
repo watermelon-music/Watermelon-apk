@@ -1,7 +1,7 @@
 package com.watermelon.domain.repository
 
 interface StreamingRepository {
-    fun play(url: String)
+    fun play(url: String, title: String = "", artist: String = "", artworkUrl: String = "")
     fun pause()
     fun resume()
     fun stop()

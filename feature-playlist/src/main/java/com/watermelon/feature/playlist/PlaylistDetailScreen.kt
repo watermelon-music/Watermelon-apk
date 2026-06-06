@@ -1,5 +1,9 @@
 package com.watermelon.feature.playlist
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -15,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -30,6 +36,9 @@ fun PlaylistDetailScreen(
     onShuffleClick: () -> Unit = {},
     onPlayAllClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val songs = remember(playlistId) { getMockSongsForPlaylist(playlistId) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -37,6 +46,17 @@ fun PlaylistDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        val ids = songs.joinToString(",") { it.id }
+                        val link = "watermelon://playlist?songs=$ids"
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("Playlist", link))
+                        Toast.makeText(context, "Playlist link copied!", Toast.LENGTH_SHORT).show()
+                    }) {
+                        Icon(Icons.Filled.Share, contentDescription = "Share")
                     }
                 }
             )
@@ -86,7 +106,8 @@ fun PlaylistDetailScreen(
             ) {
                 Button(
                     onClick = onPlayAllClick,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Filled.PlayArrow, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
@@ -94,7 +115,8 @@ fun PlaylistDetailScreen(
                 }
                 OutlinedButton(
                     onClick = onShuffleClick,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Filled.Shuffle, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
@@ -110,9 +132,6 @@ fun PlaylistDetailScreen(
                 modifier = Modifier.padding(bottom = WatermelonSpacing.md)
             )
 
-            val songs = remember(playlistId) {
-                getMockSongsForPlaylist(playlistId)
-            }
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
             ) {

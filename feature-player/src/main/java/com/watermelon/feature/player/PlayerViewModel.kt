@@ -132,18 +132,19 @@ class PlayerViewModel @Inject constructor(
         playCurrent()
     }
 
-    fun loadAndPlay(sourceUrl: String, title: String, artist: String, artwork: String) {
+    fun loadAndPlay(sourceUrl: String, title: String, artist: String, artwork: String, songId: String = "") {
         viewModelScope.launch {
             _uiState.update { it.copy(isBuffering = true, errorMessage = null) }
             val extractResult = urlExtractor.extractAudioUrl(sourceUrl)
             extractResult
                 .onSuccess { directUrl ->
-                    streamingRepository.play(directUrl)
+                    streamingRepository.play(directUrl, title, artist, artwork)
                     _uiState.update {
                         it.copy(
                             currentTitle = title,
                             currentArtist = artist,
                             artworkUrl = artwork,
+                            currentSongId = songId,
                             isBuffering = false
                         )
                     }
@@ -165,8 +166,7 @@ class PlayerViewModel @Inject constructor(
         }
         val audioUrl = song.audioUrl?.takeIf { it.isNotBlank() }
             ?: "https://www.youtube.com/watch?v=${song.id}"
-        loadAndPlay(audioUrl, song.title, song.artistName, song.coverUrl ?: "")
-        _uiState.update { it.copy(currentSongId = song.id) }
+        loadAndPlay(audioUrl, song.title, song.artistName, song.coverUrl ?: "", song.id)
         updateQueueState()
         fetchLyrics(song)
     }

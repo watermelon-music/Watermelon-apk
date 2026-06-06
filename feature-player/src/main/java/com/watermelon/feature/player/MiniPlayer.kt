@@ -1,5 +1,7 @@
 package com.watermelon.feature.player
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,13 +17,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.watermelon.core.designsystem.theme.WatermelonRed
 import kotlinx.coroutines.delay
 
 @Composable
 fun MiniPlayer(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
-    onDismiss: () -> Unit = {},
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -40,12 +42,17 @@ fun MiniPlayer(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp)
-            .clickable(onClick = onClick),
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(
+                onClick = onClick,
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
         ),
-        elevation = CardDefaults.cardElevation(6.dp)
+        elevation = CardDefaults.cardElevation(8.dp)
     ) {
         Column {
             LinearProgressIndicator(
@@ -53,8 +60,9 @@ fun MiniPlayer(
                     if (state.durationMs > 0) state.positionMs.toFloat() / state.durationMs.toFloat() else 0f
                 },
                 modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                color = WatermelonRed,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                drawStopIndicator = {}
             )
             Row(
                 modifier = Modifier
@@ -63,7 +71,8 @@ fun MiniPlayer(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AsyncImage(
-                    model = state.artworkUrl,
+                    model = state.artworkUrl.takeIf { it.isNotBlank() }
+                        ?: "https://via.placeholder.com/48?text=W",
                     contentDescription = null,
                     modifier = Modifier
                         .size(48.dp)
@@ -75,7 +84,8 @@ fun MiniPlayer(
                         text = state.currentTitle,
                         style = MaterialTheme.typography.labelLarge,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = state.currentArtist,
@@ -85,10 +95,14 @@ fun MiniPlayer(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                IconButton(onClick = { viewModel.togglePlayPause() }, modifier = Modifier.size(40.dp)) {
+                IconButton(
+                    onClick = { viewModel.togglePlayPause() },
+                    modifier = Modifier.size(40.dp)
+                ) {
                     Icon(
                         imageVector = if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        contentDescription = if (state.isPlaying) "Pause" else "Play"
+                        contentDescription = if (state.isPlaying) "Pause" else "Play",
+                        tint = WatermelonRed
                     )
                 }
                 IconButton(
@@ -98,7 +112,8 @@ fun MiniPlayer(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.SkipNext,
-                        contentDescription = "Next"
+                        contentDescription = "Next",
+                        tint = if (state.hasNext) WatermelonRed else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                     )
                 }
             }

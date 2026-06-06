@@ -1,32 +1,33 @@
 package com.watermelon.feature.settings
 
-import androidx.compose.foundation.background
+import android.app.Activity
+import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.watermelon.core.designsystem.theme.ThemeManager
+import com.watermelon.core.designsystem.theme.WatermelonRed
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,7 +38,16 @@ fun SettingsScreen(
 ) {
     val user by viewModel.user.collectAsStateWithLifecycle()
     val cacheCleared by viewModel.cacheCleared.collectAsStateWithLifecycle()
-    var darkMode by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var showThemeDialog by remember { mutableStateOf(false) }
+
+    val versionName = remember {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0"
+        } catch (_: Exception) {
+            "1.0"
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -47,21 +57,29 @@ fun SettingsScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Profile header
+            // Profile card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                shape = MaterialTheme.shapes.large
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(4.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -99,7 +117,8 @@ fun SettingsScreen(
                                 ?: "Guest User",
                             style = MaterialTheme.typography.titleLarge,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         if (!user?.email.isNullOrBlank()) {
                             Text(
@@ -112,13 +131,16 @@ fun SettingsScreen(
                 }
             }
 
-            Divider(modifier = Modifier.padding(horizontal = 16.dp))
+            Divider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            )
 
-            SettingsToggle(
+            SettingsItem(
                 icon = Icons.Default.Brush,
-                title = "Dark Mode",
-                checked = darkMode,
-                onCheckedChange = { darkMode = it }
+                title = "Theme",
+                subtitle = currentThemeLabel(context),
+                onClick = { showThemeDialog = true }
             )
             SettingsItem(
                 icon = Icons.Default.CleaningServices,
@@ -127,34 +149,35 @@ fun SettingsScreen(
                 onClick = { viewModel.clearCache() }
             )
             SettingsItem(
-                icon = Icons.Default.Settings,
-                title = "Account Settings",
-                subtitle = "Manage your account details",
-                onClick = { /* TODO: navigate to account detail */ }
+                icon = Icons.Default.Share,
+                title = "Share App",
+                subtitle = "Invite friends",
+                onClick = { /* TODO: share intent */ }
             )
             SettingsItem(
                 icon = Icons.Default.Info,
                 title = "About",
-                subtitle = "Watermelon v1.0.0 — Made with ❤",
-                onClick = { /* TODO: open about dialog */ }
+                subtitle = "Watermelon v$versionName",
+                onClick = { /* TODO */ }
             )
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Logout
             Button(
                 onClick = { viewModel.logout(onLogoutComplete) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(16.dp)
+                    .height(52.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer
-                )
+                ),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.Default.Logout, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Log Out")
+                Text("Log Out", style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -164,6 +187,72 @@ fun SettingsScreen(
             viewModel.resetCacheFlag()
         }
     }
+
+    if (showThemeDialog) {
+        ThemeSelectorDialog(
+            currentMode = ThemeManager.get(context),
+            onDismiss = { showThemeDialog = false },
+            onSelect = { mode ->
+                ThemeManager.save(context, mode)
+                (context as? Activity)?.recreate()
+            }
+        )
+    }
+}
+
+private fun currentThemeLabel(context: Context): String {
+    return when (ThemeManager.get(context)) {
+        "dark" -> "Dark Watermelon"
+        "light" -> "Light Watermelon"
+        else -> "System Default"
+    }
+}
+
+@Composable
+private fun ThemeSelectorDialog(
+    currentMode: String,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit
+) {
+    val modes = listOf(
+        "system" to "System Default",
+        "light" to "Light Watermelon",
+        "dark" to "Dark Watermelon"
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Choose Theme") },
+        text = {
+            Column {
+                modes.forEach { (key, label) ->
+                    val selected = currentMode == key
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(key) }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selected,
+                            onClick = { onSelect(key) },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = WatermelonRed
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(label, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        titleContentColor = MaterialTheme.colorScheme.onSurface,
+        textContentColor = MaterialTheme.colorScheme.onSurface
+    )
 }
 
 @Composable
@@ -177,52 +266,32 @@ private fun SettingsItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = WatermelonRed,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-    }
-}
-
-@Composable
-private fun SettingsToggle(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
         Icon(
-            imageVector = icon,
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f)
-        )
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }

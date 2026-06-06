@@ -1,6 +1,8 @@
 package com.watermelon.data.repository
 
+import android.net.Uri
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.watermelon.domain.repository.StreamingRepository
@@ -49,8 +51,18 @@ class StreamingRepositoryImpl @Inject constructor(
         player.addListener(listener)
     }
 
-    override fun play(url: String) {
-        val mediaItem = MediaItem.fromUri(url)
+    override fun play(url: String, title: String, artist: String, artworkUrl: String) {
+        val metadata = MediaMetadata.Builder()
+            .setTitle(title.takeIf { it.isNotBlank() })
+            .setArtist(artist.takeIf { it.isNotBlank() })
+            .setArtworkUri(artworkUrl.takeIf { it.isNotBlank() }?.let { Uri.parse(it) })
+            .build()
+
+        val mediaItem = MediaItem.Builder()
+            .setUri(url)
+            .setMediaMetadata(metadata)
+            .build()
+
         player.setMediaItem(mediaItem)
         player.prepare()
         player.play()

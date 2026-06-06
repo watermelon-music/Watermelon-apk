@@ -1,73 +1,71 @@
 package com.watermelon.data.remote.podcastindex.model
 
-import com.google.gson.annotations.SerializedName
-
 data class SearchResponse(
-    @SerializedName("status") val status: String,
-    @SerializedName("feeds") val feeds: List<PodcastFeed>,
-    @SerializedName("count") val count: Int,
-    @SerializedName("query") val query: String,
-    @SerializedName("description") val description: String
+    val status: String,
+    val feeds: List<PodcastFeed>,
+    val count: Int,
+    val query: String,
+    val description: String
 )
 
 data class EpisodesResponse(
-    @SerializedName("status") val status: String,
-    @SerializedName("items") val items: List<PodcastEpisode>,
-    @SerializedName("count") val count: Int
+    val status: String,
+    val items: List<PodcastEpisode>,
+    val count: Int
 )
 
 data class RecentEpisodesResponse(
-    @SerializedName("status") val status: String,
-    @SerializedName("items") val items: List<PodcastEpisode>,
-    @SerializedName("count") val count: Int
+    val status: String,
+    val items: List<PodcastEpisode>,
+    val count: Int
 )
 
 data class PodcastFeed(
-    @SerializedName("id") val id: Long,
-    @SerializedName("title") val title: String,
-    @SerializedName("url") val url: String,
-    @SerializedName("originalUrl") val originalUrl: String,
-    @SerializedName("link") val link: String,
-    @SerializedName("description") val description: String,
-    @SerializedName("author") val author: String,
-    @SerializedName("ownerName") val ownerName: String,
-    @SerializedName("image") val image: String,
-    @SerializedName("artwork") val artwork: String,
-    @SerializedName("lastUpdateTime") val lastUpdateTime: Long,
-    @SerializedName("lastCrawlTime") val lastCrawlTime: Long,
-    @SerializedName("lastParseTime") val lastParseTime: Long,
-    @SerializedName("lastGoodHttpStatusTime") val lastGoodHttpStatusTime: Long,
-    @SerializedName("lastHttpStatus") val lastHttpStatus: Int,
-    @SerializedName("contentType") val contentType: String,
-    @SerializedName("itunesId") val itunesId: Long?,
-    @SerializedName("generator") val generator: String,
-    @SerializedName("language") val language: String,
-    @SerializedName("type") val type: Int,
-    @SerializedName("dead") val dead: Int,
-    @SerializedName("chaptersUrl") val chaptersUrl: String?,
-    @SerializedName("episodeCount") val episodeCount: Int
+    val id: Long,
+    val title: String,
+    val url: String,
+    val originalUrl: String,
+    val link: String,
+    val description: String,
+    val author: String,
+    val ownerName: String,
+    val image: String,
+    val artwork: String,
+    val lastUpdateTime: Long,
+    val lastCrawlTime: Long,
+    val lastParseTime: Long,
+    val lastGoodHttpStatusTime: Long,
+    val lastHttpStatus: Int,
+    val contentType: String,
+    val itunesId: Long?,
+    val generator: String,
+    val language: String,
+    val type: Int,
+    val dead: Int,
+    val chaptersUrl: String?,
+    val episodeCount: Int
 )
 
 data class PodcastEpisode(
-    @SerializedName("id") val id: Long,
-    @SerializedName("title") val title: String,
-    @SerializedName("link") val link: String,
-    @SerializedName("description") val description: String,
-    @SerializedName("guid") val guid: String,
-    @SerializedName("datePublished") val datePublished: Long,
-    @SerializedName("dateCrawled") val dateCrawled: Long,
-    @SerializedName("enclosureUrl") val enclosureUrl: String,
-    @SerializedName("enclosureLength") val enclosureLength: Long,
-    @SerializedName("enclosureType") val enclosureType: String,
-    @SerializedName("duration") val duration: Int,
-    @SerializedName("explicit") val explicit: Int,
-    @SerializedName("episode") val episode: Int?,
-    @SerializedName("season") val season: Int?,
-    @SerializedName("image") val image: String,
-    @SerializedName("feedImage") val feedImage: String,
-    @SerializedName("feedId") val feedId: Long,
-    @SerializedName("feedUrl") val feedUrl: String,
-    @SerializedName("feedTitle") val feedTitle: String,
-    @SerializedName("feedLanguage") val feedLanguage: String,
-    @SerializedName("chaptersUrl") val chaptersUrl: String?
+    val id: Long,
+    val title: String,
+    val link: String,
+    val description: String,
+    val guid: String,
+    val datePublished: Long,
+    val dateCrawled: Long,
+    val enclosureUrl: String,
+    val enclosureLength: Long,
+    val enclosureType: String,
+    val duration: Int,
+    val explicit: Int,
+    val episode: Int?,
+    val season: Int?,
+    val image: String,
+    val feedImage: String,
+    val feedId: Long,
+    val feedUrl: String,
+    val feedTitle: String,
+    val feedLanguage: String,
+    val chaptersUrl: String?
 )

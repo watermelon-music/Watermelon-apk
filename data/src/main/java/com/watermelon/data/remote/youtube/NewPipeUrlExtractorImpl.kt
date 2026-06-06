@@ -54,8 +54,8 @@ class NewPipeUrlExtractorImpl @Inject constructor(
             lastException = e
         }
 
-        // 2. yt-dlp (most robust, uses bundled binary)
-        runCatching {
+        // 2. yt-dlp (most robust, uses bundled binary) — DISABLED pending dependency fix
+        /* runCatching {
             val ytDlpUrl = fetchYtDlpAudioUrl(sourceUrl)
                 ?: throw IllegalStateException("yt-dlp returned no audio URL")
             Timber.i("Audio URL from yt-dlp: $ytDlpUrl")
@@ -63,7 +63,7 @@ class NewPipeUrlExtractorImpl @Inject constructor(
         }.onFailure { e ->
             Timber.e(e, "yt-dlp failed")
             lastException = e
-        }
+        } */
 
         // 3. NewPipeExtractor with iOS client trick
         runCatching {
@@ -134,7 +134,7 @@ class NewPipeUrlExtractorImpl @Inject constructor(
         return null
     }
 
-    private fun fetchYtDlpAudioUrl(sourceUrl: String): String? {
+    /* private fun fetchYtDlpAudioUrl(sourceUrl: String): String? {
         return try {
             val request = com.yausername.youtubedl_android.YoutubeDLRequest(sourceUrl)
             request.addOption("-f", "bestaudio")
@@ -145,7 +145,7 @@ class NewPipeUrlExtractorImpl @Inject constructor(
             Timber.e(e, "yt-dlp extraction failed")
             null
         }
-    }
+    } */
 
     private fun fetchCobaltAudioUrl(sourceUrl: String): String? {
         try {

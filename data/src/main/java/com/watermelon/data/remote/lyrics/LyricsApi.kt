@@ -1,6 +1,5 @@
 package com.watermelon.data.remote.lyrics
 
-import com.google.gson.annotations.SerializedName
 import retrofit2.http.GET
 import retrofit2.http.Path
 
@@ -14,6 +13,6 @@ interface LyricsApi {
 }
 
 data class LyricsResponse(
-    @SerializedName("lyrics") val lyrics: String?,
-    @SerializedName("error") val error: String?
+    val lyrics: String?,
+    val error: String?
 )

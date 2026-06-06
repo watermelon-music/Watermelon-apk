@@ -3,14 +3,11 @@ package com.watermelon.data.repository
 import com.watermelon.data.local.dao.CachedSongDao
 import com.watermelon.data.local.entity.toCachedEntity
 import com.watermelon.data.local.entity.toSong
-import com.watermelon.data.remote.podcastindex.PodcastIndexRepository
 import com.watermelon.data.remote.youtube.NewPipeInitializer
 import com.watermelon.domain.model.Playlist
 import com.watermelon.domain.model.Song
 import com.watermelon.domain.repository.MusicCatalogRepository
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
@@ -23,8 +20,7 @@ import javax.inject.Singleton
 @Singleton
 class MusicCatalogRepositoryImpl @Inject constructor(
     initializer: NewPipeInitializer,
-    private val cachedSongDao: CachedSongDao,
-    private val podcastIndexRepository: PodcastIndexRepository
+    private val cachedSongDao: CachedSongDao
 ) : MusicCatalogRepository {
 
     private val youtube by lazy { org.schabi.newpipe.extractor.ServiceList.YouTube }
@@ -49,8 +45,7 @@ class MusicCatalogRepositoryImpl @Inject constructor(
         }
 
         val fresh = withContext(Dispatchers.IO) {
-            runCatching { fetchTrendingFromPodcastIndex() }.getOrNull()
-                ?: runCatching { fetchTrendingFromYouTube() }.getOrNull()
+            runCatching { fetchTrendingFromYouTube() }.getOrNull()
         }
 
         if (fresh != null) {
@@ -76,8 +71,7 @@ class MusicCatalogRepositoryImpl @Inject constructor(
         }
 
         val fresh = withContext(Dispatchers.IO) {
-            runCatching { fetchSearchFromPodcastIndex(query) }.getOrNull()
-                ?: runCatching { fetchSearchFromYouTube(query) }.getOrNull()
+            runCatching { fetchSearchFromYouTube(query) }.getOrNull()
         }
 
         if (fresh != null) {
@@ -86,48 +80,6 @@ class MusicCatalogRepositoryImpl @Inject constructor(
             emit(fresh)
         }
     }
-
-    // --- PodcastIndex primary ---
-
-    private suspend fun fetchTrendingFromPodcastIndex(): List<Song> = withContext(Dispatchers.IO) {
-        podcastIndexRepository.getRecentEpisodes(20)
-            .map { it.toSong() }
-    }
-
-    private suspend fun fetchSearchFromPodcastIndex(query: String): List<Song> = withContext(Dispatchers.IO) {
-        val feeds = podcastIndexRepository.searchPodcasts(query)
-        if (feeds.isEmpty()) return@withContext emptyList()
-
-        // Fetch episodes from up to 3 top feeds concurrently
-        val topFeeds = feeds.take(3)
-        val episodes = topFeeds.map { feed ->
-            async {
-                runCatching {
-                    podcastIndexRepository.getEpisodesByFeedId(feed.id, max = 7)
-                }.getOrDefault(emptyList())
-            }
-        }.awaitAll().flatten()
-
-        episodes.map { it.toSong() }
-    }
-
-    private fun com.watermelon.data.remote.podcastindex.model.PodcastEpisode.toSong(): Song {
-        return Song(
-            id = "pi_${id}_${feedId}",
-            title = title,
-            artistId = feedId.toString(),
-            artistName = feedTitle.ifBlank { "Podcast" },
-            albumId = feedId.toString(),
-            albumName = feedTitle.ifBlank { null },
-            durationMs = if (duration > 0) duration * 1000L else 0L,
-            coverUrl = image.ifBlank { feedImage.ifBlank { null } },
-            audioUrl = enclosureUrl,
-            genre = feedLanguage.ifBlank { null },
-            releaseDate = datePublished.toString()
-        )
-    }
-
-    // --- YouTube fallback (kept intact) ---
 
     private suspend fun fetchTrendingFromYouTube(): List<Song> = withContext(Dispatchers.IO) {
         val kioskList = youtube.getKioskList()

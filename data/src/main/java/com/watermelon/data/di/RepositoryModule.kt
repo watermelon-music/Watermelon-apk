@@ -2,14 +2,15 @@ package com.watermelon.data.di
 
 import com.watermelon.data.repository.AuthRepositoryImpl
 import com.watermelon.data.repository.DownloadRepositoryImpl
-import com.watermelon.data.repository.LyricsRepositoryImpl
+// import com.watermelon.data.repository.LyricsRepositoryImpl
 import com.watermelon.data.repository.MusicCatalogRepositoryImpl
 import com.watermelon.data.repository.MusicRepositoryImpl
 import com.watermelon.data.repository.PlaylistRepositoryImpl
 import com.watermelon.data.repository.StreamingRepositoryImpl
 import com.watermelon.data.repository.UserActionsRepositoryImpl
 import com.watermelon.data.remote.youtube.NewPipeUrlExtractorImpl
-import com.watermelon.domain.repository.LyricsRepository
+// import com.watermelon.domain.repository.LyricsRepository
+import com.watermelon.domain.repository.AuthRepository
 import com.watermelon.domain.repository.MusicCatalogRepository
 import com.watermelon.domain.repository.MusicRepository
 import com.watermelon.domain.repository.PlaylistRepository
@@ -60,7 +61,7 @@ abstract class RepositoryModule {
     @Singleton
     abstract fun bindPlaylistRepository(impl: PlaylistRepositoryImpl): PlaylistRepository
 
-    @Binds
+    /* @Binds
     @Singleton
-    abstract fun bindLyricsRepository(impl: LyricsRepositoryImpl): LyricsRepository
+    abstract fun bindLyricsRepository(impl: LyricsRepositoryImpl): LyricsRepository */
 }

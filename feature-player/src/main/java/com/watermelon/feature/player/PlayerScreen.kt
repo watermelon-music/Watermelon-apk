@@ -207,10 +207,11 @@ fun PlayerScreen(
                 }
             }
 
+            val lyrics = state.lyrics
             if (state.isLyricsLoading) {
                 Spacer(modifier = Modifier.height(16.dp))
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            } else if (!state.lyrics.isNullOrBlank()) {
+            } else if (!lyrics.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedCard(
                     modifier = Modifier
@@ -225,7 +226,7 @@ fun PlayerScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = state.lyrics,
+                            text = lyrics,
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.fillMaxSize()
                         )

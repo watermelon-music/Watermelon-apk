@@ -60,9 +60,10 @@ class MainActivity : ComponentActivity() {
                         val intent = Intent(activity, PlaybackService::class.java)
                         if (isPlaying.isPlaying) {
                             activity.startForegroundService(intent)
-                        } else {
-                            activity.stopService(intent)
                         }
+                        // Do NOT stop the service here — killing it when isPlaying
+                        // briefly becomes false causes crashes between songs and
+                        // during buffering. Service stops itself in onTaskRemoved().
                     }
 
                     val hideMiniPlayerRoutes = setOf(

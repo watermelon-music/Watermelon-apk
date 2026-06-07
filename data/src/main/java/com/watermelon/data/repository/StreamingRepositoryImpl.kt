@@ -43,7 +43,8 @@ class StreamingRepositoryImpl @Inject constructor(
         }
 
         override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-            listeners.forEach { it.onPlaybackError(error.localizedMessage ?: "Playback error") }
+            val detail = "${error.errorCodeName}: ${error.localizedMessage ?: "Playback error"}"
+            listeners.forEach { it.onPlaybackError(detail) }
         }
     }
 

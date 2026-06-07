@@ -37,6 +37,28 @@ class MusicCatalogRepositoryImpl @Inject constructor(
     private val youtube by lazy { org.schabi.newpipe.extractor.ServiceList.YouTube }
     private val cacheTtlMs = 60 * 60 * 1000L // 1 hour
 
+    // Filter out non-music content (news, politics, etc.)
+    private val newsKeywords = listOf(
+        "breaking news", "news update", "live news", "president", "election",
+        "bbc news", "abc news", "cnn ", "fox news", "press conference",
+        "government", "minister", "senate", "parliament", "inflation", "budget",
+        "weather alert", "emergency", "war update", "official statement",
+        "chief minister", "prime minister", "donald trump", "joe biden"
+    )
+    private val musicKeywords = listOf(
+        "song", " music", "album", "track", "audio", "official video",
+        "lyrics", "live performance", "concert", "remix", "cover", " ft ", " feat ",
+        "music video", "dj ", "mix", "playlist", "single", " ep ", " ost ",
+        "soundtrack", "theme song"
+    )
+    private fun isMusicContent(title: String): Boolean {
+        val lower = title.lowercase()
+        val hasNews = newsKeywords.any { lower.contains(it.lowercase()) }
+        if (!hasNews) return true // No news signals = keep it
+        val hasMusic = musicKeywords.any { lower.contains(it.lowercase()) }
+        return hasMusic // If it has news words BUT also music words, it's probably a song
+    }
+
     private val mockPlaylists = listOf(
         Playlist("1","Chill Vibes","Relax and unwind","https://picsum.photos/seed/p1/300/300","system"),
         Playlist("2","Workout Energy","Pump it up","https://picsum.photos/seed/p2/300/300","system"),
@@ -66,9 +88,7 @@ class MusicCatalogRepositoryImpl @Inject constructor(
                 ?: runCatching { audiusRepository.getTrendingTracks() }.getOrNull()
                     ?.takeIf { it.isNotEmpty() }
                     ?.map { it.toSong() }
-                ?: runCatching { podcastIndexRepository.getRecentEpisodes(max = 20) }.getOrNull()
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.map { it.toSong() }
+            // Podcasts removed from Trending — they are talk, not music
         }
 
         if (fresh != null) {
@@ -178,6 +198,7 @@ class MusicCatalogRepositoryImpl @Inject constructor(
         extractor.fetchPage()
         extractor.initialPage.items
             .filterIsInstance<StreamInfoItem>()
+            .filter { isMusicContent(it.name) }
             .take(20)
             .map { it.toSong() }
     }
@@ -187,6 +208,7 @@ class MusicCatalogRepositoryImpl @Inject constructor(
         extractor.fetchPage()
         extractor.initialPage.items
             .filterIsInstance<StreamInfoItem>()
+            .filter { isMusicContent(it.name) }
             .take(20)
             .map { it.toSong() }
     }

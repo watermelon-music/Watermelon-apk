@@ -86,9 +86,16 @@ class PlayerViewModel @Inject constructor(
             }
             viewModelScope.launch {
                 try {
-                    delay(2000)
+                    delay(3000)
                     _uiState.update { it.copy(errorMessage = null) }
                     if (consecutiveErrors <= 1) {
+                        // Invalidate cached URL before retry — Google Video URLs expire quickly
+                        val currentSong = internalQueue.getOrNull(currentIndex)
+                        if (currentSong != null) {
+                            val sourceUrl = currentSong.audioUrl?.takeIf { it.isNotBlank() }
+                                ?: "https://www.youtube.com/watch?v=${currentSong.id}"
+                            urlExtractor.invalidateCache(sourceUrl)
+                        }
                         retryCurrent()
                     } else if (hasNextInternal()) {
                         consecutiveErrors = 0

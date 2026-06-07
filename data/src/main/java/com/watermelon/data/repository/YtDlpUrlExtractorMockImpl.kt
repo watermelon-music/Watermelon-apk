@@ -20,6 +20,10 @@ import javax.inject.Singleton
 @Singleton
 class YtDlpUrlExtractorMockImpl @Inject constructor() : UrlExtractorRepository {
 
+    override fun invalidateCache(sourceUrl: String) {
+        // No-op for mock
+    }
+
     override suspend fun extractAudioUrl(sourceUrl: String): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
             val directExtensions = listOf(".mp3", ".m4a", ".ogg", ".opus", ".wav", ".flac")

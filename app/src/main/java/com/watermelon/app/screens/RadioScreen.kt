@@ -3,6 +3,7 @@ package com.watermelon.app.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -57,7 +58,7 @@ fun RadioScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(categories) { cat ->
                         val selected = selectedCategory == cat
                         FilterChip(
@@ -93,8 +94,8 @@ fun RadioScreen(
                             station = station,
                             onPlay = {
                                 onPlayStation(
-                                    station.url_resolved ?: station.url,
-                                    station.name,
+                                    station.url_resolved ?: station.url ?: "",
+                                    station.name ?: "Unknown Station",
                                     station.country ?: "Unknown"
                                 )
                             }
@@ -147,7 +148,7 @@ private fun StationCard(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = station.name,
+                    text = station.name ?: "Unknown Station",
                     style = MaterialTheme.typography.bodyLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

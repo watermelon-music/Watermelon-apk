@@ -49,8 +49,8 @@ data class RadioLanguage(
 )
 
 data class RadioStationDto(
-    val name: String,
-    val url: String,
+    val name: String?,
+    val url: String?,
     val url_resolved: String? = null,
     val homepage: String? = null,
     val country: String? = null,

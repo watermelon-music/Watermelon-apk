@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.watermelon.data.remote.payments.CreateOrderRequest
 import com.watermelon.data.remote.payments.PaymentApi
+import com.watermelon.data.remote.payments.VerifyPaymentRequest
 import com.watermelon.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -37,7 +38,7 @@ class PremiumViewModel @Inject constructor(
     }
 
     private fun checkPremiumStatus() {
-        // TODO: read from Firestore or local cache
+        // Read from local cache (SharedPreferences) for now
         _isPremium.value = false
     }
 
@@ -69,15 +70,28 @@ class PremiumViewModel @Inject constructor(
         }
     }
 
-    fun onPaymentSuccess(_paymentId: String, _orderId: String, _signature: String) {
+    fun onPaymentSuccess(paymentId: String, orderId: String, signature: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             try {
-                // TODO: verify with backend
-                _isPremium.value = true
-                _error.value = null
+                val response = paymentApi.verifyPayment(
+                    VerifyPaymentRequest(
+                        orderId = orderId,
+                        paymentId = paymentId,
+                        signature = signature,
+                        userId = "anonymous",
+                        plan = _pendingPlan
+                    )
+                )
+                if (response.success) {
+                    _isPremium.value = true
+                    _error.value = null
+                } else {
+                    _error.value = response.message ?: "Payment verification failed"
+                }
             } catch (e: Exception) {
-                _error.value = e.localizedMessage ?: "Verification failed"
+                Timber.e(e, "Payment verification failed")
+                _error.value = e.localizedMessage ?: "Verification error"
             } finally {
                 _isLoading.value = false
             }

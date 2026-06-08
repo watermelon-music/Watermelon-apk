@@ -76,7 +76,7 @@ class RadioViewModel @Inject constructor(
             } catch (e: Exception) {
                 Timber.e(e, "Failed to load radio filters")
                 Triple(
-                    listOf("pop", "rock", "jazz", "classical", "bollywood", "electronic", "hiphop", "devotional", "news", "talk"),
+                    listOf("pop", "rock", "jazz", "classical", "bollywood", "electronic", "hiphop"),
                     listOf("India", "United States of America", "United Kingdom", "Germany", "France", "Canada", "Australia", "Brazil", "Russia", "Japan"),
                     listOf("english", "hindi", "spanish", "french", "german", "tamil", "telugu", "kannada", "malayalam", "marathi")
                 )
@@ -154,7 +154,7 @@ class RadioViewModel @Inject constructor(
             "rock" -> listOf(
                 RadioStationDto("Classic Rock Florida", "https://listen.181fm.com/181-classicrock_128k.mp3", country = "United States of America", bitrate = 128, tags = "rock"),
                 RadioStationDto("Absolute Classic Rock", "https://edge-bauerall-01-gos2.sharp-stream.com/absoluteclassicrock.mp3", country = "United Kingdom", bitrate = 128, tags = "rock"),
-                RadioStationDto("Radio BOB", "https:// streams.radiobob.de/bob-national/mp3-192/streams.radiobob.de/", country = "Germany", bitrate = 192, tags = "rock"),
+                RadioStationDto("Radio BOB", "https://streams.radiobob.de/bob-national/mp3-192/streams.radiobob.de/", country = "Germany", bitrate = 192, tags = "rock"),
                 RadioStationDto("Rock Antenne", "https://stream.rockantenne.de/rockantenne/stream/mp3", country = "Germany", bitrate = 128, tags = "rock")
             )
             "jazz" -> listOf(
@@ -181,20 +181,6 @@ class RadioViewModel @Inject constructor(
                 RadioStationDto("Hot 97", "https://playerservices.streamtheworld.com/api/livestream-redirect/WQHTFM.mp3", country = "United States of America", bitrate = 128, tags = "hiphop"),
                 RadioStationDto("Power 106", "https://playerservices.streamtheworld.com/api/livestream-redirect/KPWRAAC.aac", country = "United States of America", bitrate = 128, tags = "hiphop"),
                 RadioStationDto("BBC 1Xtra", "http://stream.live.vc.bbcmedia.co.uk/bbc_1xtra", country = "United Kingdom", bitrate = 128, tags = "hiphop")
-            )
-            "devotional" -> listOf(
-                RadioStationDto("Radio City Bhakti", "https://prclive4.listenon.in/Bhakti", country = "India", bitrate = 64, tags = "devotional"),
-                RadioStationDto("Shemaroo Bhakti", "https://ibetvshesa1-128.akamaized.net/ibetvshemaa1_128/", country = "India", bitrate = 128, tags = "devotional"),
-                RadioStationDto("Sanskar Radio", "https://radio2.sanskarradio.com/radio/8020/radio.mp3", country = "India", bitrate = 128, tags = "devotional")
-            )
-            "news" -> listOf(
-                RadioStationDto("BBC World Service", "http://stream.live.vc.bbcmedia.co.uk/bbc_world_service", country = "United Kingdom", bitrate = 128, tags = "news"),
-                RadioStationDto("NPR News", "https://npr-ice.streamguys1.com/live.mp3", country = "United States of America", bitrate = 128, tags = "news"),
-                RadioStationDto("France Info", "https://live.francetv.fr/simulcast/Franceinfo/master.m3u8", country = "France", bitrate = 128, tags = "news")
-            )
-            "talk" -> listOf(
-                RadioStationDto("BBC Radio 4", "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_fourfm", country = "United Kingdom", bitrate = 128, tags = "talk"),
-                RadioStationDto("LBC", "https://media-ssl.musicradio.com/LBCUK", country = "United Kingdom", bitrate = 128, tags = "talk")
             )
             else -> listOf(
                 RadioStationDto("BBC World Service", "http://stream.live.vc.bbcmedia.co.uk/bbc_world_service", country = "United Kingdom", bitrate = 128, tags = "news"),

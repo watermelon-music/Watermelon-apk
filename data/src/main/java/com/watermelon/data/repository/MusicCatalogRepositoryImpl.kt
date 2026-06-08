@@ -47,24 +47,17 @@ class MusicCatalogRepositoryImpl @Inject constructor(
         "live stream", "streaming", "podcast", "podcasts", "talk show",
         "interview", "interviews", "news", "breaking", "politics",
         "weather", "sports highlight", "football highlight", "cricket highlight",
-        "movie review", "film review", "trailer", "teaser"
-    )
-    private val musicKeywords = listOf(
-        "song", "music", "album", "track", "audio", "official video",
-        "lyrics", "live performance", "concert", "remix", "cover", " ft ", " feat ",
-        "music video", "dj ", "mix", "playlist", "single", " ep ", " ost ",
-        "soundtrack", "theme song", "acoustic", "unplugged", "mashup"
+        "movie review", "film review", "trailer", "teaser",
+        "speedrun", "esports", "e-sports", "mmorpg", "rpg", "mmo",
+        "boss fight", "no commentary", "indie game", "mobile game",
+        "android gameplay", "ios gameplay", "game music video", "gmv"
     )
     private fun isMusicContent(title: String, durationSec: Long = 0): Boolean {
         val lower = title.lowercase()
-        // Strict block: gaming/vlog/news content
+        // Zero-tolerance block for gaming/vlog/news/irrelevant content
         val hasBlocked = gamingVlogKeywords.any { lower.contains(it.lowercase()) }
-        if (hasBlocked) {
-            // Only allow through if it clearly has music signals too
-            val hasMusic = musicKeywords.any { lower.contains(it.lowercase()) }
-            if (!hasMusic) return false
-        }
-        // Duration heuristic: songs are typically 1-10 minutes
+        if (hasBlocked) return false
+        // Duration heuristic: songs are typically 45 seconds to 12 minutes
         if (durationSec > 0) {
             if (durationSec < 45) return false      // Too short (shorts/reels)
             if (durationSec > 720) return false     // Too long (podcasts, streams)
@@ -135,9 +128,6 @@ class MusicCatalogRepositoryImpl @Inject constructor(
                     ?.takeIf { it.isNotEmpty() }
                     ?.map { it.toSong() }
                 ?: runCatching { audiusRepository.searchTracks(query) }.getOrNull()
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.map { it.toSong() }
-                ?: runCatching { podcastIndexRepository.searchEpisodes(query) }.getOrNull()
                     ?.takeIf { it.isNotEmpty() }
                     ?.map { it.toSong() }
         }

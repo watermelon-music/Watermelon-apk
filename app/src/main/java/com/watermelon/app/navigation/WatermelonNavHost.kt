@@ -35,7 +35,10 @@ import com.watermelon.feature.player.PlayerViewModel
 import com.watermelon.feature.player.QueueScreen
 import com.watermelon.feature.playlist.PlaylistDetailScreen
 import com.watermelon.feature.search.SearchScreen
+import com.watermelon.app.screens.AboutScreen
+import com.watermelon.app.screens.OnboardingScreen
 import com.watermelon.app.screens.PremiumScreen
+import com.watermelon.app.screens.ProfileScreen
 import com.watermelon.app.screens.RadioScreen
 import com.watermelon.feature.settings.SettingsScreen
 import kotlinx.coroutines.delay
@@ -76,7 +79,13 @@ fun WatermelonNavHost(
             }
         }
         composable(Routes.ONBOARDING) {
-            // TODO: OnboardingScreen
+            OnboardingScreen(
+                onGetStarted = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.ONBOARDING) { inclusive = true }
+                    }
+                }
+            )
         }
         composable(Routes.LOGIN) {
             LoginScreen(
@@ -183,7 +192,13 @@ fun WatermelonNavHost(
             )
         }
         composable(Routes.PROFILE) {
-            // TODO: ProfileScreen
+            ProfileScreen(
+                onLogout = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.HOME) { inclusive = true }
+                    }
+                }
+            )
         }
         composable(Routes.SETTINGS) {
             SettingsScreen(
@@ -196,7 +211,7 @@ fun WatermelonNavHost(
             )
         }
         composable(Routes.ABOUT) {
-            // TODO: AboutScreen
+            AboutScreen(onBack = { navController.popBackStack() })
         }
     }
 }

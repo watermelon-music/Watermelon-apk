@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +29,7 @@ import com.watermelon.core.designsystem.theme.WatermelonTheme
 import com.watermelon.core.navigation.Routes
 import com.watermelon.feature.player.MiniPlayer
 import com.watermelon.feature.player.PlayerViewModel
+import com.watermelon.app.screens.PremiumViewModel
 import com.watermelon.app.screens.buildRazorpayOptions
 import dagger.hilt.android.AndroidEntryPoint
 import com.razorpay.Checkout
@@ -35,6 +37,8 @@ import timber.log.Timber
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private val premiumViewModel: PremiumViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -149,7 +153,7 @@ class MainActivity : ComponentActivity() {
                 val orderId = data.getStringExtra("razorpay_order_id")
                 val signature = data.getStringExtra("razorpay_signature")
                 if (paymentId != null && orderId != null && signature != null) {
-                    // TODO: forward to PremiumViewModel
+                    premiumViewModel.onPaymentSuccess(paymentId, orderId, signature)
                 } else {
                     val errorCode = data.getStringExtra("error_code") ?: "0"
                     val errorMsg = data.getStringExtra("error_description") ?: "Payment error"

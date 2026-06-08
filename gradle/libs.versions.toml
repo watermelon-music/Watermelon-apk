@@ -94,6 +94,9 @@ firebase-config-ktx = { group = "com.google.firebase", name = "firebase-config-k
 firebase-analytics-ktx = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
 firebase-play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version = "21.2.0" }
 
+# Razorpay
+razorpay-checkout = { group = "com.razorpay", name = "checkout", version = "1.6.41" }
+
 # Coroutines
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 
@@ -120,6 +123,9 @@ compose = [
     "compose-material3",
     "compose-material-icons-extended",
     "androidx-activity-compose",
+]
+
+firebase = [
     "firebase-auth-ktx",
     "firebase-firestore-ktx",
     "firebase-config-ktx",

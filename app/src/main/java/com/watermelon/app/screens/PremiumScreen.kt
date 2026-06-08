@@ -67,7 +67,13 @@ fun PremiumScreen(
                     .padding(padding)
                     .padding(horizontal = 24.dp),
                 isLoading = isLoading,
-                onStartCheckout = onStartCheckout
+                onPlanSelected = { key, paise, label ->
+                    if (!isLoading) {
+                        viewModel.createOrder(key, paise) { orderId ->
+                            onStartCheckout(orderId, paise, label)
+                        }
+                    }
+                }
             )
         }
     }
@@ -77,7 +83,7 @@ fun PremiumScreen(
 private fun PremiumUpsellContent(
     modifier: Modifier = Modifier,
     isLoading: Boolean,
-    onStartCheckout: (Int, String, String) -> Unit
+    onPlanSelected: (String, Int, String) -> Unit
 ) {
     Column(
         modifier = modifier,
@@ -147,9 +153,7 @@ private fun PremiumUpsellContent(
                 },
                 onClick = {
                     if (!isLoading) {
-                        viewModel.createOrder(key, paise) { orderId ->
-                            onStartCheckout(orderId, paise, label)
-                        }
+                        onPlanSelected(key, paise, label)
                     }
                 }
             )

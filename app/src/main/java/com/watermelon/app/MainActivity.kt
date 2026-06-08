@@ -31,6 +31,7 @@ import com.watermelon.feature.player.PlayerViewModel
 import com.watermelon.app.screens.buildRazorpayOptions
 import dagger.hilt.android.AndroidEntryPoint
 import com.razorpay.Checkout
+import timber.log.Timber
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -139,7 +140,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Deprecated("Deprecated in Java")
+    @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == Checkout.RZP_REQUEST_CODE) {
@@ -152,6 +153,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     val errorCode = data.getStringExtra("error_code") ?: "0"
                     val errorMsg = data.getStringExtra("error_description") ?: "Payment error"
+                    Timber.e("Razorpay error: $errorCode - $errorMsg")
                     // TODO: forward error
                 }
             }

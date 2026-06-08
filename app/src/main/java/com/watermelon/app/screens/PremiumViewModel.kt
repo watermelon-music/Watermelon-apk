@@ -54,8 +54,9 @@ class PremiumViewModel @Inject constructor(
                         plan = plan
                     )
                 )
-                if (response.success && response.orderId != null) {
-                    onOrderCreated(response.orderId)
+                val orderId = response.orderId
+                if (response.success && orderId != null) {
+                    onOrderCreated(orderId)
                 } else {
                     _error.value = response.message ?: "Failed to create order"
                 }
@@ -68,7 +69,7 @@ class PremiumViewModel @Inject constructor(
         }
     }
 
-    fun onPaymentSuccess(paymentId: String, orderId: String, signature: String) {
+    fun onPaymentSuccess(_paymentId: String, _orderId: String, _signature: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             try {

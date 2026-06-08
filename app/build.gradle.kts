@@ -42,6 +42,11 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    configurations.all {
+        resolutionStrategy {
+            force("com.google.protobuf:protobuf-javalite:3.25.5")
+        }
+    }
     buildFeatures {
         compose = true
         buildConfig = true
@@ -89,8 +94,13 @@ dependencies {
     // yt-dlp init
     implementation(libs.youtubedl.android.library)
 
+    // Firebase (BOM + libraries)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.bundles.firebase)
+    implementation(libs.firebase.play.services.auth)
+
     // Razorpay Checkout
-    implementation("com.razorpay:checkout:1.6.42")
+    implementation(libs.razorpay.checkout)
 
     // Logging
     implementation(libs.timber)

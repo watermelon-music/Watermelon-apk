@@ -28,13 +28,16 @@ import com.watermelon.core.designsystem.theme.WatermelonTheme
 import com.watermelon.core.navigation.Routes
 import com.watermelon.feature.player.MiniPlayer
 import com.watermelon.feature.player.PlayerViewModel
+import com.watermelon.app.screens.buildRazorpayOptions
 import dagger.hilt.android.AndroidEntryPoint
+import com.razorpay.Checkout
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        Checkout.preload(applicationContext)
         setContent {
             val context = LocalContext.current
             val mode = remember { ThemeManager.get(context) }
@@ -115,9 +118,41 @@ class MainActivity : ComponentActivity() {
                         WatermelonNavHost(
                             navController = navController,
                             playerViewModel = playerViewModel,
-                            modifier = Modifier.padding(padding)
+                            modifier = Modifier.padding(padding),
+                            onStartCheckout = { orderId, amount, label ->
+                                startRazorpayCheckout(orderId, amount, label)
+                            }
                         )
                     }
+                }
+            }
+        }
+    }
+
+    fun startRazorpayCheckout(orderId: String, amountPaise: Int, planLabel: String) {
+        try {
+            val options = buildRazorpayOptions(orderId, amountPaise, "user@watermelon.app", planLabel)
+            val checkout = Checkout()
+            checkout.open(this, options)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == Checkout.RZP_REQUEST_CODE) {
+            if (data != null) {
+                val paymentId = data.getStringExtra("razorpay_payment_id")
+                val orderId = data.getStringExtra("razorpay_order_id")
+                val signature = data.getStringExtra("razorpay_signature")
+                if (paymentId != null && orderId != null && signature != null) {
+                    // TODO: forward to PremiumViewModel
+                } else {
+                    val errorCode = data.getStringExtra("error_code") ?: "0"
+                    val errorMsg = data.getStringExtra("error_description") ?: "Payment error"
+                    // TODO: forward error
                 }
             }
         }

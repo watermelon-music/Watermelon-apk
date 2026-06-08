@@ -113,6 +113,17 @@ object NetworkModule {
             .build()
             .create(WatermelonApi::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun providePaymentApi(@WatermelonClient client: OkHttpClient): com.watermelon.data.remote.payments.PaymentApi {
+        return Retrofit.Builder()
+            .baseUrl(BuildConfig.WATERMELON_API_URL)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(com.watermelon.data.remote.payments.PaymentApi::class.java)
+    }
 }
 
 @Qualifier

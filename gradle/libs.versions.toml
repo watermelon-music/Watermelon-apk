@@ -89,6 +89,9 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 # Firebase
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version = "32.8.0" }
 firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx" }
+firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
+firebase-config-ktx = { group = "com.google.firebase", name = "firebase-config-ktx" }
+firebase-analytics-ktx = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
 firebase-play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version = "21.2.0" }
 
 # Coroutines
@@ -117,6 +120,10 @@ compose = [
     "compose-material3",
     "compose-material-icons-extended",
     "androidx-activity-compose",
+    "firebase-auth-ktx",
+    "firebase-firestore-ktx",
+    "firebase-config-ktx",
+    "firebase-analytics-ktx",
 ]
 
 [plugins]

@@ -45,7 +45,8 @@ fun WatermelonNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController,
     playerViewModel: PlayerViewModel,
-    startDestination: String = Routes.SPLASH
+    startDestination: String = Routes.SPLASH,
+    onStartCheckout: (orderId: String, amountPaise: Int, planLabel: String) -> Unit = { _, _, _ -> }
 ) {
     NavHost(
         navController = navController,
@@ -124,7 +125,9 @@ fun WatermelonNavHost(
             )
         }
         composable(Routes.PREMIUM) {
-            PremiumScreen()
+            PremiumScreen(
+                onStartCheckout = onStartCheckout
+            )
         }
         composable(Routes.SEARCH) {
             SearchScreen(

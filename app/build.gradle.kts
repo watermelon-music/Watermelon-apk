@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -87,6 +88,9 @@ dependencies {
 
     // yt-dlp init
     implementation(libs.youtubedl.android.library)
+
+    // Razorpay Checkout
+    implementation("com.razorpay:checkout:1.6.42")
 
     // Logging
     implementation(libs.timber)

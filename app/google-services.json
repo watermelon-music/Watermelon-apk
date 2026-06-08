@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "451037737034",
+    "project_id": "comet-445917",
+    "storage_bucket": "comet-445917.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:451037737034:android:552c7799c7c3c4f93936b3",
+        "android_client_info": {
+          "package_name": "com.watermelon.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "451037737034-70harq32g5n8ggap7p8q06l3frq4q0ui.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfA9N3vS3yD0AMot5_nsQduG_xkcF7mgw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "451037737034-70harq32g5n8ggap7p8q06l3frq4q0ui.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -165,3 +165,40 @@ $$ language plpgsql security definer;
 
 -- Run once to populate
 select public.refresh_admin_stats();
+
+-- 7. PREMIUM REQUESTS TABLE (pending payment verifications awaiting admin approval)
+-- The backend writes rows here after successful Razorpay signature check.
+-- The admin Telegram bot reads this and approves via /verify <email>.
+create table public.premium_requests (
+  id uuid default gen_random_uuid(),
+  user_id uuid references auth.users on delete cascade not null,
+  email text not null,
+  plan text not null default 'PREMIUM_INDIVIDUAL' check (plan in ('PREMIUM_INDIVIDUAL', 'PREMIUM_FAMILY', 'STUDENT')),
+  order_id text not null,
+  payment_id text not null,
+  amount integer not null, -- in paise
+  currency text not null default 'INR',
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now()),
+  primary key (id),
+  unique (payment_id)
+);
+
+-- Lock this down — only backend service_role should read/insert
+alter table public.premium_requests enable row level security;
+create policy "Block all" on public.premium_requests for all using (false);
+
+-- Optional: trim pending requests older than 7 days so the table stays small
+create function public.clean_old_premium_requests()
+returns trigger as $$
+begin
+  delete from public.premium_requests
+  where status = 'pending' and created_at < now() - interval '7 days';
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger on_premium_request_inserted
+  after insert on public.premium_requests
+  for each row execute procedure public.clean_old_premium_requests();

@@ -49,7 +49,10 @@ import com.watermelon.app.screens.PremiumScreen
 import com.watermelon.app.screens.ProfileScreen
 import com.watermelon.app.screens.RadioScreen
 import com.watermelon.feature.settings.SettingsScreen
+import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import com.watermelon.feature.library.LibraryViewModel
 
 @Composable
 fun WatermelonNavHost(
@@ -173,7 +176,8 @@ fun WatermelonNavHost(
                     playerViewModel.playSong(song)
                     navController.navigate(Routes.PLAYER)
                 },
-                onCreatePlaylist = { navController.navigate(Routes.CREATE_PLAYLIST) }
+                onCreatePlaylist = { navController.navigate(Routes.CREATE_PLAYLIST) },
+                onNavigateToPremium = { navController.navigate(Routes.PREMIUM) }
             )
         }
         composable(
@@ -226,18 +230,23 @@ fun WatermelonNavHost(
                     }
                 },
                 onNavigateToProfile = { navController.navigate(Routes.PROFILE) },
-                onNavigateToAbout = { navController.navigate(Routes.ABOUT) }
+                onNavigateToAbout = { navController.navigate(Routes.ABOUT) },
+                onNavigateToPremium = { navController.navigate(Routes.PREMIUM) }
             )
         }
         composable(Routes.ABOUT) {
             AboutScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.CREATE_PLAYLIST) {
+            val libraryViewModel: LibraryViewModel = hiltViewModel(navController.getBackStackEntry(Routes.LIBRARY))
+            val scope = rememberCoroutineScope()
             CreatePlaylistScreen(
                 onBack = { navController.popBackStack() },
                 onCreate = { name, desc ->
-                    // TODO: persist playlist via ViewModel
-                    navController.popBackStack()
+                    scope.launch {
+                        libraryViewModel.createPlaylist(name, desc)
+                        navController.popBackStack()
+                    }
                 }
             )
         }

@@ -150,27 +150,33 @@ class PlayerViewModel @Inject constructor(
     fun loadAndPlay(sourceUrl: String, title: String, artist: String, artwork: String, songId: String = "") {
         viewModelScope.launch {
             _uiState.update { it.copy(isBuffering = true, errorMessage = null) }
-            val extractResult = urlExtractor.extractAudioUrl(sourceUrl)
-            extractResult
-                .onSuccess { directUrl ->
-                    val cleanUrl = directUrl.replace(Regex("[?&]range=[^&]*"), "")
-                        .replace(Regex("[?&]$"), "")
-                    streamingRepository.play(cleanUrl, title, artist, artwork)
-                    _uiState.update {
-                        it.copy(
-                            currentTitle = title,
-                            currentArtist = artist,
-                            artworkUrl = artwork,
-                            currentSongId = songId,
-                            isBuffering = false
-                        )
+            runCatching {
+                val extractResult = urlExtractor.extractAudioUrl(sourceUrl)
+                extractResult
+                    .onSuccess { directUrl ->
+                        val cleanUrl = directUrl.replace(Regex("[?&]range=[^&]*"), "")
+                            .replace(Regex("[?&]$"), "")
+                        streamingRepository.play(cleanUrl, title, artist, artwork)
+                        _uiState.update {
+                            it.copy(
+                                currentTitle = title,
+                                currentArtist = artist,
+                                artworkUrl = artwork,
+                                currentSongId = songId,
+                                isBuffering = false
+                            )
+                        }
                     }
-                }
-                .onFailure { e ->
-                    _uiState.update {
-                        it.copy(isBuffering = false, errorMessage = e.localizedMessage ?: "Playback error")
+                    .onFailure { e ->
+                        _uiState.update {
+                            it.copy(isBuffering = false, errorMessage = e.localizedMessage ?: "Playback error")
+                        }
                     }
+            }.onFailure { e ->
+                _uiState.update {
+                    it.copy(isBuffering = false, errorMessage = e.localizedMessage ?: "Playback error")
                 }
+            }
         }
     }
 

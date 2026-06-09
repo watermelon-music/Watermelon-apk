@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import javax.inject.Inject
@@ -36,6 +38,7 @@ class MusicCatalogRepositoryImpl @Inject constructor(
 
     private val youtube by lazy { org.schabi.newpipe.extractor.ServiceList.YouTube }
     private val cacheTtlMs = 60 * 60 * 1000L // 1 hour
+    private val extractorMutex = Mutex()
 
     // Block non-music content aggressively (news, gaming, vlogs, tutorials, etc.)
     private val gamingVlogKeywords = listOf(
@@ -202,26 +205,30 @@ class MusicCatalogRepositoryImpl @Inject constructor(
     }
 
     private suspend fun fetchTrendingFromYouTube(): List<Song> = withContext(Dispatchers.IO) {
-        initializer.ensureInitialized()
-        val kioskList = youtube.getKioskList()
-        val extractor = kioskList.getDefaultKioskExtractor()
-        extractor.fetchPage()
-        extractor.initialPage.items
-            .filterIsInstance<StreamInfoItem>()
-            .filter { isMusicContent(it.name, it.duration) }
-            .take(20)
-            .map { it.toSong() }
+        extractorMutex.withLock {
+            initializer.ensureInitialized()
+            val kioskList = youtube.getKioskList()
+            val extractor = kioskList.getDefaultKioskExtractor()
+            extractor.fetchPage()
+            extractor.initialPage.items
+                .filterIsInstance<StreamInfoItem>()
+                .filter { isMusicContent(it.name, it.duration) }
+                .take(20)
+                .map { it.toSong() }
+        }
     }
 
     private suspend fun fetchSearchFromYouTube(query: String): List<Song> = withContext(Dispatchers.IO) {
-        initializer.ensureInitialized()
-        val extractor = youtube.getSearchExtractor("$query song official music")
-        extractor.fetchPage()
-        extractor.initialPage.items
-            .filterIsInstance<StreamInfoItem>()
-            .filter { isMusicContent(it.name, it.duration) }
-            .take(20)
-            .map { it.toSong() }
+        extractorMutex.withLock {
+            initializer.ensureInitialized()
+            val extractor = youtube.getSearchExtractor("$query song official music")
+            extractor.fetchPage()
+            extractor.initialPage.items
+                .filterIsInstance<StreamInfoItem>()
+                .filter { isMusicContent(it.name, it.duration) }
+                .take(20)
+                .map { it.toSong() }
+        }
     }
 
     private fun StreamInfoItem.toSong(): Song {

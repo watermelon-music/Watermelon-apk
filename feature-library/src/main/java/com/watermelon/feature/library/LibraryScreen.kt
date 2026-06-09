@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -33,12 +34,15 @@ fun LibraryScreen(
     onPlaylistClick: (Playlist) -> Unit,
     onSongClick: (Song) -> Unit,
     onCreatePlaylist: () -> Unit = {},
+    onNavigateToPremium: () -> Unit = {},
     viewModel: LibraryViewModel = hiltViewModel()
 ) {
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
     val recentlyPlayed by viewModel.recentlyPlayed.collectAsStateWithLifecycle()
+    val canCreate by viewModel.canCreatePlaylist.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
+    var showPaywall by remember { mutableStateOf(false) }
     val tabs = listOf("Playlists", "Favorites", "Feed")
 
     Scaffold(
@@ -55,7 +59,9 @@ fun LibraryScreen(
         floatingActionButton = {
             if (selectedTab == 0) {
                 FloatingActionButton(
-                    onClick = onCreatePlaylist,
+                    onClick = {
+                        if (canCreate) onCreatePlaylist() else showPaywall = true
+                    },
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {
                     Icon(
@@ -101,6 +107,29 @@ fun LibraryScreen(
                 )
             }
         }
+    }
+
+    if (showPaywall) {
+        AlertDialog(
+            onDismissRequest = { showPaywall = false },
+            title = { Text("Playlist Limit Reached") },
+            text = {
+                Text("Free users can create up to 3 playlists. Upgrade to Premium for unlimited playlists.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPaywall = false
+                    onNavigateToPremium()
+                }) {
+                    Text("Go Premium")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPaywall = false }) {
+                    Text("Maybe Later")
+                }
+            }
+        )
     }
 }
 

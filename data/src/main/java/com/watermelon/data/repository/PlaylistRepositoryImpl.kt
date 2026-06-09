@@ -1,27 +1,171 @@
 package com.watermelon.data.repository
 
+import android.content.Context
+import com.watermelon.data.BuildConfig
+import com.watermelon.data.remote.supabase.model.PlaylistRow
+import com.watermelon.data.remote.supabase.model.PlaylistSongRow
 import com.watermelon.domain.model.Playlist
+import com.watermelon.domain.model.PlaylistSong
 import com.watermelon.domain.model.Song
 import com.watermelon.domain.repository.PlaylistRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.gotrue.auth
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class PlaylistRepositoryImpl @Inject constructor() : PlaylistRepository {
+class PlaylistRepositoryImpl @Inject constructor(
+    private val client: SupabaseClient,
+    @ApplicationContext private val context: Context
+) : PlaylistRepository {
 
-    override fun getUserPlaylists(): Flow<List<Playlist>> = flowOf(emptyList())
+    private val prefs = context.getSharedPreferences("watermelon_playlists", Context.MODE_PRIVATE)
+    private val json = Json { ignoreUnknownKeys = true }
+    private val _playlists = MutableStateFlow(loadLocalCache())
 
-    override suspend fun createPlaylist(name: String, description: String?, coverUrl: String?): Result<Playlist> =
-        Result.success(Playlist("new", name, description ?: "", coverUrl, "user"))
+    override fun getUserPlaylists(): Flow<List<Playlist>> = flow {
+        val local = loadLocalCache()
+        emit(local)
+        val remote = runCatching { fetchRemotePlaylists() }.getOrDefault(emptyList())
+        if (remote.isNotEmpty() || isLoggedIn()) {
+            _playlists.value = remote
+            saveLocalCache(remote)
+            emit(remote)
+        }
+    }.flowOn(Dispatchers.IO)
+
+    override suspend fun createPlaylist(
+        name: String,
+        description: String?,
+        coverUrl: String?
+    ): Result<Playlist> = withContext(Dispatchers.IO) {
+        runCatching {
+            val userId = getUserId() ?: throw IllegalStateException("Not authenticated")
+            val newRow = PlaylistRow(
+                id = java.util.UUID.randomUUID().toString(),
+                user_id = userId,
+                name = name,
+                description = description,
+                cover_url = coverUrl
+            )
+            client.postgrest.from("playlists").insert(newRow)
+            val playlist = newRow.toDomain(emptyList())
+            val updated = _playlists.value.toMutableList().apply { add(playlist) }
+            _playlists.value = updated
+            saveLocalCache(updated)
+            playlist
+        }
+    }
 
     override suspend fun addSongToPlaylist(playlistId: String, song: Song): Result<Unit> =
-        Result.success(Unit)
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val position = _playlists.value
+                    .firstOrNull { it.id == playlistId }?.songs?.size ?: 0
+                val row = PlaylistSongRow(
+                    playlist_id = playlistId,
+                    song_id = song.id,
+                    title = song.title,
+                    artist = song.artistName,
+                    cover_url = song.coverUrl,
+                    audio_url = song.audioUrl,
+                    position = position
+                )
+                client.postgrest.from("playlist_songs").insert(row)
+                refreshPlaylists()
+            }
+        }
 
     override suspend fun removeSongFromPlaylist(playlistId: String, songId: String): Result<Unit> =
-        Result.success(Unit)
+        withContext(Dispatchers.IO) {
+            runCatching {
+                client.postgrest.from("playlist_songs").delete {
+                    filter {
+                        eq("playlist_id", playlistId)
+                        eq("song_id", songId)
+                    }
+                }
+                refreshPlaylists()
+            }
+        }
 
     override suspend fun deletePlaylist(playlistId: String): Result<Unit> =
-        Result.success(Unit)
+        withContext(Dispatchers.IO) {
+            runCatching {
+                client.postgrest.from("playlist_songs").delete {
+                    filter { eq("playlist_id", playlistId) }
+                }
+                client.postgrest.from("playlists").delete {
+                    filter { eq("id", playlistId) }
+                }
+                val updated = _playlists.value.filter { it.id != playlistId }
+                _playlists.value = updated
+                saveLocalCache(updated)
+            }
+        }
+
+    private suspend fun fetchRemotePlaylists(): List<Playlist> {
+        val userId = getUserId() ?: return emptyList()
+        val rows = client.postgrest.from("playlists")
+            .select { filter { eq("user_id", userId) } }
+            .decodeList<PlaylistRow>()
+        return rows.map { row ->
+            val songs = client.postgrest.from("playlist_songs")
+                .select {
+                    filter { eq("playlist_id", row.id) }
+                    order("position", Order.ASCENDING)
+                }
+                .decodeList<PlaylistSongRow>()
+            row.toDomain(songs)
+        }
+    }
+
+    private suspend fun refreshPlaylists() {
+        val remote = runCatching { fetchRemotePlaylists() }.getOrDefault(emptyList())
+        _playlists.value = remote
+        saveLocalCache(remote)
+    }
+
+    private fun isLoggedIn(): Boolean = client.auth.currentUserOrNull() != null
+
+    private fun getUserId(): String? = client.auth.currentUserOrNull()?.id
+
+    private fun loadLocalCache(): List<Playlist> {
+        val raw = prefs.getString("playlist_cache", null) ?: return emptyList()
+        return runCatching { json.decodeFromString<List<Playlist>>(raw) }.getOrDefault(emptyList())
+    }
+
+    private fun saveLocalCache(list: List<Playlist>) {
+        prefs.edit().putString("playlist_cache", json.encodeToString(list)).apply()
+    }
+
+    private fun PlaylistRow.toDomain(songRows: List<PlaylistSongRow>): Playlist {
+        return Playlist(
+            id = id,
+            name = name,
+            description = description,
+            coverUrl = cover_url,
+            ownerId = user_id,
+            songs = songRows.map {
+                PlaylistSong(songId = it.song_id, position = it.position)
+            },
+            createdAt = kotlin.runCatching {
+                java.time.Instant.parse(created_at ?: "")
+            }.getOrDefault(java.time.Instant.now()).toEpochMilli(),
+            updatedAt = kotlin.runCatching {
+                java.time.Instant.parse(updated_at ?: "")
+            }.getOrDefault(java.time.Instant.now()).toEpochMilli()
+        )
+    }
 }

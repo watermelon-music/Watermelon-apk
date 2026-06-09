@@ -1,6 +1,5 @@
 package com.watermelon.data.di
 
-/*
 import com.watermelon.data.BuildConfig
 import dagger.Module
 import dagger.Provides
@@ -10,6 +9,8 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.gotrue.Auth
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.serializer.KotlinXSerializer
+import kotlinx.serialization.json.Json
 import javax.inject.Singleton
 
 @Module
@@ -23,9 +24,9 @@ object SupabaseModule {
             supabaseUrl = BuildConfig.SUPABASE_URL,
             supabaseKey = BuildConfig.SUPABASE_KEY
         ) {
+            defaultSerializer = KotlinXSerializer(Json { ignoreUnknownKeys = true })
             install(Auth)
             install(Postgrest)
         }
     }
 }
-*/

@@ -73,14 +73,14 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp.logging)
 
-    // Supabase - disabled due to missing cached artifacts
-    // implementation(libs.supabase.core)
-    // implementation(libs.supabase.gotrue)
-    // implementation(libs.supabase.postgrest)
-    // implementation(libs.supabase.storage)
+    // Supabase
+    implementation(libs.supabase.core)
+    implementation(libs.supabase.gotrue)
+    implementation(libs.supabase.postgrest)
+    implementation(libs.supabase.storage)
 
-    // Ktor - disabled with Supabase
-    // implementation(libs.ktor.client.android)
+    // Ktor client for Supabase
+    implementation(libs.ktor.client.android)
 
     // Serialization
     implementation(libs.kotlinx.serialization.json)

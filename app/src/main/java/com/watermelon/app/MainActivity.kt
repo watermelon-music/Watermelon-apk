@@ -56,12 +56,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val context = LocalContext.current
             val mode = remember { ThemeManager.get(context) }
-            val isDark = when (mode) {
-                "dark" -> true
-                "light" -> false
-                else -> isSystemInDarkTheme()
-            }
-            WatermelonTheme(darkTheme = isDark) {
+            WatermelonTheme(themeMode = mode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

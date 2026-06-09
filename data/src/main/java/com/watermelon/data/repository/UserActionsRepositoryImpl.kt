@@ -3,38 +3,91 @@ package com.watermelon.data.repository
 import com.watermelon.data.local.dao.UserActionDao
 import com.watermelon.data.local.entity.UserActionEntity
 import com.watermelon.data.local.entity.toSong
+import com.watermelon.data.remote.supabase.model.FavoriteRow
+import com.watermelon.data.remote.supabase.model.HistoryRow
 import com.watermelon.domain.model.Song
 import com.watermelon.domain.repository.UserActionsRepository
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.gotrue.auth
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
+import timber.log.Timber
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class UserActionsRepositoryImpl @Inject constructor(
-    private val userActionDao: UserActionDao
+    private val userActionDao: UserActionDao,
+    private val client: SupabaseClient
 ) : UserActionsRepository {
 
-    override fun getRecentlyPlayed(): Flow<List<Song>> =
-        userActionDao.getRecentlyPlayed().map { list -> list.map { it.toSong() } }
+    override fun getRecentlyPlayed(): Flow<List<Song>> = flow {
+        // Always emit local first for speed
+        emit(userActionDao.getRecentlyPlayed().map { it.toSong() })
+        val userId = getUserId()
+        if (userId != null) {
+            // Optionally pull remote history if you want cross-device sync.
+            // For now, remote history is analytics-only; local is the source of truth for UI.
+        }
+    }.flowOn(Dispatchers.IO)
 
-    override fun getFavorites(): Flow<List<Song>> =
-        userActionDao.getFavorites().map { list -> list.map { it.toSong() } }
+    override fun getFavorites(): Flow<List<Song>> = flow {
+        val local = userActionDao.getFavorites().map { it.toSong() }
+        emit(local)
+        val remote = runCatching { fetchRemoteFavorites() }.getOrDefault(emptyList())
+        if (remote.isNotEmpty()) {
+            emit(remote)
+            // Sync local cache to match remote
+            syncLocalFavorites(remote)
+        }
+    }.flowOn(Dispatchers.IO)
 
     override suspend fun addToFavorites(song: Song): Result<Unit> = runCatching {
-        val entity = UserActionEntity(
-            songId = song.id,
-            songTitle = song.title,
-            songArtist = song.artistName,
-            songCoverUrl = song.coverUrl,
-            audioUrl = song.audioUrl,
-            actionType = "favorite"
+        userActionDao.insert(
+            UserActionEntity(
+                songId = song.id,
+                songTitle = song.title,
+                songArtist = song.artistName,
+                songCoverUrl = song.coverUrl,
+                audioUrl = song.audioUrl,
+                actionType = "favorite"
+            )
         )
-        userActionDao.insert(entity)
+        val userId = getUserId()
+        if (userId != null) {
+            runCatching {
+                client.postgrest.from("favorites").upsert(
+                    FavoriteRow(
+                        user_id = userId,
+                        song_id = song.id,
+                        title = song.title,
+                        artist = song.artistName,
+                        cover_url = song.coverUrl,
+                        audio_url = song.audioUrl
+                    )
+                )
+            }.onFailure { Timber.e(it, "Supabase addToFavorites failed") }
+        }
     }
 
     override suspend fun removeFromFavorites(songId: String): Result<Unit> = runCatching {
         userActionDao.removeFavorite(songId)
+        val userId = getUserId()
+        if (userId != null) {
+            runCatching {
+                client.postgrest.from("favorites").delete {
+                    filter {
+                        eq("user_id", userId)
+                        eq("song_id", songId)
+                    }
+                }
+            }.onFailure { Timber.e(it, "Supabase removeFromFavorites failed") }
+        }
     }
 
     override suspend fun recordRecentlyPlayed(song: Song): Result<Unit> = runCatching {
@@ -49,8 +102,66 @@ class UserActionsRepositoryImpl @Inject constructor(
         )
         userActionDao.insert(entity)
         val count = userActionDao.countRecent()
-        if (count > 50) {
-            userActionDao.trimRecentTo(50)
+        if (count > 50) userActionDao.trimRecentTo(50)
+
+        val userId = getUserId()
+        if (userId != null) {
+            runCatching {
+                client.postgrest.from("listening_history").insert(
+                    HistoryRow(
+                        user_id = userId,
+                        song_id = song.id,
+                        title = song.title,
+                        artist = song.artistName,
+                        cover_url = song.coverUrl,
+                        audio_url = song.audioUrl,
+                        duration_ms = song.durationMs,
+                        played_at = Instant.now().toString()
+                    )
+                )
+            }.onFailure { Timber.e(it, "Supabase history insert failed") }
         }
     }
+
+    private suspend fun fetchRemoteFavorites(): List<Song> {
+        val userId = getUserId() ?: return emptyList()
+        val rows = client.postgrest.from("favorites")
+            .select { filter { eq("user_id", userId) } }
+            .decodeList<FavoriteRow>()
+        return rows.map {
+            Song(
+                id = it.song_id,
+                title = it.title,
+                artistId = "",
+                artistName = it.artist ?: "",
+                albumId = null,
+                albumName = null,
+                durationMs = 0,
+                coverUrl = it.cover_url,
+                audioUrl = it.audio_url,
+                genre = null,
+                releaseDate = null
+            )
+        }
+    }
+
+    private suspend fun syncLocalFavorites(remote: List<Song>) {
+        withContext(Dispatchers.IO) {
+            userActionDao.clearFavorites()
+            remote.forEach { song ->
+                userActionDao.insert(
+                    UserActionEntity(
+                        songId = song.id,
+                        songTitle = song.title,
+                        songArtist = song.artistName,
+                        songCoverUrl = song.coverUrl,
+                        audioUrl = song.audioUrl,
+                        actionType = "favorite"
+                    )
+                )
+            }
+        }
+    }
+
+    private fun getUserId(): String? = client.auth.currentUserOrNull()?.id
 }

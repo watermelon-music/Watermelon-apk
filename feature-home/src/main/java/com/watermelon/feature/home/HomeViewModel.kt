@@ -41,18 +41,18 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            val recentlyPlayedDeferred = async { userActionsRepository.getRecentlyPlayed().first() }
-            val favoritesDeferred = async { userActionsRepository.getFavorites().first() }
-            val trendingDeferred = async { musicCatalogRepository.getTrendingMusic().first() }
+            val recentlyPlayedDeferred = async { runCatching { userActionsRepository.getRecentlyPlayed().first() }.getOrDefault(emptyList()) }
+            val favoritesDeferred = async { runCatching { userActionsRepository.getFavorites().first() }.getOrDefault(emptyList()) }
+            val trendingDeferred = async { runCatching { musicCatalogRepository.getTrendingMusic().first() }.getOrDefault(emptyList()) }
 
-            val bollywoodDeferred = async { musicCatalogRepository.getSongsByGenre("bollywood").first() }
-            val hollywoodDeferred = async { musicCatalogRepository.getSongsByGenre("hollywood").first() }
-            val popDeferred = async { musicCatalogRepository.getSongsByGenre("pop").first() }
-            val rockDeferred = async { musicCatalogRepository.getSongsByGenre("rock").first() }
-            val jazzDeferred = async { musicCatalogRepository.getSongsByGenre("jazz").first() }
-            val classicalDeferred = async { musicCatalogRepository.getSongsByGenre("classical").first() }
-            val hiphopDeferred = async { musicCatalogRepository.getSongsByGenre("hiphop").first() }
-            val electronicDeferred = async { musicCatalogRepository.getSongsByGenre("electronic").first() }
+            val bollywoodDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("bollywood").first() }.getOrDefault(emptyList()) }
+            val hollywoodDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("hollywood").first() }.getOrDefault(emptyList()) }
+            val popDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("pop").first() }.getOrDefault(emptyList()) }
+            val rockDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("rock").first() }.getOrDefault(emptyList()) }
+            val jazzDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("jazz").first() }.getOrDefault(emptyList()) }
+            val classicalDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("classical").first() }.getOrDefault(emptyList()) }
+            val hiphopDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("hiphop").first() }.getOrDefault(emptyList()) }
+            val electronicDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("electronic").first() }.getOrDefault(emptyList()) }
 
             val recentlyPlayed = recentlyPlayedDeferred.await()
             val favorites = favoritesDeferred.await()

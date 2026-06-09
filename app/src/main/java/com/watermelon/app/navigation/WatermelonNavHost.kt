@@ -22,6 +22,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.watermelon.core.navigation.Routes
+import com.watermelon.data.remote.radio.RadioStationDto
 import com.watermelon.domain.model.Song
 import com.watermelon.feature.auth.AuthViewModel
 import com.watermelon.feature.auth.ForgotPasswordScreen
@@ -123,16 +124,18 @@ fun WatermelonNavHost(
                 onSongClick = { song: Song ->
                     playerViewModel.playSong(song)
                     navController.navigate(Routes.PLAYER)
-                },
-                onPlaylistClick = { playlist ->
-                    navController.navigate("playlist_detail/${playlist.id}")
                 }
             )
         }
         composable(Routes.RADIO) {
             RadioScreen(
-                onPlayStation = { url, name, country ->
-                    playerViewModel.loadAndPlay(url, name, country, "")
+                onPlayStation = { station: RadioStationDto ->
+                    playerViewModel.loadAndPlay(
+                        station.url ?: "",
+                        station.name ?: "Unknown Station",
+                        station.country ?: "",
+                        station.favicon ?: ""
+                    )
                 }
             )
         }

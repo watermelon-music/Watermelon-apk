@@ -39,6 +39,10 @@ class AuthRepositoryImpl @Inject constructor(
 
     override fun getCurrentUser(): Flow<User?> = flowOf(null)
 
+    override suspend fun getCurrentUserId(): String? {
+        return null // TODO: return Firebase UID or local user ID when auth is fully wired
+    }
+
     companion object {
         private const val PREFS_NAME = "watermelon_auth"
         private const val KEY_LOGGED_IN = "is_logged_in"

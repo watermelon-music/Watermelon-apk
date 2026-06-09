@@ -19,178 +19,131 @@ class RadioViewModel @Inject constructor(
     private val api: RadioBrowserApi
 ) : ViewModel() {
 
-    private val _categories = MutableStateFlow<List<String>>(emptyList())
-    val categories: StateFlow<List<String>> = _categories.asStateFlow()
+    private val _uiState = MutableStateFlow(RadioUiState())
+    val uiState: StateFlow<RadioUiState> = _uiState.asStateFlow()
 
-    private val _countries = MutableStateFlow<List<String>>(emptyList())
-    val countries: StateFlow<List<String>> = _countries.asStateFlow()
-
-    private val _languages = MutableStateFlow<List<String>>(emptyList())
-    val languages: StateFlow<List<String>> = _languages.asStateFlow()
-
-    private val _selectedCategory = MutableStateFlow<String>("")
-    val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
-
-    private val _selectedCountry = MutableStateFlow<String>("")
-    val selectedCountry: StateFlow<String> = _selectedCountry.asStateFlow()
-
-    private val _selectedLanguage = MutableStateFlow<String>("")
-    val selectedLanguage: StateFlow<String> = _selectedLanguage.asStateFlow()
-
-    private val _stations = MutableStateFlow<List<RadioStationDto>>(emptyList())
-    val stations: StateFlow<List<RadioStationDto>> = _stations.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val musicCategories = listOf(
+        "pop", "rock", "jazz", "classical", "hiphop", "electronic", "bollywood"
+    )
 
     init {
-        loadFilters()
+        loadCategories()
     }
 
-    private fun loadFilters() {
+    private fun loadCategories() {
         viewModelScope.launch {
-            _isLoading.value = true
-            val (tags, countriesResult, languagesResult) = try {
-                val tagsDeferred = async {
-                    api.getTags()
-                        .filter { it.stationcount > 30 }
-                        .sortedByDescending { it.stationcount }
-                        .take(30)
-                        .map { it.name }
-                }
-                val countriesDeferred = async {
-                    api.getCountries()
-                        .filter { it.stationcount > 20 }
-                        .sortedByDescending { it.stationcount }
-                        .take(30)
-                        .map { it.name }
-                }
-                val languagesDeferred = async {
-                    api.getLanguages()
-                        .filter { it.stationcount > 20 }
-                        .sortedByDescending { it.stationcount }
-                        .take(30)
-                        .map { it.name }
-                }
-                Triple(tagsDeferred.await(), countriesDeferred.await(), languagesDeferred.await())
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to load radio filters")
-                Triple(
-                    listOf("pop", "rock", "jazz", "classical", "bollywood", "electronic", "hiphop"),
-                    listOf("India", "United States of America", "United Kingdom", "Germany", "France", "Canada", "Australia", "Brazil", "Russia", "Japan"),
-                    listOf("english", "hindi", "spanish", "french", "german", "tamil", "telugu", "kannada", "malayalam", "marathi")
-                )
-            }
+            _uiState.value = _uiState.value.copy(isLoading = true)
 
-            _categories.value = tags
-            _countries.value = countriesResult
-            _languages.value = languagesResult
+            val categoryList = musicCategories.map { tag ->
+                async {
+                    try {
+                        val stations = api.getStationsByTag(tag, limit = 50)
+                            .filter { !it.url.isNullOrBlank() }
+                            .sortedWith(
+                                compareByDescending<RadioStationDto> { it.votes }
+                                    .thenByDescending { it.bitrate }
+                            )
+                            .distinctBy { it.name }
+                            .take(30)
 
-            // Auto-select first category and load stations
-            if (_selectedCategory.value.isBlank() && tags.isNotEmpty()) {
-                _selectedCategory.value = tags.first()
-            }
-            searchStations()
-            _isLoading.value = false
+                        val languages = stations.mapNotNull { it.language }
+                            .flatMap { it.split(",").map { l -> l.trim() } }
+                            .filter { it.isNotBlank() }
+                            .distinct()
+                            .sorted()
+
+                        RadioCategory(
+                            name = tag.replaceFirstChar { it.uppercase() },
+                            tag = tag,
+                            languages = languages,
+                            stations = stations
+                        )
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to load $tag stations")
+                        RadioCategory(
+                            name = tag.replaceFirstChar { it.uppercase() },
+                            tag = tag,
+                            languages = emptyList(),
+                            stations = fallbackStations(tag)
+                        )
+                    }
+                }
+            }.awaitAll()
+
+            _uiState.value = RadioUiState(
+                categories = categoryList,
+                isLoading = false
+            )
         }
     }
 
-    fun selectCategory(category: String) {
-        _selectedCategory.value = category
-        searchStations()
-    }
-
-    fun selectCountry(country: String) {
-        _selectedCountry.value = country
-        searchStations()
+    fun selectCategory(category: RadioCategory) {
+        _uiState.value = _uiState.value.copy(
+            selectedCategory = category,
+            selectedLanguage = category.languages.firstOrNull()
+        )
     }
 
     fun selectLanguage(language: String) {
-        _selectedLanguage.value = language
-        searchStations()
+        _uiState.value = _uiState.value.copy(selectedLanguage = language)
     }
 
-    fun clearFilters() {
-        _selectedCountry.value = ""
-        _selectedLanguage.value = ""
-        searchStations()
+    fun clearSelection() {
+        _uiState.value = _uiState.value.copy(
+            selectedCategory = null,
+            selectedLanguage = null
+        )
     }
 
-    private fun searchStations() {
-        val tag = _selectedCategory.value
-        if (tag.isBlank()) return
-
-        viewModelScope.launch {
-            _isLoading.value = true
-            val country = _selectedCountry.value
-            val language = _selectedLanguage.value
-            try {
-                val result = api.searchStations(
-                    tag = tag,
-                    country = country.takeIf { it.isNotBlank() },
-                    language = language.takeIf { it.isNotBlank() },
-                    limit = 50
-                )
-                _stations.value = result.takeIf { it.isNotEmpty() } ?: fallbackStations(tag, country, language)
-            } catch (e: Exception) {
-                Timber.e(e, "Radio search failed for tag=$tag country=$country lang=$language")
-                _stations.value = fallbackStations(tag, country, language)
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    private fun fallbackStations(tag: String, country: String, language: String): List<RadioStationDto> {
-        val raw = when (tag.lowercase()) {
+    private fun fallbackStations(tag: String): List<RadioStationDto> {
+        return when (tag.lowercase()) {
             "pop" -> listOf(
-                RadioStationDto("BBC Radio 1", "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_one", country = "United Kingdom", bitrate = 128, tags = "pop"),
-                RadioStationDto("Capital FM", "https://media-ssl.musicradio.com/Capital", country = "United Kingdom", bitrate = 128, tags = "pop"),
-                RadioStationDto("Radio Disney", "https://live.wostreaming.net/direct/disney-disneydlmp3-ibc2", country = "United States of America", bitrate = 128, tags = "pop"),
-                RadioStationDto("Europe 1", "https://stream.europe1.fr/europe1.mp3", country = "France", bitrate = 128, tags = "pop"),
-                RadioStationDto("Radio Mirchi", "https://mirchitap.akamaized.net/mirchitap_mp3", country = "India", bitrate = 64, tags = "pop,bollywood"),
-                RadioStationDto("Hit Radio FFH", "https://mp3.ffh.de/radioffh/hqlivestream.mp3", country = "Germany", bitrate = 128, tags = "pop")
+                RadioStationDto("BBC Radio 1", "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_one", country = "United Kingdom", bitrate = 128, tags = "pop", votes = 5000),
+                RadioStationDto("Capital FM", "https://media-ssl.musicradio.com/Capital", country = "United Kingdom", bitrate = 128, tags = "pop", votes = 4000),
+                RadioStationDto("Radio Mirchi", "https://mirchitap.akamaized.net/mirchitap_mp3", country = "India", bitrate = 64, tags = "pop,bollywood", votes = 3000),
+                RadioStationDto("Hit Radio FFH", "https://mp3.ffh.de/radioffh/hqlivestream.mp3", country = "Germany", bitrate = 128, tags = "pop", votes = 2000)
             )
             "rock" -> listOf(
-                RadioStationDto("Classic Rock Florida", "https://listen.181fm.com/181-classicrock_128k.mp3", country = "United States of America", bitrate = 128, tags = "rock"),
-                RadioStationDto("Absolute Classic Rock", "https://edge-bauerall-01-gos2.sharp-stream.com/absoluteclassicrock.mp3", country = "United Kingdom", bitrate = 128, tags = "rock"),
-                RadioStationDto("Radio BOB", "https://streams.radiobob.de/bob-national/mp3-192/streams.radiobob.de/", country = "Germany", bitrate = 192, tags = "rock"),
-                RadioStationDto("Rock Antenne", "https://stream.rockantenne.de/rockantenne/stream/mp3", country = "Germany", bitrate = 128, tags = "rock")
+                RadioStationDto("Classic Rock Florida", "https://listen.181fm.com/181-classicrock_128k.mp3", country = "United States", bitrate = 128, tags = "rock", votes = 3500),
+                RadioStationDto("Radio BOB", "https://streams.radiobob.de/bob-national/mp3-192/streams.radiobob.de/", country = "Germany", bitrate = 192, tags = "rock", votes = 3000),
+                RadioStationDto("Rock Antenne", "https://stream.rockantenne.de/rockantenne/stream/mp3", country = "Germany", bitrate = 128, tags = "rock", votes = 2500)
             )
             "jazz" -> listOf(
-                RadioStationDto("Jazz24", "https://live.wostreaming.net/direct/ppm-jazz24mp3-ibc1", country = "United States of America", bitrate = 128, tags = "jazz"),
-                RadioStationDto("Smooth Jazz", "https://stream.revma.ihrhls.com/zc6280/hls.m3u8", country = "United States of America", bitrate = 128, tags = "jazz"),
-                RadioStationDto("Radio Swiss Jazz", "http://stream.srg-ssr.ch/m/rsj/mp3_128", country = "Switzerland", bitrate = 128, tags = "jazz")
+                RadioStationDto("Jazz24", "https://live.wostreaming.net/direct/ppm-jazz24mp3-ibc1", country = "United States", bitrate = 128, tags = "jazz", votes = 2000),
+                RadioStationDto("Radio Swiss Jazz", "http://stream.srg-ssr.ch/m/rsj/mp3_128", country = "Switzerland", bitrate = 128, tags = "jazz", votes = 1800)
             )
             "classical" -> listOf(
-                RadioStationDto("Classic FM", "https://media-ssl.musicradio.com/ClassicFM", country = "United Kingdom", bitrate = 128, tags = "classical"),
-                RadioStationDto("Radio Swiss Classic", "http://stream.srg-ssr.ch/m/rsc_de/mp3_128", country = "Switzerland", bitrate = 128, tags = "classical"),
-                RadioStationDto("ABC Classic", "http://live-radio01.mediahubaustralia.com/CLASIC/mp3/", country = "Australia", bitrate = 128, tags = "classical")
+                RadioStationDto("Classic FM", "https://media-ssl.musicradio.com/ClassicFM", country = "United Kingdom", bitrate = 128, tags = "classical", votes = 4000),
+                RadioStationDto("ABC Classic", "http://live-radio01.mediahubaustralia.com/CLASIC/mp3/", country = "Australia", bitrate = 128, tags = "classical", votes = 1500)
             )
             "bollywood" -> listOf(
-                RadioStationDto("Radio Mirchi Bollywood", "https://mirchitap.akamaized.net/mirchitap_mp3", country = "India", bitrate = 64, tags = "bollywood,hindi"),
-                RadioStationDto("Bollywood Radio", "https://stream.zeno.fm/rm4i9pdpxrquv", country = "India", bitrate = 128, tags = "bollywood"),
-                RadioStationDto("Desi Music Mix", "https://icecast2.radiomast.io/d3bf2191-5010-4710-8231-1f51a9fd64b6", country = "India", bitrate = 128, tags = "bollywood")
-            )
-            "electronic" -> listOf(
-                RadioStationDto("DI.FM Vocal Trance", "https://prem4.di.fm/vocaltrance_hi?", country = "United States of America", bitrate = 256, tags = "electronic"),
-                RadioStationDto("Techno Club Radio", "https://stream.laut.fm/techno-club-radio", country = "Germany", bitrate = 128, tags = "electronic"),
-                RadioStationDto("Minimal Mix Radio", "https://minimalmix.de/listen.m3u", country = "Germany", bitrate = 128, tags = "electronic")
+                RadioStationDto("Radio Mirchi Bollywood", "https://mirchitap.akamaized.net/mirchitap_mp3", country = "India", bitrate = 64, tags = "bollywood", votes = 5000),
+                RadioStationDto("Bollywood Radio", "https://stream.zeno.fm/rm4i9pdpxrquv", country = "India", bitrate = 128, tags = "bollywood", votes = 3000)
             )
             "hiphop" -> listOf(
-                RadioStationDto("Hot 97", "https://playerservices.streamtheworld.com/api/livestream-redirect/WQHTFM.mp3", country = "United States of America", bitrate = 128, tags = "hiphop"),
-                RadioStationDto("Power 106", "https://playerservices.streamtheworld.com/api/livestream-redirect/KPWRAAC.aac", country = "United States of America", bitrate = 128, tags = "hiphop"),
-                RadioStationDto("BBC 1Xtra", "http://stream.live.vc.bbcmedia.co.uk/bbc_1xtra", country = "United Kingdom", bitrate = 128, tags = "hiphop")
+                RadioStationDto("Hot 97", "https://playerservices.streamtheworld.com/api/livestream-redirect/WQHTFM.mp3", country = "United States", bitrate = 128, tags = "hiphop", votes = 3500),
+                RadioStationDto("BBC 1Xtra", "http://stream.live.vc.bbcmedia.co.uk/bbc_1xtra", country = "United Kingdom", bitrate = 128, tags = "hiphop", votes = 2500)
             )
-            else -> listOf(
-                RadioStationDto("BBC World Service", "http://stream.live.vc.bbcmedia.co.uk/bbc_world_service", country = "United Kingdom", bitrate = 128, tags = "news"),
-                RadioStationDto("NPR News", "https://npr-ice.streamguys1.com/live.mp3", country = "United States of America", bitrate = 128, tags = "news")
+            "electronic" -> listOf(
+                RadioStationDto("DI.FM Vocal Trance", "https://prem4.di.fm/vocaltrance_hi?", country = "United States", bitrate = 256, tags = "electronic", votes = 3000),
+                RadioStationDto("Techno Club Radio", "https://stream.laut.fm/techno-club-radio", country = "Germany", bitrate = 128, tags = "electronic", votes = 2000)
             )
-        }
-        // Apply country/language filter to fallback
-        return raw.filter { station ->
-            (country.isBlank() || station.country.equals(country, ignoreCase = true)) &&
-            (language.isBlank() || station.language.equals(language, ignoreCase = true) || station.tags?.contains(language, ignoreCase = true) == true)
+            else -> emptyList()
         }
     }
 }
+
+data class RadioUiState(
+    val categories: List<RadioCategory> = emptyList(),
+    val selectedCategory: RadioCategory? = null,
+    val selectedLanguage: String? = null,
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
+
+data class RadioCategory(
+    val name: String,
+    val tag: String,
+    val languages: List<String>,
+    val stations: List<RadioStationDto>
+)

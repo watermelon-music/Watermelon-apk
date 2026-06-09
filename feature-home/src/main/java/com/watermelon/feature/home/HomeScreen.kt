@@ -1,7 +1,7 @@
 package com.watermelon.feature.home
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
@@ -32,7 +32,6 @@ import coil.compose.AsyncImage
 import com.watermelon.core.designsystem.animation.ShimmerCard
 import com.watermelon.core.designsystem.theme.WatermelonRed
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
-import com.watermelon.domain.model.Playlist
 import com.watermelon.domain.model.Song
 
 @Composable
@@ -40,7 +39,6 @@ fun HomeScreen(
     onSearchClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onSongClick: (Song) -> Unit = {},
-    onPlaylistClick: (Playlist) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -49,8 +47,7 @@ fun HomeScreen(
         uiState = uiState,
         onSearchClick = onSearchClick,
         onSettingsClick = onSettingsClick,
-        onSongClick = onSongClick,
-        onPlaylistClick = onPlaylistClick
+        onSongClick = onSongClick
     )
 }
 
@@ -60,8 +57,7 @@ private fun HomeScreenContent(
     uiState: HomeUiState,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onSongClick: (Song) -> Unit,
-    onPlaylistClick: (Playlist) -> Unit
+    onSongClick: (Song) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -99,8 +95,96 @@ private fun HomeScreenContent(
                     .padding(paddingValues),
                 contentPadding = PaddingValues(vertical = WatermelonSpacing.md)
             ) {
-                item {
-                    SearchBarShortcut(onClick = onSearchClick)
+                item { SearchBarShortcut(onClick = onSearchClick) }
+
+                if (uiState.trendingMusic.isNotEmpty()) {
+                    item {
+                        SectionHeader(title = "Trending")
+                        BigSongRow(
+                            songs = uiState.trendingMusic,
+                            onSongClick = onSongClick
+                        )
+                    }
+                }
+
+                if (uiState.bollywood.isNotEmpty()) {
+                    item {
+                        SectionHeader(title = "Bollywood")
+                        BigSongRow(
+                            songs = uiState.bollywood,
+                            onSongClick = onSongClick
+                        )
+                    }
+                }
+
+                if (uiState.hollywood.isNotEmpty()) {
+                    item {
+                        SectionHeader(title = "Hollywood")
+                        BigSongRow(
+                            songs = uiState.hollywood,
+                            onSongClick = onSongClick
+                        )
+                    }
+                }
+
+                if (uiState.pop.isNotEmpty()) {
+                    item {
+                        SectionHeader(title = "Pop")
+                        BigSongRow(
+                            songs = uiState.pop,
+                            onSongClick = onSongClick
+                        )
+                    }
+                }
+
+                if (uiState.rock.isNotEmpty()) {
+                    item {
+                        SectionHeader(title = "Rock")
+                        BigSongRow(
+                            songs = uiState.rock,
+                            onSongClick = onSongClick
+                        )
+                    }
+                }
+
+                if (uiState.jazz.isNotEmpty()) {
+                    item {
+                        SectionHeader(title = "Jazz")
+                        BigSongRow(
+                            songs = uiState.jazz,
+                            onSongClick = onSongClick
+                        )
+                    }
+                }
+
+                if (uiState.classical.isNotEmpty()) {
+                    item {
+                        SectionHeader(title = "Classical")
+                        BigSongRow(
+                            songs = uiState.classical,
+                            onSongClick = onSongClick
+                        )
+                    }
+                }
+
+                if (uiState.hiphop.isNotEmpty()) {
+                    item {
+                        SectionHeader(title = "Hip Hop")
+                        BigSongRow(
+                            songs = uiState.hiphop,
+                            onSongClick = onSongClick
+                        )
+                    }
+                }
+
+                if (uiState.electronic.isNotEmpty()) {
+                    item {
+                        SectionHeader(title = "Electronic")
+                        BigSongRow(
+                            songs = uiState.electronic,
+                            onSongClick = onSongClick
+                        )
+                    }
                 }
 
                 if (uiState.recentlyPlayed.isNotEmpty()) {
@@ -122,26 +206,6 @@ private fun HomeScreenContent(
                         )
                     }
                 }
-
-                if (uiState.recommendedPlaylists.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Playlists")
-                        PlaylistRow(
-                            playlists = uiState.recommendedPlaylists,
-                            onPlaylistClick = onPlaylistClick
-                        )
-                    }
-                }
-
-                if (uiState.trendingMusic.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Trending")
-                        SongRow(
-                            songs = uiState.trendingMusic,
-                            onSongClick = onSongClick
-                        )
-                    }
-                }
             }
         }
     }
@@ -157,10 +221,10 @@ private fun HomeShimmerContent(paddingValues: PaddingValues) {
         verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.lg)
     ) {
         ShimmerCard(height = 56.dp)
-        repeat(3) {
+        repeat(4) {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)) {
                 items(4) {
-                    ShimmerCard(modifier = Modifier.width(140.dp), height = 180.dp)
+                    ShimmerCard(modifier = Modifier.width(170.dp), height = 200.dp)
                 }
             }
         }
@@ -217,7 +281,7 @@ private fun SectionHeader(title: String) {
 }
 
 @Composable
-private fun SongRow(
+private fun BigSongRow(
     songs: List<Song>,
     onSongClick: (Song) -> Unit
 ) {
@@ -226,13 +290,13 @@ private fun SongRow(
         horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
     ) {
         items(songs, key = { it.id }) { song ->
-            SongItem(song = song, onClick = { onSongClick(song) })
+            BigSongItem(song = song, onClick = { onSongClick(song) })
         }
     }
 }
 
 @Composable
-private fun SongItem(song: Song, onClick: () -> Unit) {
+private fun BigSongItem(song: Song, onClick: () -> Unit) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
@@ -242,12 +306,12 @@ private fun SongItem(song: Song, onClick: () -> Unit) {
     ) {
         Column(
             modifier = Modifier
-                .width(150.dp)
+                .width(170.dp)
                 .clickable(onClick = onClick),
             horizontalAlignment = Alignment.Start
         ) {
             Card(
-                modifier = Modifier.size(150.dp),
+                modifier = Modifier.size(170.dp),
                 shape = RoundedCornerShape(20.dp),
                 elevation = CardDefaults.cardElevation(6.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.Black)
@@ -255,7 +319,7 @@ private fun SongItem(song: Song, onClick: () -> Unit) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     AsyncImage(
                         model = song.coverUrl?.takeIf { it.isNotBlank() }
-                            ?: "https://via.placeholder.com/150?text=W",
+                            ?: "https://via.placeholder.com/170?text=W",
                         contentDescription = song.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -278,7 +342,7 @@ private fun SongItem(song: Song, onClick: () -> Unit) {
                     ) {
                         FilledIconButton(
                             onClick = onClick,
-                            modifier = Modifier.size(36.dp),
+                            modifier = Modifier.size(40.dp),
                             colors = IconButtonDefaults.filledIconButtonColors(
                                 containerColor = WatermelonRed,
                                 contentColor = Color.White
@@ -288,7 +352,7 @@ private fun SongItem(song: Song, onClick: () -> Unit) {
                             Icon(
                                 imageVector = Icons.Filled.PlayArrow,
                                 contentDescription = "Play",
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                     }
@@ -314,22 +378,22 @@ private fun SongItem(song: Song, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PlaylistRow(
-    playlists: List<Playlist>,
-    onPlaylistClick: (Playlist) -> Unit
+private fun SongRow(
+    songs: List<Song>,
+    onSongClick: (Song) -> Unit
 ) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = WatermelonSpacing.md),
         horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
     ) {
-        items(playlists, key = { it.id }) { playlist ->
-            PlaylistItem(playlist = playlist, onClick = { onPlaylistClick(playlist) })
+        items(songs, key = { it.id }) { song ->
+            SongItem(song = song, onClick = { onSongClick(song) })
         }
     }
 }
 
 @Composable
-private fun PlaylistItem(playlist: Playlist, onClick: () -> Unit) {
+private fun SongItem(song: Song, onClick: () -> Unit) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
@@ -339,34 +403,34 @@ private fun PlaylistItem(playlist: Playlist, onClick: () -> Unit) {
     ) {
         Column(
             modifier = Modifier
-                .width(160.dp)
+                .width(130.dp)
                 .clickable(onClick = onClick),
             horizontalAlignment = Alignment.Start
         ) {
             Card(
-                modifier = Modifier.size(160.dp),
-                shape = RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(6.dp),
+                modifier = Modifier.size(130.dp),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(4.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.Black)
             ) {
                 AsyncImage(
-                    model = playlist.coverUrl?.takeIf { it.isNotBlank() }
-                        ?: "https://via.placeholder.com/160?text=W",
-                    contentDescription = playlist.name,
+                    model = song.coverUrl?.takeIf { it.isNotBlank() }
+                        ?: "https://via.placeholder.com/130?text=W",
+                    contentDescription = song.title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
             }
             Spacer(modifier = Modifier.height(WatermelonSpacing.sm))
             Text(
-                text = playlist.name,
-                style = MaterialTheme.typography.bodyMedium,
+                text = song.title,
+                style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
-                text = playlist.description ?: "",
+                text = song.artistName,
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

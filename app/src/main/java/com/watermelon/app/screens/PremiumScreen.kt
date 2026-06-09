@@ -2,10 +2,12 @@ package com.watermelon.app.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,10 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.watermelon.core.designsystem.theme.WatermelonRed
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -61,11 +64,10 @@ fun PremiumScreen(
                     .padding(24.dp)
             )
         } else {
-            PremiumUpsellContent(
+            PremiumPlansContent(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 24.dp),
+                    .padding(padding),
                 isLoading = isLoading,
                 onPlanSelected = { key, paise, label ->
                     if (!isLoading) {
@@ -73,33 +75,344 @@ fun PremiumScreen(
                             onStartCheckout(orderId, paise, label)
                         }
                     }
-                }
+                },
+                onStudentVerify = { email ->
+                    viewModel.submitStudentVerification(email)
+                },
+                studentStatus = viewModel.studentStatus.collectAsState().value
             )
         }
     }
 }
 
 @Composable
-private fun PremiumUpsellContent(
+private fun PremiumPlansContent(
     modifier: Modifier = Modifier,
     isLoading: Boolean,
-    onPlanSelected: (String, Int, String) -> Unit
+    onPlanSelected: (String, Int, String) -> Unit,
+    onStudentVerify: (String) -> Unit,
+    studentStatus: StudentVerificationStatus
 ) {
+    val scrollState = rememberScrollState()
+    var showStudentDialog by remember { mutableStateOf(false) }
+
     Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = modifier.verticalScroll(scrollState),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
+        Text(
+            text = "Choose Your Plan",
+            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center
+        )
+
+        Text(
+            text = "Unlock unlimited music, HQ audio, and exclusive features.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Monthly
+        PlanCardGradient(
+            title = "Individual Monthly",
+            price = "₹29",
+            period = "/ month",
+            subtitle = "Billed monthly",
+            features = listOf("Ad-free music", "Unlimited skips", "HQ audio (256kbps)"),
+            gradient = Brush.linearGradient(listOf(Color(0xFFFF6B6B), Color(0xFFFF8E53))),
+            primaryColor = Color(0xFFFF6B6B),
+            onClick = { onPlanSelected("ind_mo", 2900, "Individual Monthly") }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Yearly
+        PlanCardGradient(
+            title = "Individual Yearly",
+            price = "₹299",
+            period = "/ year",
+            subtitle = "Save 14% • ₹25/month",
+            features = listOf("Everything in Monthly", "Offline downloads", "10+ themes"),
+            gradient = Brush.linearGradient(listOf(Color(0xFF4ECDC4), Color(0xFF44A08D))),
+            primaryColor = Color(0xFF4ECDC4),
+            badge = "BEST VALUE",
+            onClick = { onPlanSelected("ind_yr", 29900, "Individual Yearly") }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Family Monthly
+        PlanCardGradient(
+            title = "Family Monthly",
+            price = "₹149",
+            period = "/ month",
+            subtitle = "Up to 5 members",
+            features = listOf("5 separate accounts", "Family mix playlist", "Parental controls"),
+            gradient = Brush.linearGradient(listOf(Color(0xFF667EEA), Color(0xFF764BA2))),
+            primaryColor = Color(0xFF667EEA),
+            onClick = { onPlanSelected("fam_mo", 14900, "Family Monthly") }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Family Yearly
+        PlanCardGradient(
+            title = "Family Yearly",
+            price = "₹1,499",
+            period = "/ year",
+            subtitle = "Save 16% • ₹125/month for 5",
+            features = listOf("Everything in Family Monthly", "Yearly discount", "Priority support"),
+            gradient = Brush.linearGradient(listOf(Color(0xFFF093FB), Color(0xFFF5576C))),
+            primaryColor = Color(0xFFF093FB),
+            onClick = { onPlanSelected("fam_yr", 149900, "Family Yearly") }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Student
+        PlanCardGradient(
+            title = "Student",
+            price = "₹19",
+            period = "/ month",
+            subtitle = "Verification required",
+            features = listOf("Everything in Individual", "Valid student ID needed", "Manual review within 24h"),
+            gradient = Brush.linearGradient(listOf(Color(0xFF43E97B), Color(0xFF38F9D7))),
+            primaryColor = Color(0xFF43E97B),
+            isStudent = true,
+            studentStatus = studentStatus,
+            onClick = { showStudentDialog = true },
+            onStudentVerify = onStudentVerify
+        )
+
+        if (isLoading) {
+            Spacer(modifier = Modifier.height(16.dp))
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+
+    if (showStudentDialog) {
+        StudentVerificationDialog(
+            onDismiss = { showStudentDialog = false },
+            onSubmit = { email ->
+                onStudentVerify(email)
+                showStudentDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun PlanCardGradient(
+    title: String,
+    price: String,
+    period: String,
+    subtitle: String,
+    features: List<String>,
+    gradient: Brush,
+    primaryColor: Color,
+    badge: String? = null,
+    isStudent: Boolean = false,
+    studentStatus: StudentVerificationStatus = StudentVerificationStatus.IDLE,
+    onClick: () -> Unit,
+    onStudentVerify: (String) -> Unit = {}
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(gradient)
+                .padding(20.dp)
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            color = Color.White
+                        )
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.85f)
+                        )
+                    }
+                    if (badge != null) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.White.copy(alpha = 0.2f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = badge,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = price,
+                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = period,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.White.copy(alpha = 0.85f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                features.forEach { feature ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.9f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = feature,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
+                    }
+                }
+
+                if (isStudent) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    when (studentStatus) {
+                        StudentVerificationStatus.IDLE -> {
+                            Button(
+                                onClick = onClick,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.School, contentDescription = null, tint = Color.White)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Verify Student Status", color = Color.White)
+                            }
+                        }
+                        StudentVerificationStatus.PENDING -> {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color.White.copy(alpha = 0.15f))
+                                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                            ) {
+                                Text(
+                                    "Verification Pending • 24h review",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                        StudentVerificationStatus.APPROVED -> {
+                            Button(
+                                onClick = onClick,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Get Student Plan", color = primaryColor)
+                            }
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = onClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Choose $title", color = primaryColor, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StudentVerificationDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (String) -> Unit
+) {
+    var email by remember { mutableStateOf("") }
+    val isValid = email.contains("@") && email.length > 5
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Student Verification") },
+        text = {
+            Column {
+                Text("Enter your student email address. We'll review it within 24 hours.")
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Student Email") },
+                    placeholder = { Text("you@university.edu") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSubmit(email) },
+                enabled = isValid
+            ) {
+                Text("Submit")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+private fun PremiumActiveContent(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Box(
             modifier = Modifier
                 .size(100.dp)
                 .clip(RoundedCornerShape(28.dp))
                 .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(WatermelonRed, Color.Black)
-                    )
+                    Brush.verticalGradient(listOf(Color(0xFFFF6B6B), Color.Black))
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -110,145 +423,31 @@ private fun PremiumUpsellContent(
                 modifier = Modifier.size(48.dp)
             )
         }
-
-        Text(
-            text = "Go Premium",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center
-        )
-
-        Text(
-            text = "Unlock unlimited playlists, HQ audio, and 10+ themes.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        PremiumFeatureItem(text = "Unlimited Playlists")
-        PremiumFeatureItem(text = "High Quality Audio (256kbps+)")
-        PremiumFeatureItem(text = "10+ Premium Themes")
-        PremiumFeatureItem(text = "Family Sharing (5 members)")
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        val plans = listOf(
-            Triple("ind_mo", "Individual Monthly", 4900),
-            Triple("ind_yr", "Individual Yearly", 50000),
-            Triple("fam_mo", "Family Monthly (5)", 10000),
-            Triple("fam_yr", "Family Yearly (5)", 100000)
-        )
-
-        plans.forEach { (key, label, paise) ->
-            PlanCard(
-                label = label,
-                price = when (key) {
-                    "ind_mo" -> "₹49 / month"
-                    "ind_yr" -> "₹500 / year"
-                    "fam_mo" -> "₹100 / month"
-                    "fam_yr" -> "₹1000 / year"
-                    else -> ""
-                },
-                onClick = {
-                    if (!isLoading) {
-                        onPlanSelected(key, paise, label)
-                    }
-                }
-            )
-        }
-
-        if (isLoading) {
-            Spacer(modifier = Modifier.height(8.dp))
-            CircularProgressIndicator(color = WatermelonRed)
-        }
-
         Spacer(modifier = Modifier.height(16.dp))
-    }
-}
-
-@Composable
-private fun PlanCard(label: String, price: String, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = price,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Button(
-                onClick = onClick,
-                colors = ButtonDefaults.buttonColors(containerColor = WatermelonRed),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Pay", color = Color.White)
-            }
-        }
-    }
-}
-
-@Composable
-private fun PremiumFeatureItem(text: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Check,
-            contentDescription = null,
-            tint = WatermelonRed,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-@Composable
-private fun PremiumActiveContent(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
         Text(
             text = "Premium Active",
             style = MaterialTheme.typography.headlineMedium,
-            color = WatermelonRed
+            color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(16.dp))
-        PremiumFeatureItem(text = "Unlimited playlists enabled")
-        PremiumFeatureItem(text = "HQ audio enabled")
-        PremiumFeatureItem(text = "All themes unlocked")
+        listOf(
+            "Ad-free music streaming",
+            "Unlimited skips & playlists",
+            "HQ audio (256kbps+)",
+            "Offline downloads",
+            "All themes unlocked"
+        ).forEach { feature ->
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF4ECDC4), modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(text = feature, style = MaterialTheme.typography.bodyLarge)
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
     }
 }
 
-/* Checkout config helper (Razorpay expects JSONObject) */
+/* Checkout config helper */
 fun buildRazorpayOptions(orderId: String, amountPaise: Int, email: String, desc: String): JSONObject {
     return JSONObject().apply {
         put("key", "rzp_test_Sz9h9D9J7I7iie")

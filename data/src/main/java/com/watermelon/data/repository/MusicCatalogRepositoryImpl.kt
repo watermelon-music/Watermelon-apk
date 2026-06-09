@@ -65,13 +65,6 @@ class MusicCatalogRepositoryImpl @Inject constructor(
         return true
     }
 
-    private val mockPlaylists = listOf(
-        Playlist("1","Chill Vibes","Relax and unwind","https://picsum.photos/seed/p1/300/300","system"),
-        Playlist("2","Workout Energy","Pump it up","https://picsum.photos/seed/p2/300/300","system"),
-        Playlist("3","Late Night Drive","Midnight cruisers","https://picsum.photos/seed/p3/300/300","system"),
-        Playlist("4","Top Hits 2024","Best of the year","https://picsum.photos/seed/p4/300/300","system")
-    )
-
     override fun getTrendingMusic(): Flow<List<Song>> = flow {
         val now = System.currentTimeMillis()
         val cached = cachedSongDao.getTrendingSongs().firstOrNull() ?: emptyList()
@@ -106,7 +99,20 @@ class MusicCatalogRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getRecommendedPlaylists(): Flow<List<Playlist>> = flowOf(mockPlaylists)
+    override fun getSongsByGenre(genre: String): Flow<List<Song>> {
+        val query = when (genre.lowercase()) {
+            "bollywood" -> "bollywood trending songs"
+            "hollywood" -> "english trending songs"
+            "pop" -> "pop music trending"
+            "rock" -> "rock music"
+            "jazz" -> "jazz music"
+            "classical" -> "classical music"
+            "hiphop" -> "hip hop music"
+            "electronic" -> "electronic music"
+            else -> "$genre music"
+        }
+        return search(query)
+    }
 
     override fun search(query: String): Flow<List<Song>> = flow {
         if (query.isBlank()) {

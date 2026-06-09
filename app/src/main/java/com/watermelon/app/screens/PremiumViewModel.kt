@@ -15,6 +15,8 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
+enum class StudentVerificationStatus { IDLE, PENDING, APPROVED }
+
 @HiltViewModel
 class PremiumViewModel @Inject constructor(
     private val authRepository: AuthRepository,
@@ -30,6 +32,9 @@ class PremiumViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    private val _studentStatus = MutableStateFlow(StudentVerificationStatus.IDLE)
+    val studentStatus: StateFlow<StudentVerificationStatus> = _studentStatus.asStateFlow()
+
     private var _pendingPlan: String = ""
     val pendingPlan: String get() = _pendingPlan
 
@@ -38,7 +43,6 @@ class PremiumViewModel @Inject constructor(
     }
 
     private fun checkPremiumStatus() {
-        // Read from local cache (SharedPreferences) for now
         _isPremium.value = false
     }
 
@@ -47,9 +51,10 @@ class PremiumViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             try {
+                val userId = authRepository.getCurrentUserId() ?: "anonymous"
                 val response = paymentApi.createOrder(
                     CreateOrderRequest(
-                        userId = "anonymous",
+                        userId = userId,
                         amount = amount,
                         currency = "INR",
                         plan = plan
@@ -74,12 +79,13 @@ class PremiumViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             try {
+                val userId = authRepository.getCurrentUserId() ?: "anonymous"
                 val response = paymentApi.verifyPayment(
                     VerifyPaymentRequest(
                         orderId = orderId,
                         paymentId = paymentId,
                         signature = signature,
-                        userId = "anonymous",
+                        userId = userId,
                         plan = _pendingPlan
                     )
                 )
@@ -100,6 +106,16 @@ class PremiumViewModel @Inject constructor(
 
     fun onPaymentError(code: Int, message: String) {
         _error.value = "Payment failed ($code): $message"
+    }
+
+    fun submitStudentVerification(email: String) {
+        viewModelScope.launch {
+            _studentStatus.value = StudentVerificationStatus.PENDING
+            _error.value = null
+            // In production, send email to backend for manual review
+            // For now, simulate pending state
+            Timber.d("Student verification submitted: $email")
+        }
     }
 
     fun clearError() {

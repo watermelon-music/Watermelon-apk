@@ -11,12 +11,7 @@ import javax.inject.Singleton
 @Singleton
 class PlaylistRepositoryImpl @Inject constructor() : PlaylistRepository {
 
-    private val fallback = listOf(
-        Playlist("p1","My Favorites","Songs I love",null,"user"),
-        Playlist("p2","Workout Mix","Gym motivation",null,"user")
-    )
-
-    override fun getUserPlaylists(): Flow<List<Playlist>> = flowOf(fallback)
+    override fun getUserPlaylists(): Flow<List<Playlist>> = flowOf(emptyList())
 
     override suspend fun createPlaylist(name: String, description: String?, coverUrl: String?): Result<Playlist> =
         Result.success(Playlist("new", name, description ?: "", coverUrl, "user"))

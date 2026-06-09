@@ -10,4 +10,5 @@ interface AuthRepository {
     suspend fun resetPassword(email: String): Result<Unit>
     fun isAuthenticated(): Flow<Boolean>
     fun getCurrentUser(): Flow<User?>
+    suspend fun getCurrentUserId(): String?
 }

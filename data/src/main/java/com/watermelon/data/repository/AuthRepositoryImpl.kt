@@ -14,8 +14,10 @@ import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-import javax.inject.Singleton
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+
 
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
@@ -25,10 +27,23 @@ class AuthRepositoryImpl @Inject constructor(
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    override suspend fun signUp(email: String, password: String): Result<Unit> = runCatching {
+    override suspend fun signUp(username: String, email: String, password: String): Result<Unit> = runCatching {
         client.auth.signUpWith(Email) {
             this.email = email
             this.password = password
+            this.data = buildJsonObject {
+                put("username", username)
+            }
+        }
+        val user = client.auth.currentUserOrNull()
+        if (user != null && username.isNotBlank()) {
+            try {
+                client.postgrest.from("profiles").update(
+                    UsernameUpdate(username = username)
+                ) {
+                    eq("id", user.id)
+                }
+            } catch (_: Exception) { /* profiles table may not have username column yet */ }
         }
         Unit
     }
@@ -69,11 +84,14 @@ class AuthRepositoryImpl @Inject constructor(
                     User(
                         id = supaUser.id,
                         email = supaUser.email ?: "",
+                        username = profile?.username
+                            ?: supaUser.email?.substringBefore("@")
+                            ?: "User",
                         displayName = profile?.display_name
                             ?: supaUser.email?.substringBefore("@")
                             ?: "User",
                         avatarUrl = profile?.avatar_url
-                            ?: "https://api.dicebear.com/7.x/identicon/png?seed=${supaUser.email ?: supaUser.id}",
+                            ?: "https://api.dicebear.com/10.x/toon-head/svg?seed=${profile?.username ?: supaUser.email ?: supaUser.id}",
                         plan = runCatching {
                             SubscriptionPlan.valueOf(profile?.plan ?: "FREE")
                         }.getOrDefault(SubscriptionPlan.FREE)
@@ -99,8 +117,9 @@ class AuthRepositoryImpl @Inject constructor(
         return User(
             id = "local_user",
             email = email,
+            username = email.substringBefore("@"),
             displayName = "User",
-            avatarUrl = "https://api.dicebear.com/10.x/identicon/png?seed=$email",
+            avatarUrl = "https://api.dicebear.com/10.x/toon-head/svg?seed=$email",
             plan = SubscriptionPlan.valueOf(planName ?: SubscriptionPlan.FREE.name)
         )
     }
@@ -112,3 +131,6 @@ class AuthRepositoryImpl @Inject constructor(
         private const val KEY_PLAN = "auth_plan"
     }
 }
+
+@Serializable
+private data class UsernameUpdate(val username: String)

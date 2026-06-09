@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,6 +38,7 @@ fun RegisterScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -126,6 +128,25 @@ fun RegisterScreen(
                         )
 
                         OutlinedTextField(
+                            value = username,
+                            onValueChange = { username = it },
+                            label = { Text("Username") },
+                            leadingIcon = { Icon(Icons.Default.Person, null, tint = WatermelonRed) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Text,
+                                imeAction = ImeAction.Next
+                            ),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = WatermelonRed,
+                                focusedLabelColor = WatermelonRed,
+                                focusedLeadingIconColor = WatermelonRed
+                            )
+                        )
+
+                        OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
                             label = { Text("Email") },
@@ -196,7 +217,7 @@ fun RegisterScreen(
                         Button(
                             onClick = {
                                 if (password == confirmPassword) {
-                                    viewModel.signUp(email, password)
+                                    viewModel.signUp(username, email, password)
                                 }
                             },
                             modifier = Modifier

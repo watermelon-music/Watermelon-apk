@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,7 +34,6 @@ import coil.compose.AsyncImage
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.PlaylistSong
 import com.watermelon.domain.model.Song
-import com.watermelon.feature.library.LibraryViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,10 +43,10 @@ fun PlaylistDetailScreen(
     onSongClick: (Song) -> Unit,
     onShuffleClick: () -> Unit = {},
     onPlayAllClick: () -> Unit = {},
-    viewModel: LibraryViewModel = hiltViewModel()
+    viewModel: PlaylistDetailViewModel = hiltViewModel()
 ) {
-    val playlists by viewModel.playlists.collectAsStateWithLifecycle()
-    val playlist = playlists.firstOrNull { it.id == playlistId }
+    val playlist by viewModel.playlist.collectAsStateWithLifecycle()
+    LaunchedEffect(playlistId) { viewModel.loadPlaylist(playlistId) }
     val context = LocalContext.current
     var songToDelete by remember { mutableStateOf<PlaylistSong?>(null) }
 
@@ -159,7 +159,8 @@ fun PlaylistDetailScreen(
                 modifier = Modifier.padding(bottom = WatermelonSpacing.md)
             )
 
-            if (playlist == null || playlist.songs.isEmpty()) {
+            val songs = playlist?.songs ?: emptyList()
+            if (songs.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("No songs yet. Add songs from search or home.")
                 }
@@ -167,7 +168,7 @@ fun PlaylistDetailScreen(
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
                 ) {
-                    items(playlist.songs, key = { it.songId }) { song ->
+                    items(songs, key = { it.songId }) { song ->
                         PlaylistSongItem(
                             song = song,
                             onClick = { onSongClick(song.toSong()) },
@@ -187,7 +188,7 @@ fun PlaylistDetailScreen(
             confirmButton = {
                 TextButton(onClick = {
                     songToDelete?.let {
-                        viewModel.removeSongFromPlaylist(playlistId, it.songId)
+                        viewModel.removeSong(playlistId, it.songId)
                     }
                     songToDelete = null
                 }) {

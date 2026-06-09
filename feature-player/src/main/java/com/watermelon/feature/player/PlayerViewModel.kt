@@ -8,13 +8,19 @@ import com.watermelon.domain.repository.StreamingRepository
 import com.watermelon.domain.repository.UrlExtractorRepository
 import com.watermelon.domain.repository.UserActionsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 enum class RepeatMode { NONE, ONE, ALL }
@@ -37,12 +43,6 @@ data class PlayerUiState(
     val lyrics: String? = null,
     val isLyricsLoading: Boolean = false
 )
-
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelAndJoin
 
 @HiltViewModel
 class PlayerViewModel @Inject constructor(

@@ -13,7 +13,8 @@ enum class SubscriptionPlan {
 data class User(
     val id: String,
     val email: String,
-    val displayName: String?,
+    val username: String? = null,
+    val displayName: String? = null,
     val avatarUrl: String?,
     val plan: SubscriptionPlan = SubscriptionPlan.FREE,
     val createdAt: Long = System.currentTimeMillis()

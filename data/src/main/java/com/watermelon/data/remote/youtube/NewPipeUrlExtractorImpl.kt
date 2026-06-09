@@ -181,10 +181,6 @@ class NewPipeUrlExtractorImpl @Inject constructor(
 
     private fun fetchYtDlpAudioUrl(sourceUrl: String): String? {
         return try {
-            if (!WatermelonApplication.ytDlpReady) {
-                Timber.w("yt-dlp not initialized yet, skipping")
-                return null
-            }
             val request = YoutubeDLRequest(sourceUrl)
             request.addOption("-f", "bestaudio[abr<=192][ext=m4a]/bestaudio[abr<=192][ext=webm]/bestaudio[abr<=192]/bestaudio/best")
             request.addOption("--no-check-certificate")

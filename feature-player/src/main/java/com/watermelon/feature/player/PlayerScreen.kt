@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -32,6 +33,7 @@ import android.net.Uri
 import android.os.Environment
 import android.widget.Toast
 import androidx.compose.material.icons.filled.Download
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import com.watermelon.core.designsystem.theme.WatermelonRed
 import com.watermelon.core.designsystem.theme.WatermelonRedDark
@@ -350,14 +352,30 @@ fun PlayerScreen(
             } else if (!lyrics.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(20.dp))
                 OutlinedCard(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp, max = 260.dp),
                     shape = RoundedCornerShape(20.dp),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
                     colors = CardDefaults.outlinedCardColors(
                         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
                     )
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    val lyricsScroll = rememberScrollState()
+                    LaunchedEffect(state.positionMs, lyrics) {
+                        if (lyrics.isNullOrBlank() || state.durationMs <= 0) return@LaunchedEffect
+                        val lines = lyrics.split("\n")
+                        val progress = state.positionMs.toFloat() / state.durationMs
+                        val targetLine = (progress * lines.size).toInt().coerceIn(0, lines.size - 1)
+                        val lineHeightPx = with(density) { 22.dp.toPx().toInt() }
+                        val target = (targetLine * lineHeightPx).coerceIn(0, lyricsScroll.maxValue)
+                        lyricsScroll.animateScrollTo(target, animationSpec = tween(500))
+                    }
+                    Column(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .verticalScroll(lyricsScroll)
+                    ) {
                         Text(
                             text = "Lyrics",
                             style = MaterialTheme.typography.titleMedium,

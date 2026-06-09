@@ -2,8 +2,10 @@ package com.watermelon.feature.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.watermelon.domain.model.Playlist
 import com.watermelon.domain.model.Song
 import com.watermelon.domain.repository.MusicCatalogRepository
+import com.watermelon.domain.repository.PlaylistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -11,18 +13,23 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-@OptIn(FlowPreview::class)
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val musicCatalogRepository: MusicCatalogRepository
+    private val musicCatalogRepository: MusicCatalogRepository,
+    private val playlistRepository: PlaylistRepository
 ) : ViewModel() {
 
     private val _query = MutableStateFlow("")
@@ -40,7 +47,58 @@ class SearchViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _playlists = MutableStateFlow<List<Playlist>>(emptyList())
+    val playlists: StateFlow<List<Playlist>> = _playlists.asStateFlow()
+
+    private val _showAddToPlaylistSheet = MutableStateFlow(false)
+    val showAddToPlaylistSheet: StateFlow<Boolean> = _showAddToPlaylistSheet.asStateFlow()
+
+    private val _selectedSong = MutableStateFlow<Song?>(null)
+    val selectedSong: StateFlow<Song?> = _selectedSong.asStateFlow()
+
+    private val _addToPlaylistMessage = MutableStateFlow<String?>(null)
+    val addToPlaylistMessage: StateFlow<String?> = _addToPlaylistMessage.asStateFlow()
+
+    init {
+        loadPlaylists()
+    }
+
+    private fun loadPlaylists() {
+        playlistRepository.getUserPlaylists()
+            .catch { /* silently ignore */ }
+            .onEach { _playlists.value = it }
+            .launchIn(viewModelScope)
+    }
+
     fun onQueryChange(newQuery: String) {
         _query.update { newQuery }
+    }
+
+    fun onAddToPlaylistClick(song: Song) {
+        _selectedSong.value = song
+        _showAddToPlaylistSheet.value = true
+    }
+
+    fun onDismissAddToPlaylist() {
+        _showAddToPlaylistSheet.value = false
+        _selectedSong.value = null
+    }
+
+    fun onPlaylistSelected(playlistId: String) {
+        val song = _selectedSong.value ?: return
+        viewModelScope.launch {
+            val result = playlistRepository.addSongToPlaylist(playlistId, song)
+            _addToPlaylistMessage.value = if (result.isSuccess) {
+                "Added to playlist"
+            } else {
+                "Failed to add song"
+            }
+            _showAddToPlaylistSheet.value = false
+            _selectedSong.value = null
+        }
+    }
+
+    fun clearAddToPlaylistMessage() {
+        _addToPlaylistMessage.value = null
     }
 }

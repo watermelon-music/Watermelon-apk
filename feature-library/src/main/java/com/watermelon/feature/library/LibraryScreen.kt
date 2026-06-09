@@ -113,6 +113,27 @@ fun LibraryScreen(
         }
     }
 
+    if (showDeleteDialog != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("Delete Playlist") },
+            text = { Text("Delete \"${showDeleteDialog?.name}\"? This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteDialog?.let { viewModel.deletePlaylist(it.id) }
+                    showDeleteDialog = null
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     if (showPaywall) {
         AlertDialog(
             onDismissRequest = { showPaywall = false },
@@ -141,6 +162,7 @@ fun LibraryScreen(
 private fun PlaylistList(
     playlists: List<Playlist>,
     onPlaylistClick: (Playlist) -> Unit,
+    onDeletePlaylist: (Playlist) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (playlists.isEmpty()) {
@@ -188,6 +210,13 @@ private fun PlaylistList(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        IconButton(onClick = { onDeletePlaylist(playlist) }) {
+                            Icon(
+                                imageVector = Icons.Filled.Delete,
+                                contentDescription = "Delete",
+                                tint = MaterialTheme.colorScheme.error
                             )
                         }
                     }

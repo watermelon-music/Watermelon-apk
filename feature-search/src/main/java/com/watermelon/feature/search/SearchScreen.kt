@@ -11,7 +11,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -38,8 +40,22 @@ fun SearchScreen(
     val query by viewModel.query.collectAsStateWithLifecycle()
     val results by viewModel.results.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val showSheet by viewModel.showAddToPlaylistSheet.collectAsStateWithLifecycle()
+    val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val toastMessage by viewModel.addToPlaylistMessage.collectAsStateWithLifecycle()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearAddToPlaylistMessage()
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Search") },
@@ -145,7 +161,66 @@ fun SearchScreen(
                     items(results, key = { it.id }) { song ->
                         SearchResultItem(
                             song = song,
-                            onClick = { onSongClick(song) }
+                            onClick = { onSongClick(song) },
+                            onAddToPlaylist = { viewModel.onAddToPlaylistClick(song) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showSheet) {
+        ModalBottomSheet(
+            onDismissRequest = viewModel::onDismissAddToPlaylist,
+            sheetState = sheetState
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    text = "Add to Playlist",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(16.dp),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (playlists.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No playlists yet. Create one in Library.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    playlists.forEach { playlist ->
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    playlist.name,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            },
+                            leadingContent = {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                                    contentDescription = null,
+                                    tint = WatermelonRed
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.onPlaylistSelected(playlist.id)
+                                }
                         )
                     }
                 }
@@ -157,7 +232,8 @@ fun SearchScreen(
 @Composable
 private fun SearchResultItem(
     song: Song,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onAddToPlaylist: () -> Unit
 ) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(song.id) { visible = true }
@@ -205,20 +281,32 @@ private fun SearchResultItem(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                FilledIconButton(
-                    onClick = onClick,
-                    modifier = Modifier.size(40.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = WatermelonRed,
-                        contentColor = androidx.compose.ui.graphics.Color.White
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Play",
-                        modifier = Modifier.size(22.dp)
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    FilledIconButton(
+                        onClick = onClick,
+                        modifier = Modifier.size(40.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = WatermelonRed,
+                            contentColor = androidx.compose.ui.graphics.Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Play",
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = onAddToPlaylist,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "More",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }

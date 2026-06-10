@@ -34,7 +34,7 @@ import com.watermelon.domain.model.Song
 @Composable
 fun SearchScreen(
     onBackClick: () -> Unit,
-    onSongClick: (Song) -> Unit,
+    onSongClick: (Song, Int, List<Song>) -> Unit,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
@@ -159,9 +159,10 @@ fun SearchScreen(
                     verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
                 ) {
                     items(results, key = { it.id }) { song ->
+                        val index = results.indexOf(song)
                         SearchResultItem(
                             song = song,
-                            onClick = { onSongClick(song) },
+                            onClick = { onSongClick(song, index, results) },
                             onAddToPlaylist = { viewModel.onAddToPlaylistClick(song) }
                         )
                     }

@@ -180,6 +180,30 @@ class AuthRepositoryImpl @Inject constructor(
         return client.auth.currentUserOrNull()?.email ?: fallbackLocalUser()?.email
     }
 
+    override suspend fun refreshUser(): User? {
+        val supaUser = client.auth.currentUserOrNull() ?: return fallbackLocalUser()
+        val profile = runCatching {
+            client.postgrest.from("profiles")
+                .select { filter { eq("id", supaUser.id) } }
+                .decodeSingleOrNull<ProfileRow>()
+        }.getOrNull()
+        return User(
+            id = supaUser.id,
+            email = supaUser.email ?: "",
+            username = profile?.username
+                ?: supaUser.email?.substringBefore("@")
+                ?: "User",
+            displayName = profile?.display_name
+                ?: supaUser.email?.substringBefore("@")
+                ?: "User",
+            avatarUrl = profile?.avatar_url
+                ?: "https://api.dicebear.com/10.x/toon-head/svg?seed=${profile?.username ?: supaUser.email ?: supaUser.id}",
+            plan = runCatching {
+                SubscriptionPlan.valueOf(profile?.plan ?: "FREE")
+            }.getOrDefault(SubscriptionPlan.FREE)
+        )
+    }
+
     override suspend fun getCurrentAccessToken(): String? {
         return client.auth.currentSessionOrNull()?.accessToken
     }

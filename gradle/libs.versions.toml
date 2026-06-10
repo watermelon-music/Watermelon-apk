@@ -16,6 +16,7 @@ room = "2.6.1"
 retrofit = "2.9.0"
 okhttp = "4.12.0"
 coil = "2.5.0"
+palette = "1.0.0"
 media3 = "1.2.1"
 supabase = "2.1.4"
 ktor = "2.3.12"
@@ -66,6 +67,7 @@ okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor",
 # Image Loading
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 coil-svg = { group = "io.coil-kt", name = "coil-svg", version.ref = "coil" }
+androidx-palette-ktx = { group = "androidx.palette", name = "palette-ktx", version.ref = "palette" }
 
 # Media
 media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }

@@ -67,6 +67,9 @@ class ProfileViewModel @Inject constructor(
                     .onFailure { error = "Failed to update username" }
             }
 
+            if (error == null) {
+                authRepository.refreshUser()?.let { _user.value = it }
+            }
             _editState.update {
                 it.copy(
                     isSaving = false,
@@ -74,6 +77,14 @@ class ProfileViewModel @Inject constructor(
                     error = error
                 )
             }
+        }
+    }
+
+    fun updateAvatar(seed: String, style: String = "toon-head") {
+        viewModelScope.launch {
+            val url = "https://api.dicebear.com/10.x/$style/svg?seed=$seed"
+            authRepository.updateAvatar(url)
+                .onSuccess { authRepository.refreshUser()?.let { _user.value = it } }
         }
     }
 

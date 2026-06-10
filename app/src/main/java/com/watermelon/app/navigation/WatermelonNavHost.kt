@@ -93,7 +93,7 @@ fun WatermelonNavHost(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.flash_logo),
+                    painter = painterResource(id = R.drawable.app_logo),
                     contentDescription = "Watermelon",
                     modifier = Modifier.size(200.dp)
                 )
@@ -204,8 +204,8 @@ fun WatermelonNavHost(
         composable(Routes.SEARCH) {
             SearchScreen(
                 onBackClick = { navController.popBackStack() },
-                onSongClick = { song: Song ->
-                    playerViewModel.playSong(song)
+                onSongClick = { song: Song, index: Int, results: List<Song> ->
+                    playerViewModel.playQueue(results, index)
                     navController.navigate(Routes.PLAYER)
                 }
             )

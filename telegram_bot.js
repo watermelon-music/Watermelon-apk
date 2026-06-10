@@ -30,12 +30,30 @@ function c(text) { return `<code>${text}</code>`; }
 // ========== START ==========
 
 bot.start((ctx) => {
-  if (!isAdmin(ctx)) return ctx.reply('⛔ Unauthorized.');
+  if (!isAdmin(ctx)) {
+    return ctx.reply(
+      '🍉 <b>Watermelon Music</b>\n\n' +
+      'This is the admin bot for Watermelon app.\n' +
+      'If you are the admin, set your chat ID in the environment.\n\n' +
+      'Your chat ID: <code>' + (ctx.chat?.id || ctx.from?.id) + '</code>\n' +
+      'Use /myid to copy it anytime.',
+      { parse_mode: 'HTML' }
+    );
+  }
   ctx.reply(
     '🍉 <b>Watermelon Admin Bot</b>\n\n' +
     '👋 Welcome back, chief!\n' +
     'Use the keyboard below or type /commands for the full list.',
     { parse_mode: 'HTML', ...MAIN_KEYBOARD }
+  );
+});
+
+bot.command('myid', (ctx) => {
+  const id = ctx.chat?.id || ctx.from?.id;
+  ctx.reply(
+    '🆔 <b>Your Chat ID</b>\n\n<code>' + id + '</code>\n\n' +
+    'Set this as <code>TELEGRAM_ADMIN_CHAT_ID</code> on Render to become admin.',
+    { parse_mode: 'HTML' }
   );
 });
 

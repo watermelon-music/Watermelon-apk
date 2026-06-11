@@ -50,6 +50,9 @@ dependencies {
     // Coil
     implementation(libs.coil.compose)
 
+    // OkHttp
+    implementation(libs.okhttp)
+
     // Timber
     implementation(libs.timber)
 

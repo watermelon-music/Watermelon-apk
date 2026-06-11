@@ -1,5 +1,6 @@
 package com.watermelon.app.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -8,15 +9,16 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Policy
-import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.watermelon.app.BuildConfig
+import com.watermelon.app.R
 import com.watermelon.core.designsystem.theme.WatermelonRed
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,20 +52,14 @@ fun AboutScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // App logo placeholder
-            Box(
+            // App logo
+            Image(
+                painter = painterResource(id = R.drawable.app_logo),
+                contentDescription = "Watermelon",
                 modifier = Modifier
                     .size(120.dp)
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Verified,
-                    contentDescription = "Watermelon",
-                    modifier = Modifier.fillMaxSize(),
-                    tint = WatermelonRed
-                )
-            }
+                    .padding(16.dp)
+            )
 
             Text(
                 text = "Watermelon",
@@ -71,9 +67,16 @@ fun AboutScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                text = "Version ${BuildConfig.VERSION_NAME}  Build ${BuildConfig.VERSION_CODE}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "Made with passion for music lovers everywhere.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -122,9 +125,9 @@ fun AboutScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Made with passion for music lovers everywhere.",
+                text = "2026 Watermelon Music. All rights reserved.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
         }
     }

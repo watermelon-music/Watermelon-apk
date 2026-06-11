@@ -7,6 +7,8 @@ import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -329,16 +331,22 @@ fun WatermelonTheme(
     content: @Composable () -> Unit
 ) {
     val isSystemDark = isSystemInDarkTheme()
-    val colorScheme = when (AppTheme.fromKey(themeMode)) {
-        AppTheme.Light -> LightColorScheme
-        AppTheme.Dark -> DarkColorScheme
-        AppTheme.Amoled -> AmoledColorScheme
-        AppTheme.Student -> StudentColorScheme
-        AppTheme.ObsidianGold -> ObsidianGoldColorScheme
-        AppTheme.EmeraldDynasty -> EmeraldDynastyColorScheme
-        AppTheme.SapphireElite -> SapphireEliteColorScheme
-        AppTheme.AmethystDreams -> AmethystDreamsColorScheme
-        AppTheme.CrimsonRoyale -> CrimsonRoyaleColorScheme
+    val context = LocalContext.current
+    val theme = AppTheme.fromKey(themeMode)
+
+    val colorScheme = when {
+        theme == AppTheme.System && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            if (isSystemDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        theme == AppTheme.Light -> LightColorScheme
+        theme == AppTheme.Dark -> DarkColorScheme
+        theme == AppTheme.Amoled -> AmoledColorScheme
+        theme == AppTheme.Student -> StudentColorScheme
+        theme == AppTheme.ObsidianGold -> ObsidianGoldColorScheme
+        theme == AppTheme.EmeraldDynasty -> EmeraldDynastyColorScheme
+        theme == AppTheme.SapphireElite -> SapphireEliteColorScheme
+        theme == AppTheme.AmethystDreams -> AmethystDreamsColorScheme
+        theme == AppTheme.CrimsonRoyale -> CrimsonRoyaleColorScheme
         else -> if (isSystemDark) DarkColorScheme else LightColorScheme
     }
 

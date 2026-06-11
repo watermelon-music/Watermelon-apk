@@ -1,5 +1,7 @@
 package com.watermelon.feature.player
 
+import android.content.Context
+import android.os.Environment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.watermelon.domain.model.Song
@@ -8,6 +10,8 @@ import com.watermelon.domain.repository.StreamingRepository
 import com.watermelon.domain.repository.UrlExtractorRepository
 import com.watermelon.domain.repository.UserActionsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
@@ -23,7 +27,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import org.json.JSONObject
 import timber.log.Timber
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import javax.inject.Inject
 
 enum class RepeatMode { NONE, ONE, ALL }
@@ -44,11 +54,16 @@ data class PlayerUiState(
     val currentSongId: String = "",
     val isFavorite: Boolean = false,
     val lyrics: String? = null,
-    val isLyricsLoading: Boolean = false
+    val isLyricsLoading: Boolean = false,
+    val isDownloading: Boolean = false,
+    val downloadProgress: Float = 0f,
+    val downloadErrorMessage: String? = null
 )
 
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val okHttpClient: OkHttpClient,
     private val streamingRepository: StreamingRepository,
     private val urlExtractor: UrlExtractorRepository,
     private val userActionsRepository: UserActionsRepository,
@@ -62,9 +77,6 @@ class PlayerViewModel @Inject constructor(
 
     private val _queue = MutableStateFlow<List<Song>>(emptyList())
     val queue: StateFlow<List<Song>> = _queue.asStateFlow()
-
-    private val _downloadEvent = MutableSharedFlow<Song>(extraBufferCapacity = 1)
-    val downloadEvent: SharedFlow<Song> = _downloadEvent.asSharedFlow()
 
     private val _sleepTimerRemainingSeconds = MutableStateFlow<Int?>(null)
     val sleepTimerRemainingSeconds: StateFlow<Int?> = _sleepTimerRemainingSeconds.asStateFlow()
@@ -469,15 +481,63 @@ class PlayerViewModel @Inject constructor(
         val sourceUrl = song.audioUrl?.takeIf { it.isNotBlank() }
             ?: "https://www.youtube.com/watch?v=${song.id}"
         viewModelScope.launch {
-            _uiState.update { it.copy(isBuffering = true, errorMessage = null) }
+            _uiState.update { it.copy(isDownloading = true, downloadProgress = 0f, downloadErrorMessage = null) }
             runCatching {
                 val directUrl = urlExtractor.extractAudioUrl(sourceUrl).getOrThrow()
-                _downloadEvent.emit(song.copy(audioUrl = directUrl))
+                withContext(Dispatchers.IO) {
+                    downloadToPrivateStorage(song, directUrl)
+                }
+            }.onSuccess {
+                _uiState.update { it.copy(isDownloading = false, downloadProgress = 1f, downloadErrorMessage = null) }
             }.onFailure { e ->
-                _uiState.update { it.copy(errorMessage = "Download failed. Please try again.") }
+                Timber.e(e, "Download failed")
+                _uiState.update { it.copy(isDownloading = false, downloadProgress = 0f, downloadErrorMessage = e.localizedMessage ?: "Download failed") }
             }
-            _uiState.update { it.copy(isBuffering = false) }
         }
+    }
+
+    private suspend fun downloadToPrivateStorage(song: Song, url: String) {
+        val musicDir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
+            ?: throw IOException("Music directory not available")
+        if (!musicDir.exists()) musicDir.mkdirs()
+
+        val destFile = File(musicDir, "${song.id}.mp3")
+        if (destFile.exists()) {
+            throw IOException("Already downloaded")
+        }
+
+        val request = okhttp3.Request.Builder().url(url).build()
+        okHttpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("Server returned ${response.code}")
+            val body = response.body ?: throw IOException("Empty response")
+            val totalBytes = body.contentLength()
+
+            body.byteStream().use { input ->
+                FileOutputStream(destFile).use { output ->
+                    val buffer = ByteArray(8192)
+                    var downloadedBytes = 0L
+                    var read: Int
+                    while (input.read(buffer).also { read = it } != -1) {
+                        output.write(buffer, 0, read)
+                        downloadedBytes += read
+                        if (totalBytes > 0) {
+                            val progress = downloadedBytes.toFloat() / totalBytes.toFloat()
+                            _uiState.update { it.copy(downloadProgress = progress) }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Write metadata JSON alongside MP3
+        try {
+            val meta = JSONObject().apply {
+                put("title", song.title)
+                put("artistName", song.artistName)
+                put("coverUrl", song.coverUrl ?: "")
+            }
+            File(musicDir, "${song.id}.json").writeText(meta.toString())
+        } catch (_: Exception) { /* ignore meta write failure */ }
     }
 
     private var sleepTimerJob: Job? = null
@@ -503,6 +563,14 @@ class PlayerViewModel @Inject constructor(
     fun cancelSleepTimer() {
         sleepTimerJob?.cancel()
         _sleepTimerRemainingSeconds.value = null
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    fun clearDownloadError() {
+        _uiState.update { it.copy(downloadErrorMessage = null) }
     }
 
     override fun onCleared() {

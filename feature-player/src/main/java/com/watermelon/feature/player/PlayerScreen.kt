@@ -34,18 +34,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import android.Manifest
 import android.app.Activity
-import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import android.os.Environment
+import android.content.pm.PackageManager
+import android.os.Build
 import android.view.WindowManager
 import android.widget.Toast
-import kotlinx.coroutines.Dispatchers
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.withContext
 import com.watermelon.core.designsystem.theme.WatermelonRed
 import com.watermelon.core.designsystem.theme.WatermelonRedDark
 
@@ -117,34 +116,33 @@ fun PlayerScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.downloadEvent.collectLatest { song ->
-            val url = song.audioUrl ?: return@collectLatest
-            val musicDir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC) ?: return@collectLatest
-            val destFile = java.io.File(musicDir, "${song.id}.mp3")
-            if (destFile.exists()) {
-                Toast.makeText(context, "Already downloaded", Toast.LENGTH_SHORT).show()
-                return@collectLatest
-            }
-            val request = DownloadManager.Request(Uri.parse(url))
-                .setTitle(song.title)
-                .setDescription(song.artistName)
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                .setDestinationUri(Uri.fromFile(destFile))
-            val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-            dm.enqueue(request)
-            // Write metadata JSON alongside MP3 for display in downloads tab
-            try {
-                val meta = org.json.JSONObject().apply {
-                    put("title", song.title)
-                    put("artistName", song.artistName)
-                    put("coverUrl", song.coverUrl ?: "")
-                }
-                withContext(Dispatchers.IO) {
-                    java.io.File(musicDir, "${song.id}.json").writeText(meta.toString())
-                }
-            } catch (_: Exception) { /* ignore meta write failure */ }
-            Toast.makeText(context, "Download started: ${song.title}", Toast.LENGTH_SHORT).show()
+    // Observe download errors
+    val downloadError = state.downloadErrorMessage
+    LaunchedEffect(downloadError) {
+        if (!downloadError.isNullOrBlank()) {
+            snackbarHostState.showSnackbar(downloadError)
+            viewModel.clearDownloadError()
+        }
+    }
+
+    val storagePermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            viewModel.startDownload()
+        } else {
+            Toast.makeText(context, "Storage permission optional — download uses app-private folder", Toast.LENGTH_LONG).show()
+            viewModel.startDownload()
+        }
+    }
+
+    fun requestDownload() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+            context.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        ) {
+            storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        } else {
+            viewModel.startDownload()
         }
     }
 
@@ -166,12 +164,26 @@ fun PlayerScreen(
                             tint = if (state.isFavorite) WatermelonRed else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    IconButton(onClick = { viewModel.startDownload() }) {
-                        Icon(
-                            imageVector = Icons.Filled.Download,
-                            contentDescription = "Download",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    if (state.isDownloading) {
+                        Box(
+                            modifier = Modifier.size(48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                progress = { state.downloadProgress.coerceIn(0f, 1f) },
+                                modifier = Modifier.size(28.dp),
+                                strokeWidth = 2.dp,
+                                color = WatermelonRed
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = { requestDownload() }) {
+                            Icon(
+                                imageVector = Icons.Filled.Download,
+                                contentDescription = "Download",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                     IconButton(onClick = { showTimerDialog = true }) {
                         if (sleepTimerText != null) {

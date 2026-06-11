@@ -59,27 +59,19 @@ fun RegisterScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = R.drawable.bg_login),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-            alpha = 0.35f
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background.copy(alpha = 0.75f),
-                            MaterialTheme.colorScheme.background.copy(alpha = 0.9f),
-                            Color(0xFF1A0505).copy(alpha = 0.95f)
-                        )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.background,
+                        Color(0xFF1A0505)
                     )
                 )
-        ) {
+            )
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -271,7 +263,6 @@ fun RegisterScreen(
                     )
                 }
             }
-        }
         }
     }
 }

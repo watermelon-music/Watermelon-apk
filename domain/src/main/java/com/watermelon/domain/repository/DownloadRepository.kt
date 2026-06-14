@@ -1,6 +1,13 @@
 package com.watermelon.domain.repository
 
+import com.watermelon.domain.model.DownloadedSong
+import com.watermelon.domain.model.Song
+import kotlinx.coroutines.flow.Flow
+
 interface DownloadRepository {
-    suspend fun download(url: String, fileName: String): Result<Unit>
-    fun getDownloadStatus(downloadId: Long): Int?
+    fun getDownloads(): Flow<List<DownloadedSong>>
+    suspend fun downloadSong(song: Song, url: String): Result<Unit>
+    suspend fun deleteDownload(songId: String): Result<Unit>
+    suspend fun cleanupMissingFiles(): Result<Unit>
+    suspend fun isDownloaded(songId: String): Boolean
 }

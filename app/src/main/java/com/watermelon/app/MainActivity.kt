@@ -19,6 +19,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
@@ -145,7 +146,7 @@ class MainActivity : ComponentActivity() {
                                         onNavigate = { route ->
                                             if (currentRoute != route) {
                                                 navController.navigate(route) {
-                                                    popUpTo(navController.graph.findStartDestination().id) {
+                                                    popUpTo(navController.graph.startDestination) {
                                                         saveState = true
                                                     }
                                                     launchSingleTop = true

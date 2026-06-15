@@ -90,7 +90,8 @@ fun WatermelonNavHost(
                 }
                 delay(800) // minimum splash branding
                 hasNavigated.value = true
-                if (isAuthenticated) {
+                val auth = isAuthenticated
+                if (auth == true) {
                     val verified = authViewModel.isEmailVerified()
                     val target = if (verified) Routes.HOME else Routes.VERIFY_EMAIL
                     navController.navigate(target) {

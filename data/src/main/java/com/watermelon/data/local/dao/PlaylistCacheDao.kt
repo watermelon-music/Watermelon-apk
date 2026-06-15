@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface PlaylistCacheDao {
     @Query("SELECT * FROM cached_playlists ORDER BY updatedAt DESC")
-    fun getAll(): Flow<List<CachedPlaylistEntity>>
+    suspend fun getAll(): List<CachedPlaylistEntity>
 
     @Query("SELECT * FROM cached_playlists WHERE id = :playlistId")
     suspend fun getById(playlistId: String): CachedPlaylistEntity?
@@ -32,13 +32,5 @@ interface PlaylistCacheDao {
     @Query("SELECT * FROM cached_playlist_songs WHERE playlistId = :playlistId ORDER BY position ASC")
     fun getSongsForPlaylist(playlistId: String): Flow<List<CachedPlaylistSongEntity>>
 
-    @Transaction
-    suspend fun cachePlaylist(
-        playlist: CachedPlaylistEntity,
-        songs: List<CachedPlaylistSongEntity>
-    ) {
-        deleteSongsForPlaylist(playlist.id)
-        insertPlaylist(playlist)
-        insertSongs(songs)
-    }
+
 }

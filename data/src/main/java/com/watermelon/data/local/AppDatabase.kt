@@ -1,6 +1,5 @@
 package com.watermelon.data.local
 
-import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.watermelon.data.local.dao.CachedSongDao
@@ -18,7 +17,6 @@ import com.watermelon.data.local.entity.UserActionEntity
 @Database(
     entities = [CachedSongEntity::class, UserActionEntity::class, RadioStationEntity::class, DownloadedSongEntity::class, CachedPlaylistEntity::class, CachedPlaylistSongEntity::class],
     version = 5,
-    autoMigrations = [AutoMigration(from = 3, to = 4), AutoMigration(from = 4, to = 5)],
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

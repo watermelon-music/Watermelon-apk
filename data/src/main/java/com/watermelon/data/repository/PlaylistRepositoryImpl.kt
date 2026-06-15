@@ -22,6 +22,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
@@ -45,7 +46,7 @@ class PlaylistRepositoryImpl @Inject constructor(
     init {
         scope.launch {
             if (_playlists.value.isEmpty()) {
-                val cached = playlistCacheDao.getAll().first()
+                val cached = playlistCacheDao.getAll()
                 _playlists.value = cached.map { it.toDomain() }
             }
             refreshPlaylists()
@@ -200,10 +201,9 @@ class PlaylistRepositoryImpl @Inject constructor(
             _playlists.value = remote
             saveLocalCache(remote)
             remote.forEach { playlist ->
-                playlistCacheDao.cachePlaylist(
-                    playlist.toEntity(),
-                    playlist.songs.map { it.toEntity(playlist.id) }
-                )
+                playlistCacheDao.deleteSongsForPlaylist(playlist.id)
+                playlistCacheDao.insertPlaylist(playlist.toEntity())
+                playlistCacheDao.insertSongs(playlist.songs.map { it.toEntity(playlist.id) })
             }
         }
     }

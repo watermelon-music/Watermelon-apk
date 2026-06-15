@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 interface DownloadRepository {
     fun getDownloads(): Flow<List<DownloadedSong>>
     suspend fun downloadSong(song: Song, url: String): Result<Unit>
+    suspend fun recordDownload(song: Song, filePath: String, fileSize: Long): Result<Unit>
     suspend fun deleteDownload(songId: String): Result<Unit>
     suspend fun cleanupMissingFiles(): Result<Unit>
     suspend fun isDownloaded(songId: String): Boolean

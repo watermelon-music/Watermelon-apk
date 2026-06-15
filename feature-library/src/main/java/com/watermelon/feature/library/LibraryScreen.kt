@@ -20,17 +20,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
+import android.content.Intent
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import android.os.Environment
+import com.watermelon.core.designsystem.animation.ShimmerCard
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.Playlist
 import com.watermelon.domain.model.Song
@@ -50,8 +53,9 @@ fun LibraryScreen(
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
     val recentlyPlayed by viewModel.recentlyPlayed.collectAsStateWithLifecycle()
     val canCreate by viewModel.canCreatePlaylist.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
-    var showPaywall by remember { mutableStateOf(false) }
+    var showPaywall by rememberSaveable { mutableStateOf(false) }
     val tabs = listOf("Playlists", "Favorites", "Feed", "Downloads")
     val tabIcons = listOf(
         Icons.AutoMirrored.Filled.QueueMusic,
@@ -60,7 +64,10 @@ fun LibraryScreen(
         Icons.Filled.Download
     )
 
-    var showDeleteDialog by remember { mutableStateOf<Playlist?>(null) }
+    var showDeleteDialog by rememberSaveable { mutableStateOf<Playlist?>(null) }
+    var showEditDialog by rememberSaveable { mutableStateOf<Playlist?>(null) }
+    var showQrDialog by rememberSaveable { mutableStateOf<Playlist?>(null) }
+    var shareMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -111,10 +118,35 @@ fun LibraryScreen(
                 }
             }
 
+            val context = LocalContext.current
             when (selectedTab) {
-                0 -> PlaylistList(
+                0 -> if (isLoading && playlists.isEmpty()) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        repeat(5) { ShimmerCard(height = 72.dp) }
+                    }
+                } else PlaylistList(
                     playlists = playlists,
                     onPlaylistClick = onPlaylistClick,
+                    onPlayPlaylist = { onPlaylistClick(it) },
+                    onShufflePlaylist = { onPlaylistClick(it) },
+                    onSharePlaylist = { playlist ->
+                        viewModel.sharePlaylist(playlist.id) { code ->
+                            shareMessage = "Share code: $code"
+                            val deepLink = "https://watermelon.app/playlist/${playlist.id}"
+                            val shareText = "Listen to my playlist \"${playlist.name}\" on Watermelon\n$deepLink"
+                            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, shareText)
+                            }
+                            val shareIntent = Intent.createChooser(sendIntent, "Share Playlist")
+                            context.startActivity(shareIntent)
+                        }
+                    },
+                    onEditPlaylist = { showEditDialog = it },
+                    onShowQr = { showQrDialog = it },
                     onDeletePlaylist = { showDeleteDialog = it },
                     modifier = Modifier.fillMaxSize()
                 )
@@ -177,22 +209,127 @@ fun LibraryScreen(
             }
         )
     }
+
+    if (showEditDialog != null) {
+        var editName by rememberSaveable { mutableStateOf(showEditDialog?.name ?: "") }
+        var editDesc by rememberSaveable { mutableStateOf(showEditDialog?.description ?: "") }
+        AlertDialog(
+            onDismissRequest = { showEditDialog = null },
+            title = { Text("Edit Playlist") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = editName, onValueChange = { editName = it }, label = { Text("Name") })
+                    OutlinedTextField(value = editDesc, onValueChange = { editDesc = it }, label = { Text("Description") })
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showEditDialog?.let { viewModel.editPlaylist(it.id, editName, editDesc.takeIf { it.isNotBlank() }) }
+                    showEditDialog = null
+                }) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    shareMessage?.let { msg ->
+        LaunchedEffect(msg) {
+            kotlinx.coroutines.delay(3000)
+            shareMessage = null
+        }
+        Snackbar(
+            modifier = Modifier.padding(16.dp),
+            action = {
+                TextButton(onClick = { shareMessage = null }) {
+                    Text("Dismiss")
+                }
+            }
+        ) { Text(msg) }
+    }
+
+    showQrDialog?.let { playlist ->
+        val deepLink = "https://watermelon.app/playlist/${playlist.id}"
+        AlertDialog(
+            onDismissRequest = { showQrDialog = null },
+            title = { Text("${playlist.name} — QR Code") },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val bitmap = remember(deepLink) { generateQrBitmap(deepLink, 512) }
+                    bitmap?.let {
+                        androidx.compose.foundation.Image(
+                            bitmap = it.asImageBitmap(),
+                            contentDescription = "QR Code",
+                            modifier = Modifier.size(200.dp)
+                        )
+                    } ?: Text("Failed to generate QR")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(deepLink, style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "image/png"
+                        val path = android.provider.MediaStore.Images.Media.insertImage(
+                            context.contentResolver, generateQrBitmap(deepLink, 512), "qr_${playlist.id}", null
+                        )
+                        putExtra(Intent.EXTRA_STREAM, android.net.Uri.parse(path))
+                        putExtra(Intent.EXTRA_TEXT, "Scan this QR to open ${playlist.name} on Watermelon\n$deepLink")
+                    }
+                    context.startActivity(Intent.createChooser(sendIntent, "Share QR"))
+                }) {
+                    Text("Share")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showQrDialog = null }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
 }
 
 @Composable
 private fun PlaylistList(
     playlists: List<Playlist>,
     onPlaylistClick: (Playlist) -> Unit,
+    onPlayPlaylist: (Playlist) -> Unit,
+    onShufflePlaylist: (Playlist) -> Unit,
+    onSharePlaylist: (Playlist) -> Unit,
+    onEditPlaylist: (Playlist) -> Unit,
+    onShowQr: (Playlist) -> Unit,
     onDeletePlaylist: (Playlist) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (playlists.isEmpty()) {
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
-            Text(
-                text = "No playlists yet",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "No playlists yet",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Create a playlist to get started",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            }
         }
     } else {
         LazyColumn(
@@ -200,6 +337,7 @@ private fun PlaylistList(
             verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
         ) {
             items(playlists, key = { it.id }) { playlist ->
+                var menuExpanded by remember { mutableStateOf(false) }
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -230,12 +368,42 @@ private fun PlaylistList(
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                        IconButton(onClick = { onDeletePlaylist(playlist) }) {
-                            Icon(
-                                imageVector = Icons.Filled.Delete,
-                                contentDescription = "Delete",
-                                tint = MaterialTheme.colorScheme.error
-                            )
+                        Box {
+                            IconButton(onClick = { menuExpanded = true }) {
+                                Icon(
+                                    imageVector = Icons.Filled.MoreVert,
+                                    contentDescription = "More"
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Play") },
+                                    onClick = { menuExpanded = false; onPlayPlaylist(playlist) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Shuffle") },
+                                    onClick = { menuExpanded = false; onShufflePlaylist(playlist) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Share") },
+                                    onClick = { menuExpanded = false; onSharePlaylist(playlist) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Edit") },
+                                    onClick = { menuExpanded = false; onEditPlaylist(playlist) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Show QR") },
+                                    onClick = { menuExpanded = false; onShowQr(playlist) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                                    onClick = { menuExpanded = false; onDeletePlaylist(playlist) }
+                                )
+                            }
                         }
                     }
                 }
@@ -433,7 +601,7 @@ data class DownloadMeta(val title: String, val artistName: String, val coverUrl:
 private fun DownloadsPlaceholder(onSongClick: (Song) -> Unit) {
     val context = LocalContext.current
     var refreshKey by remember { mutableIntStateOf(0) }
-    var fileToDelete by remember { mutableStateOf<java.io.File?>(null) }
+    var fileToDelete by rememberSaveable { mutableStateOf<java.io.File?>(null) }
 
     val downloads = remember(refreshKey) {
         val dir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
@@ -603,5 +771,21 @@ private fun DownloadsPlaceholder(onSongClick: (Song) -> Unit) {
                 }
             }
         )
+    }
+}
+
+private fun generateQrBitmap(content: String, size: Int = 512): android.graphics.Bitmap? {
+    return try {
+        val writer = com.google.zxing.qrcode.QRCodeWriter()
+        val bitMatrix = writer.encode(content, com.google.zxing.BarcodeFormat.QR_CODE, size, size)
+        val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.RGB_565)
+        for (x in 0 until size) {
+            for (y in 0 until size) {
+                bitmap.setPixel(x, y, if (bitMatrix.get(x, y)) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+            }
+        }
+        bitmap
+    } catch (e: Exception) {
+        null
     }
 }

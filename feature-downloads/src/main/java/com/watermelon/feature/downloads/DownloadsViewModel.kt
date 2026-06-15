@@ -1,18 +1,15 @@
 package com.watermelon.feature.downloads
 
-import android.content.Context
-import android.os.Environment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.watermelon.domain.model.DownloadedSong
+import com.watermelon.domain.repository.DownloadRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.json.JSONObject
-import java.io.File
 import javax.inject.Inject
 
 data class DownloadedTrack(
@@ -25,50 +22,27 @@ data class DownloadedTrack(
 
 @HiltViewModel
 class DownloadsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    private val downloadRepository: DownloadRepository
 ) : ViewModel() {
 
-    private val _tracks = MutableStateFlow<List<DownloadedTrack>>(emptyList())
-    val tracks: StateFlow<List<DownloadedTrack>> = _tracks.asStateFlow()
+    val tracks: StateFlow<List<DownloadedTrack>> = downloadRepository.getDownloads()
+        .map { list -> list.map { it.toUiModel() } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    private val _isRefreshing = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
     fun refresh() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             _isRefreshing.value = true
-            val musicDir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
-            val result = if (musicDir != null && musicDir.exists()) {
-                val jsonFiles = musicDir.listFiles { f -> f.extension == "json" } ?: emptyArray()
-                jsonFiles.mapNotNull { jsonFile ->
-                    try {
-                        val json = JSONObject(jsonFile.readText())
-                        val baseName = jsonFile.nameWithoutExtension
-                        val mp3File = File(musicDir, "$baseName.mp3")
-                        if (!mp3File.exists()) return@mapNotNull null
-                        DownloadedTrack(
-                            id = baseName,
-                            title = json.optString("title", baseName),
-                            artistName = json.optString("artistName", "Unknown Artist"),
-                            coverUrl = json.optString("coverUrl", ""),
-                            filePath = mp3File.absolutePath
-                        )
-                    } catch (_: Exception) {
-                        null
-                    }
-                }.sortedByDescending { File(musicDir, "${it.id}.mp3").lastModified() }
-            } else emptyList()
-            _tracks.value = result
+            downloadRepository.cleanupMissingFiles()
             _isRefreshing.value = false
         }
     }
 
     fun deleteTrack(id: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val musicDir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC) ?: return@launch
-            File(musicDir, "$id.mp3").delete()
-            File(musicDir, "$id.json").delete()
-            refresh()
+        viewModelScope.launch {
+            downloadRepository.deleteDownload(id)
         }
     }
 
@@ -76,3 +50,11 @@ class DownloadsViewModel @Inject constructor(
         // TODO: wire with player to play local file
     }
 }
+
+private fun DownloadedSong.toUiModel(): DownloadedTrack = DownloadedTrack(
+    id = songId,
+    title = title,
+    artistName = artist,
+    coverUrl = coverUrl ?: "",
+    filePath = localFilePath
+)

@@ -46,8 +46,24 @@ class HomeViewModel @Inject constructor(
 
     init {
         warmUpBackend()
+        observeRecentlyPlayed()
+        observeFavorites()
         loadHomeData()
         loadPlaylists()
+    }
+
+    private fun observeRecentlyPlayed() {
+        userActionsRepository.getRecentlyPlayed()
+            .catch { emit(emptyList()) }
+            .onEach { recent -> _uiState.update { it.copy(recentlyPlayed = recent) } }
+            .launchIn(viewModelScope)
+    }
+
+    private fun observeFavorites() {
+        userActionsRepository.getFavorites()
+            .catch { emit(emptyList()) }
+            .onEach { fav -> _uiState.update { it.copy(favorites = fav) } }
+            .launchIn(viewModelScope)
     }
 
     private fun loadPlaylists() {
@@ -95,8 +111,6 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            val recentlyPlayedDeferred = async { runCatching { userActionsRepository.getRecentlyPlayed().first() }.getOrDefault(emptyList()) }
-            val favoritesDeferred = async { runCatching { userActionsRepository.getFavorites().first() }.getOrDefault(emptyList()) }
             val trendingDeferred = async { runCatching { musicCatalogRepository.getTrendingMusic().first() }.getOrDefault(emptyList()) }
 
             val bollywoodDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("bollywood").first() }.getOrDefault(emptyList()) }
@@ -108,15 +122,11 @@ class HomeViewModel @Inject constructor(
             val hiphopDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("hiphop").first() }.getOrDefault(emptyList()) }
             val electronicDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("electronic").first() }.getOrDefault(emptyList()) }
 
-            val recentlyPlayed = recentlyPlayedDeferred.await()
-            val favorites = favoritesDeferred.await()
             val trending = trendingDeferred.await()
 
             _uiState.update { state ->
                 state.copy(
                     isLoading = false,
-                    recentlyPlayed = recentlyPlayed,
-                    favorites = favorites,
                     trendingMusic = trending,
                     bollywood = bollywoodDeferred.await().take(7),
                     hollywood = hollywoodDeferred.await().take(7),

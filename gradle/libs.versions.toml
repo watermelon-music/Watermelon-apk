@@ -26,6 +26,7 @@ ksp = "1.9.22-1.0.17"
 newpipe-extractor = "v0.26.2"
 junit = "4.13.2"
 timber = "5.0.1"
+qr = "3.5.2"
 youtubedl-android = "0.18.1"
 androidx-junit = "1.1.5"
 espresso = "3.5.1"
@@ -102,6 +103,9 @@ firebase-play-services-auth = { group = "com.google.android.gms", name = "play-s
 
 # Razorpay
 razorpay-checkout = { group = "com.razorpay", name = "checkout", version = "1.6.41" }
+
+# QR Code
+qr-core = { group = "com.google.zxing", name = "core", version.ref = "qr" }
 
 # Coroutines
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }

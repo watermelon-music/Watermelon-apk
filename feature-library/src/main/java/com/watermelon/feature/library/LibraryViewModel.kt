@@ -23,8 +23,17 @@ class LibraryViewModel @Inject constructor(
     authRepository: AuthRepository
 ) : ViewModel() {
 
-    val playlists: StateFlow<List<Playlist>> = playlistRepository.getUserPlaylists()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    val playlists: StateFlow<List<Playlist>> = playlistRepository.getUserPlaylists() as StateFlow<List<Playlist>>
+
+    init {
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(800)
+            _isLoading.value = false
+        }
+    }
 
     val favorites: StateFlow<List<Song>> = userActionsRepository.getFavorites()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -51,6 +60,19 @@ class LibraryViewModel @Inject constructor(
     fun deletePlaylist(playlistId: String) {
         viewModelScope.launch {
             playlistRepository.deletePlaylist(playlistId)
+        }
+    }
+
+    fun sharePlaylist(playlistId: String, onResult: (String) -> Unit) {
+        viewModelScope.launch {
+            playlistRepository.sharePlaylist(playlistId)
+                .onSuccess { onResult(it) }
+        }
+    }
+
+    fun editPlaylist(playlistId: String, name: String, description: String?) {
+        viewModelScope.launch {
+            playlistRepository.editPlaylist(playlistId, name, description)
         }
     }
 

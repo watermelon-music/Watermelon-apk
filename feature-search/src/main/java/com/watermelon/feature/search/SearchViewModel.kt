@@ -15,11 +15,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -35,15 +36,22 @@ class SearchViewModel @Inject constructor(
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _loadingCount = MutableStateFlow(0)
+    val isLoading: StateFlow<Boolean> = _loadingCount
+        .map { it > 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val results: StateFlow<List<Song>> = _query
         .debounce(300)
         .flatMapLatest { q ->
-            musicCatalogRepository.search(q)
-                .onStart { _isLoading.value = true }
-                .onCompletion { _isLoading.value = false }
+            flow {
+                _loadingCount.value += 1
+                try {
+                    emitAll(musicCatalogRepository.search(q))
+                } finally {
+                    _loadingCount.value = (_loadingCount.value - 1).coerceAtLeast(0)
+                }
+            }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

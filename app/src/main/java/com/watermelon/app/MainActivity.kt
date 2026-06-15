@@ -18,9 +18,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
@@ -47,6 +47,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val premiumViewModel: PremiumViewModel by viewModels()
+    private var pendingDeepLink by mutableStateOf<android.net.Uri?>(null)
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -70,6 +71,7 @@ class MainActivity : ComponentActivity() {
         val prefs = getSharedPreferences("watermelon_prefs", MODE_PRIVATE)
         val hasSeenOnboarding = prefs.getBoolean("has_seen_onboarding", false)
         val startDestination = if (hasSeenOnboarding) Routes.SPLASH else Routes.ONBOARDING
+        pendingDeepLink = intent?.data
 
         setContent {
             val context = LocalContext.current
@@ -83,10 +85,17 @@ class MainActivity : ComponentActivity() {
                     val activity = LocalContext.current as ComponentActivity
                     val playerViewModel = hiltViewModel<PlayerViewModel>(activity)
 
+                    LaunchedEffect(pendingDeepLink) {
+                        pendingDeepLink?.let { uri ->
+                            handleDeepLink(navController, uri)
+                            pendingDeepLink = null
+                        }
+                    }
+
                     val currentBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentRoute = currentBackStackEntry?.destination?.route
 
-                    val playerState by playerViewModel.uiState.collectAsState()
+                    val playerState by playerViewModel.uiState.collectAsStateWithLifecycle()
                     LaunchedEffect(playerState.isPlaying) {
                         val intent = Intent(activity, PlaybackService::class.java)
                         if (playerState.isPlaying) {
@@ -136,7 +145,7 @@ class MainActivity : ComponentActivity() {
                                         onNavigate = { route ->
                                             if (currentRoute != route) {
                                                 navController.navigate(route) {
-                                                    popUpTo(Routes.HOME) {
+                                                    popUpTo(navController.graph.findStartDestination().id) {
                                                         saveState = true
                                                     }
                                                     launchSingleTop = true
@@ -193,6 +202,27 @@ class MainActivity : ComponentActivity() {
                     Timber.e("Razorpay error: $errorCode - $errorMsg")
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        pendingDeepLink = intent?.data
+    }
+}
+
+private fun handleDeepLink(
+    navController: androidx.navigation.NavHostController,
+    uri: android.net.Uri
+) {
+    when {
+        uri.scheme == "watermelon" && uri.host == "playlist" -> {
+            val id = uri.lastPathSegment ?: return
+            navController.navigate("playlist_detail/$id")
+        }
+        uri.scheme == "https" && uri.host == "watermelon.app" && uri.path?.startsWith("/playlist/") == true -> {
+            val id = uri.pathSegments.getOrNull(1) ?: return
+            navController.navigate("playlist_detail/$id")
         }
     }
 }

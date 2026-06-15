@@ -17,7 +17,7 @@ interface UserActionDao {
     fun getFavorites(): Flow<List<UserActionEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(action: UserActionEntity)
+    suspend fun insert(action: UserActionEntity): Long
 
     @Query("DELETE FROM user_actions WHERE songId = :songId AND actionType = 'favorite'")
     suspend fun removeFavorite(songId: String)

@@ -107,8 +107,8 @@ class AuthViewModel @Inject constructor(
         _uiState.update { it.copy(errorMessage = null, isSuccess = false, resetSent = false, needsEmailVerification = false) }
     }
 
-    val isAuthenticated: StateFlow<Boolean> = authRepository.isAuthenticated()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val isAuthenticated: StateFlow<Boolean?> = authRepository.isAuthenticated()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 }
 
 data class AuthUiState(

@@ -20,6 +20,8 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -55,12 +57,12 @@ fun PlayerScreen(
     onQueueClick: () -> Unit = {},
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
     val haptic = LocalHapticFeedback.current
 
     val isPlaying = state.isPlaying
-    var sliderDragValue by remember { mutableStateOf(0f) }
+    var sliderDragValue by rememberSaveable { mutableStateOf(0f) }
     val sliderInteractionSource = remember { MutableInteractionSource() }
     val isSliderDragging by sliderInteractionSource.collectIsDraggedAsState()
 
@@ -82,7 +84,7 @@ fun PlayerScreen(
         label = "artworkPulse"
     )
 
-    val sleepTimer by viewModel.sleepTimerRemainingSeconds.collectAsState()
+    val sleepTimer by viewModel.sleepTimerRemainingSeconds.collectAsStateWithLifecycle()
     val sleepTimerText = sleepTimer?.let {
         val m = it / 60
         val s = it % 60
@@ -90,9 +92,9 @@ fun PlayerScreen(
     }
     var showTimerDialog by remember { mutableStateOf(false) }
 
-    val showPlaylistSheet by viewModel.showAddToPlaylistSheet.collectAsState()
-    val playlists by viewModel.playlists.collectAsState()
-    val playlistMessage by viewModel.addToPlaylistMessage.collectAsState()
+    val showPlaylistSheet by viewModel.showAddToPlaylistSheet.collectAsStateWithLifecycle()
+    val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val playlistMessage by viewModel.addToPlaylistMessage.collectAsStateWithLifecycle()
     val playlistSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val snackbarHostState = remember { SnackbarHostState() }
 

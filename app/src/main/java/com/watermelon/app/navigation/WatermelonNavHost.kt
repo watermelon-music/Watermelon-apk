@@ -13,6 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -73,9 +75,21 @@ fun WatermelonNavHost(
         composable(Routes.SPLASH) {
             val authViewModel: AuthViewModel = hiltViewModel()
             val isAuthenticated by authViewModel.isAuthenticated.collectAsState()
+            val hasNavigated = remember { mutableStateOf(false) }
 
-            LaunchedEffect(Unit) {
-                delay(1500)
+            LaunchedEffect(isAuthenticated) {
+                if (hasNavigated.value) return@LaunchedEffect
+                if (isAuthenticated == null) {
+                    delay(1500)
+                    // Still null after wait — assume not authenticated
+                    hasNavigated.value = true
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
+                    return@LaunchedEffect
+                }
+                delay(800) // minimum splash branding
+                hasNavigated.value = true
                 if (isAuthenticated) {
                     val verified = authViewModel.isEmailVerified()
                     val target = if (verified) Routes.HOME else Routes.VERIFY_EMAIL
@@ -116,8 +130,11 @@ fun WatermelonNavHost(
             LaunchedEffect(uiState.needsEmailVerification) {
                 if (uiState.needsEmailVerification) {
                     authViewModel.clearMessage()
-                    navController.navigate(Routes.VERIFY_EMAIL) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    val current = navController.currentDestination?.route
+                    if (current != Routes.VERIFY_EMAIL) {
+                        navController.navigate(Routes.VERIFY_EMAIL) {
+                            current?.let { popUpTo(it) { inclusive = true } }
+                        }
                     }
                 }
             }
@@ -139,8 +156,11 @@ fun WatermelonNavHost(
             LaunchedEffect(uiState.needsEmailVerification) {
                 if (uiState.needsEmailVerification) {
                     authViewModel.clearMessage()
-                    navController.navigate(Routes.VERIFY_EMAIL) {
-                        popUpTo(Routes.REGISTER) { inclusive = true }
+                    val current = navController.currentDestination?.route
+                    if (current != Routes.VERIFY_EMAIL) {
+                        navController.navigate(Routes.VERIFY_EMAIL) {
+                            current?.let { popUpTo(it) { inclusive = true } }
+                        }
                     }
                 }
             }

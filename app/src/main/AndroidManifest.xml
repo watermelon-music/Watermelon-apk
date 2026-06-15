@@ -38,6 +38,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="watermelon" android:host="confirm" />
                 <data android:scheme="watermelon" android:host="reset-password" />
+                <data android:scheme="watermelon" android:host="playlist" android:pathPrefix="/" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="watermelon.app" android:pathPrefix="/playlist/" />
             </intent-filter>
         </activity>
 

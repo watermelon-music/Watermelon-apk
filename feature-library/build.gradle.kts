@@ -43,6 +43,7 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     implementation(libs.coil.compose)
+    implementation(libs.qr.core)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -37,6 +37,11 @@ class DownloadRepositoryImpl @Inject constructor(
 
     override suspend fun downloadSong(song: Song, url: String): Result<Unit> = runCatching {
         downloadMutex.withLock {
+            val existing = downloadDao.getById(song.id)
+            if (existing != null && File(existing.localFilePath).exists()) {
+                return@runCatching // Already downloaded and file exists
+            }
+
             val musicDir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
                 ?: throw IllegalStateException("Cannot access music directory")
             if (!musicDir.exists()) {
@@ -44,6 +49,9 @@ class DownloadRepositoryImpl @Inject constructor(
             }
 
             val file = File(musicDir, "${song.id}.mp3")
+
+            // Remove stale file if re-downloading
+            existing?.let { File(it.localFilePath).delete() }
 
             val request = Request.Builder().url(url).build()
             val response = okHttpClient.newCall(request).execute()

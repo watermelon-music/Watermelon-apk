@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -78,9 +79,9 @@ fun SettingsScreen(
     val user by viewModel.user.collectAsStateWithLifecycle()
     val cacheCleared by viewModel.cacheCleared.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var showThemeDialog by remember { mutableStateOf(false) }
-    var showAvatarDialog by remember { mutableStateOf(false) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showThemeDialog by rememberSaveable { mutableStateOf(false) }
+    var showAvatarDialog by rememberSaveable { mutableStateOf(false) }
+    var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
 
     val plan = user?.plan ?: SubscriptionPlan.FREE
     val avatarColor = remember { AvatarColors.getOrNull(AvatarManager.get(context)) ?: AvatarColors.first() }
@@ -475,7 +476,7 @@ private fun DeleteAccountDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    var confirmation by remember { mutableStateOf("") }
+    var confirmation by rememberSaveable { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = { if (!state.isDeleting) onDismiss() },
         icon = { Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.error) },

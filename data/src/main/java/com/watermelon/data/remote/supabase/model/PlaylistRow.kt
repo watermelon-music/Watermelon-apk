@@ -10,7 +10,12 @@ data class PlaylistRow(
     val description: String? = null,
     val cover_url: String? = null,
     val created_at: String? = null,
-    val updated_at: String? = null
+    val updated_at: String? = null,
+    val share_code: String? = null,
+    val is_public: Boolean = false,
+    val share_count: Long = 0,
+    val save_count: Long = 0,
+    val copy_count: Long = 0
 )
 
 @Serializable

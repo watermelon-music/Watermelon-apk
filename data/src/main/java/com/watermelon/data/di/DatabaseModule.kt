@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import com.watermelon.data.local.AppDatabase
 import com.watermelon.data.local.dao.CachedSongDao
+import com.watermelon.data.local.dao.DownloadDao
+import com.watermelon.data.local.dao.PlaylistCacheDao
 import com.watermelon.data.local.dao.RadioStationDao
 import com.watermelon.data.local.dao.UserActionDao
 import dagger.Module
@@ -35,4 +37,10 @@ object DatabaseModule {
 
     @Provides
     fun provideRadioStationDao(db: AppDatabase): RadioStationDao = db.radioStationDao()
+
+    @Provides
+    fun provideDownloadDao(db: AppDatabase): DownloadDao = db.downloadDao()
+
+    @Provides
+    fun providePlaylistCacheDao(db: AppDatabase): PlaylistCacheDao = db.playlistCacheDao()
 }

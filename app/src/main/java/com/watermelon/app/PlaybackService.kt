@@ -37,6 +37,7 @@ class PlaybackService : MediaSessionService() {
     private var currentAccentColor: Int = 0
     private var sessionActivityPendingIntent: PendingIntent? = null
     private var colorListener: Player.Listener? = null
+    private var playbackListener: Player.Listener? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun onCreate() {
@@ -61,6 +62,7 @@ class PlaybackService : MediaSessionService() {
 
         setupCustomNotification()
         startColorExtractionListener()
+        startPlaybackStateListener()
     }
 
     private fun setupCustomNotification() {
@@ -211,6 +213,8 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        playbackListener?.let { runCatching { player.removeListener(it) } }
+        playbackListener = null
         colorListener?.let { runCatching { player.removeListener(it) } }
         colorListener = null
         serviceScope.cancel()
@@ -238,6 +242,25 @@ class PlaybackService : MediaSessionService() {
             (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
                 .createNotificationChannel(channel)
         }
+    }
+
+    private fun startPlaybackStateListener() {
+        playbackListener = object : Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (!isPlaying && player.mediaItemCount == 0) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                }
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_IDLE && player.mediaItemCount == 0) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                }
+            }
+        }
+        playbackListener?.let { player.addListener(it) }
     }
 
     companion object {

@@ -212,12 +212,14 @@ fun PlayerScreen(
                             )
                         }
                     }
-                    IconButton(onClick = { viewModel.onAddToPlaylistClick() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
-                            contentDescription = "Add to Playlist",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    if (!state.isRadioStream) {
+                        IconButton(onClick = { viewModel.onAddToPlaylistClick() }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                                contentDescription = "Add to Playlist",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                     IconButton(onClick = onQueueClick) {
                         Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Queue")

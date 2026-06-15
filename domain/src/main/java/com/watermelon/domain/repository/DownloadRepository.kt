@@ -10,4 +10,5 @@ interface DownloadRepository {
     suspend fun deleteDownload(songId: String): Result<Unit>
     suspend fun cleanupMissingFiles(): Result<Unit>
     suspend fun isDownloaded(songId: String): Boolean
+    suspend fun getDownloadPath(songId: String): String?
 }

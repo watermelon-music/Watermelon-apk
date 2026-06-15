@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.watermelon.domain.model.Song
 import com.watermelon.domain.autoplay.AutoplayEngine
 import com.watermelon.domain.autoplay.TransitionTracker
+import com.watermelon.domain.repository.DownloadRepository
 import com.watermelon.domain.repository.LyricsRepository
 import com.watermelon.domain.repository.StreamingRepository
 import com.watermelon.domain.repository.UrlExtractorRepository
@@ -73,6 +74,7 @@ class PlayerViewModel @Inject constructor(
     private val lyricsRepository: LyricsRepository,
     private val catalogRepository: com.watermelon.domain.repository.MusicCatalogRepository,
     private val playlistRepository: com.watermelon.domain.repository.PlaylistRepository,
+    private val downloadRepository: com.watermelon.domain.repository.DownloadRepository,
     private val autoplayEngine: AutoplayEngine,
     private val transitionTracker: TransitionTracker
 ) : ViewModel() {
@@ -292,18 +294,19 @@ class PlayerViewModel @Inject constructor(
             runCatching { transitionTracker.recordPlayStart(song) }
             val favorites = runCatching { userActionsRepository.getFavorites().first() }.getOrDefault(emptyList())
             _uiState.update { it.copy(isFavorite = favorites.any { f -> f.id == song.id }) }
+
+            val localPath = runCatching { downloadRepository.getDownloadPath(song.id) }.getOrNull()
+            val localFile = localPath?.let { File(it) }?.takeIf { it.exists() }
+            val audioUrl = if (localFile != null) {
+                localFile.toURI().toString()
+            } else {
+                song.audioUrl?.takeIf { it.isNotBlank() }
+                    ?: "https://www.youtube.com/watch?v=${song.id}"
+            }
+            loadAndPlay(audioUrl, song.title, song.artistName, song.coverUrl ?: "", song.id, isRadioStream = false)
+            updateQueueState()
+            fetchLyrics(song)
         }
-        val musicDir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
-        val localFile = musicDir?.let { File(it, "${song.id}.mp3") }
-        val audioUrl = if (localFile != null && localFile.exists()) {
-            "file://${localFile.absolutePath}"
-        } else {
-            song.audioUrl?.takeIf { it.isNotBlank() }
-                ?: "https://www.youtube.com/watch?v=${song.id}"
-        }
-        loadAndPlay(audioUrl, song.title, song.artistName, song.coverUrl ?: "", song.id, isRadioStream = false)
-        updateQueueState()
-        fetchLyrics(song)
     }
 
     private fun fetchLyrics(song: Song) {

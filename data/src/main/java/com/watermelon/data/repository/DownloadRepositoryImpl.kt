@@ -109,6 +109,10 @@ class DownloadRepositoryImpl @Inject constructor(
     override suspend fun isDownloaded(songId: String): Boolean {
         return downloadDao.exists(songId)
     }
+
+    override suspend fun getDownloadPath(songId: String): String? {
+        return downloadDao.getById(songId)?.localFilePath
+    }
 }
 
 private fun DownloadedSongEntity.toDomain(): DownloadedSong {

@@ -166,25 +166,27 @@ fun PlayerScreen(
                             tint = if (state.isFavorite) WatermelonRed else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    if (state.isDownloading) {
-                        Box(
-                            modifier = Modifier.size(48.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                progress = { state.downloadProgress.coerceIn(0f, 1f) },
-                                modifier = Modifier.size(28.dp),
-                                strokeWidth = 2.dp,
-                                color = WatermelonRed
-                            )
-                        }
-                    } else {
-                        IconButton(onClick = { requestDownload() }) {
-                            Icon(
-                                imageVector = Icons.Filled.Download,
-                                contentDescription = "Download",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                    if (!state.isRadioStream) {
+                        if (state.isDownloading) {
+                            Box(
+                                modifier = Modifier.size(48.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    progress = { state.downloadProgress.coerceIn(0f, 1f) },
+                                    modifier = Modifier.size(28.dp),
+                                    strokeWidth = 2.dp,
+                                    color = WatermelonRed
+                                )
+                            }
+                        } else {
+                            IconButton(onClick = { requestDownload() }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Download,
+                                    contentDescription = "Download",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                     IconButton(onClick = { showTimerDialog = true }) {
@@ -290,6 +292,14 @@ fun PlayerScreen(
                 color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(6.dp))
+            if (viewModel.isAutoplayEnabled()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Autoplay",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = WatermelonRed.copy(alpha = 0.8f)
+                )
+            }
             Text(
                 text = state.currentArtist.takeIf { it.isNotBlank() } ?: "Unknown Artist",
                 style = MaterialTheme.typography.bodyLarge,

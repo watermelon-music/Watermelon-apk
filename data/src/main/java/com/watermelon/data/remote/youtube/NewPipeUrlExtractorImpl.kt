@@ -2,6 +2,7 @@ package com.watermelon.data.remote.youtube
 
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
+import com.watermelon.domain.model.YtDlpMetadata
 import com.watermelon.domain.repository.UrlExtractorRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -54,6 +55,31 @@ class NewPipeUrlExtractorImpl @Inject constructor(
         val videoId = extractVideoId(sourceUrl) ?: return
         urlCache.remove(videoId)
         Timber.i("Invalidated cache for $videoId")
+    }
+
+    override suspend fun extractMetadata(sourceUrl: String): Result<YtDlpMetadata> = withContext(Dispatchers.IO) {
+        extractorMutex.withLock {
+            initializer.ensureInitialized()
+            runCatching {
+                val request = YoutubeDLRequest(sourceUrl)
+                request.addOption("--no-check-certificate")
+                request.addOption("--no-warnings")
+                request.addOption("--user-agent", USER_AGENT)
+                request.addOption("--extractor-args", "youtube:player_client=android")
+                val info = YoutubeDL.getInstance().getInfo(request)
+                    ?: throw IllegalStateException("yt-dlp returned no metadata")
+                YtDlpMetadata(
+                    id = info.id ?: "",
+                    title = info.title ?: "",
+                    artist = info.uploader?.takeIf { it.isNotBlank() },
+                    channel = info.uploader?.takeIf { it.isNotBlank() },
+                    tags = emptyList(),
+                    categories = emptyList(),
+                    durationSec = runCatching { (info.duration as? Number)?.toLong() }.getOrNull(),
+                    description = info.description
+                )
+            }
+        }
     }
 
     override suspend fun extractAudioUrl(sourceUrl: String): Result<String> = withContext(Dispatchers.IO) {

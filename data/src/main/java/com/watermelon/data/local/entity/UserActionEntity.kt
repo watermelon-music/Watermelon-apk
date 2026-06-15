@@ -13,7 +13,9 @@ data class UserActionEntity(
     val songArtist: String,
     val songCoverUrl: String?,
     val audioUrl: String?,
-    @ColumnInfo(index = true) val actionType: String, // "favorite", "recent"
+    @ColumnInfo(index = true) val actionType: String, // "favorite", "recent", "skip"
+    val durationPlayedMs: Long = 0L,
+    val source: String = "",
     val timestamp: Long = System.currentTimeMillis(),
     val syncedToServer: Boolean = false
 )

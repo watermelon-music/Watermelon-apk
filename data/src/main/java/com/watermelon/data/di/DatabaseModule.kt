@@ -5,8 +5,12 @@ import androidx.room.Room
 import com.watermelon.data.local.AppDatabase
 import com.watermelon.data.local.dao.CachedSongDao
 import com.watermelon.data.local.dao.DownloadDao
+import com.watermelon.data.local.dao.PlayHistoryDao
 import com.watermelon.data.local.dao.PlaylistCacheDao
 import com.watermelon.data.local.dao.RadioStationDao
+import com.watermelon.data.local.dao.SkipDao
+import com.watermelon.data.local.dao.SongScoreDao
+import com.watermelon.data.local.dao.TransitionDao
 import com.watermelon.data.local.dao.UserActionDao
 import dagger.Module
 import dagger.Provides
@@ -43,4 +47,16 @@ object DatabaseModule {
 
     @Provides
     fun providePlaylistCacheDao(db: AppDatabase): PlaylistCacheDao = db.playlistCacheDao()
+
+    @Provides
+    fun provideTransitionDao(db: AppDatabase): TransitionDao = db.transitionDao()
+
+    @Provides
+    fun provideSongScoreDao(db: AppDatabase): SongScoreDao = db.songScoreDao()
+
+    @Provides
+    fun providePlayHistoryDao(db: AppDatabase): PlayHistoryDao = db.playHistoryDao()
+
+    @Provides
+    fun provideSkipDao(db: AppDatabase): SkipDao = db.skipDao()
 }

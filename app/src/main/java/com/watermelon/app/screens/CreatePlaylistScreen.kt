@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.watermelon.core.designsystem.theme.WatermelonRed
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,6 +22,8 @@ fun CreatePlaylistScreen(
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     val isValid = name.isNotBlank()
+    val scope = rememberCoroutineScope()
+    var isCreating by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -70,17 +73,25 @@ fun CreatePlaylistScreen(
             Button(
                 onClick = {
                     if (isValid) {
-                        onCreate(name.trim(), description.trim())
-                        onBack()
+                        isCreating = true
+                        scope.launch {
+                            onCreate(name.trim(), description.trim())
+                            isCreating = false
+                            onBack()
+                        }
                     }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                enabled = isValid,
+                enabled = isValid && !isCreating,
                 colors = ButtonDefaults.buttonColors(containerColor = WatermelonRed)
             ) {
-                Text("Create Playlist", style = MaterialTheme.typography.titleMedium)
+                if (isCreating) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                } else {
+                    Text("Create Playlist", style = MaterialTheme.typography.titleMedium)
+                }
             }
         }
     }

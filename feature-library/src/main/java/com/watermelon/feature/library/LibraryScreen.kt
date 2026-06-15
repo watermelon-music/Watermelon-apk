@@ -57,8 +57,17 @@ fun LibraryScreen(
     val recentlyPlayed by viewModel.recentlyPlayed.collectAsStateWithLifecycle()
     val canCreate by viewModel.canCreatePlaylist.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val createMessage by viewModel.createMessage.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
     var showPaywall by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(createMessage) {
+        createMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearCreateMessage()
+        }
+    }
     val tabs = listOf("Playlists", "Favorites", "Feed", "Downloads")
     val tabIcons = listOf(
         Icons.AutoMirrored.Filled.QueueMusic,
@@ -73,6 +82,7 @@ fun LibraryScreen(
     var shareMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Your Library") },

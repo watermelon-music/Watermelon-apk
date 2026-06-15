@@ -51,12 +51,25 @@ class LibraryViewModel @Inject constructor(
         playlists,
         userPlan
     ) { list, plan ->
-        val max = if (plan == SubscriptionPlan.FREE) 3 else 10
+        val max = if (plan == SubscriptionPlan.FREE) 2 else 10
         list.size < max
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
-    suspend fun createPlaylist(name: String, description: String?) {
-        playlistRepository.createPlaylist(name, description, coverUrl = null)
+    suspend fun createPlaylist(name: String, description: String?): Result<Playlist> {
+        if (!canCreatePlaylist.value) {
+            return Result.failure(IllegalStateException("Playlist limit reached. Upgrade to Premium."))
+        }
+        return playlistRepository.createPlaylist(name, description, coverUrl = null).also {
+            it.onSuccess { _createMessage.value = "Playlist created" }
+            it.onFailure { e -> _createMessage.value = e.message ?: "Failed to create playlist" }
+        }
+    }
+
+    private val _createMessage = MutableStateFlow<String?>(null)
+    val createMessage: StateFlow<String?> = _createMessage.asStateFlow()
+
+    fun clearCreateMessage() {
+        _createMessage.value = null
     }
 
     fun deletePlaylist(playlistId: String) {

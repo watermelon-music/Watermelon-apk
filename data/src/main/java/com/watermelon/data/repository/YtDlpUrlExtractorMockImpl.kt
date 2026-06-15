@@ -1,5 +1,6 @@
 package com.watermelon.data.repository
 
+import com.watermelon.domain.model.YtDlpMetadata
 import com.watermelon.domain.repository.UrlExtractorRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -35,5 +36,9 @@ class YtDlpUrlExtractorMockImpl @Inject constructor() : UrlExtractorRepository {
                 )
             }
         }
+    }
+
+    override suspend fun extractMetadata(sourceUrl: String): Result<YtDlpMetadata> {
+        return Result.failure(UnsupportedOperationException("Mock extractor does not support metadata extraction"))
     }
 }

@@ -209,6 +209,14 @@ fun SettingsScreen(
                 subtitle = currentThemeLabel(context),
                 onClick = { showThemeDialog = true }
             )
+            val autoplayEnabled by viewModel.autoplayEnabled.collectAsStateWithLifecycle()
+            SettingsSwitchItem(
+                icon = Icons.Default.Share,
+                title = "Autoplay",
+                subtitle = "Auto-play next song when queue ends",
+                isChecked = autoplayEnabled,
+                onCheckedChange = { viewModel.setAutoplayEnabled(it) }
+            )
             SettingsItem(
                 icon = Icons.Default.Share,
                 title = "Share App",
@@ -227,6 +235,12 @@ fun SettingsScreen(
                 title = "About",
                 subtitle = "Watermelon v$versionName",
                 onClick = onNavigateToAbout
+            )
+            SettingsItem(
+                icon = Icons.Default.CleaningServices,
+                title = "Clear Listening History",
+                subtitle = "Delete play history, skips, and transitions",
+                onClick = { viewModel.clearHistory() }
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -525,6 +539,43 @@ private fun DeleteAccountDialog(
         },
         containerColor = MaterialTheme.colorScheme.surface
     )
+}
+
+@Composable
+private fun SettingsSwitchItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    isChecked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = WatermelonRed,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Switch(checked = isChecked, onCheckedChange = onCheckedChange)
+    }
 }
 
 @Composable

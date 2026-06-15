@@ -3,6 +3,7 @@ package com.watermelon.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.watermelon.data.local.dao.CachedSongDao
+import com.watermelon.domain.autoplay.AutoplayEngine
 import com.watermelon.domain.model.User
 import com.watermelon.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,17 +20,32 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val cachedSongDao: CachedSongDao
+    private val cachedSongDao: CachedSongDao,
+    private val autoplayEngine: AutoplayEngine
 ) : ViewModel() {
 
     val user: StateFlow<User?> = authRepository.getCurrentUser()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val _autoplayEnabled = MutableStateFlow(autoplayEngine.isAutoplayEnabled())
+    val autoplayEnabled: StateFlow<Boolean> = _autoplayEnabled.asStateFlow()
 
     private val _cacheCleared = MutableStateFlow(false)
     val cacheCleared: StateFlow<Boolean> = _cacheCleared.asStateFlow()
 
     private val _deleteState = MutableStateFlow(DeleteAccountState())
     val deleteState: StateFlow<DeleteAccountState> = _deleteState.asStateFlow()
+
+    fun setAutoplayEnabled(enabled: Boolean) {
+        autoplayEngine.setAutoplayEnabled(enabled)
+        _autoplayEnabled.value = enabled
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            autoplayEngine.clearAll()
+        }
+    }
 
     fun logout(onComplete: () -> Unit) {
         viewModelScope.launch {

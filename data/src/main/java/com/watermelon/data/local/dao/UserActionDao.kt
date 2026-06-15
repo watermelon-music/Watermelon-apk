@@ -34,6 +34,12 @@ interface UserActionDao {
     @Query("DELETE FROM user_actions WHERE actionType = 'favorite'")
     suspend fun clearFavorites()
 
+    @Query("SELECT * FROM user_actions WHERE actionType = 'skip' ORDER BY timestamp DESC LIMIT 50")
+    fun getSkips(): Flow<List<UserActionEntity>>
+
+    @Query("DELETE FROM user_actions WHERE actionType = 'skip'")
+    suspend fun clearSkips()
+
     @Query("UPDATE user_actions SET syncedToServer = 1 WHERE id = :id")
     suspend fun markSynced(id: Long)
 

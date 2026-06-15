@@ -199,8 +199,8 @@ fun WatermelonNavHost(
             HomeScreen(
                 onSearchClick = { navController.navigate(Routes.SEARCH) },
                 onSettingsClick = { navController.navigate(Routes.SETTINGS) },
-                onSongClick = { song: Song ->
-                    playerViewModel.playSong(song)
+                onSongClick = { song: Song, songs: List<Song> ->
+                    playerViewModel.playQueue(songs, songs.indexOf(song))
                     navController.navigate(Routes.PLAYER)
                 }
             )
@@ -212,7 +212,8 @@ fun WatermelonNavHost(
                         station.url ?: "",
                         station.name ?: "Unknown Station",
                         station.country ?: "",
-                        station.favicon ?: ""
+                        station.favicon ?: "",
+                        isRadioStream = true
                     )
                 }
             )

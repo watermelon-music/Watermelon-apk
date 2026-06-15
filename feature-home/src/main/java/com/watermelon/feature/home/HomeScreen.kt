@@ -43,7 +43,7 @@ import com.watermelon.domain.model.Song
 fun HomeScreen(
     onSearchClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    onSongClick: (Song) -> Unit = {},
+    onSongClick: (Song, List<Song>) -> Unit = { _, _ -> },
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -134,7 +134,7 @@ private fun HomeScreenContent(
     uiState: HomeUiState,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onSongClick: (Song) -> Unit,
+    onSongClick: (Song, List<Song>) -> Unit,
     onAddToPlaylist: (Song) -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
@@ -374,7 +374,7 @@ private fun SectionHeader(title: String) {
 @Composable
 private fun BigSongRow(
     songs: List<Song>,
-    onSongClick: (Song) -> Unit,
+    onSongClick: (Song, List<Song>) -> Unit,
     onAddToPlaylist: (Song) -> Unit
 ) {
     LazyRow(
@@ -384,7 +384,7 @@ private fun BigSongRow(
         items(songs, key = { it.id }) { song ->
             BigSongItem(
                 song = song,
-                onClick = { onSongClick(song) },
+                onClick = { onSongClick(song, songs) },
                 onAddToPlaylist = { onAddToPlaylist(song) }
             )
         }
@@ -494,7 +494,7 @@ private fun BigSongItem(song: Song, onClick: () -> Unit, onAddToPlaylist: () -> 
 @Composable
 private fun SongRow(
     songs: List<Song>,
-    onSongClick: (Song) -> Unit,
+    onSongClick: (Song, List<Song>) -> Unit,
     onAddToPlaylist: (Song) -> Unit
 ) {
     LazyRow(
@@ -504,7 +504,7 @@ private fun SongRow(
         items(songs, key = { it.id }) { song ->
             SongItem(
                 song = song,
-                onClick = { onSongClick(song) },
+                onClick = { onSongClick(song, songs) },
                 onAddToPlaylist = { onAddToPlaylist(song) }
             )
         }

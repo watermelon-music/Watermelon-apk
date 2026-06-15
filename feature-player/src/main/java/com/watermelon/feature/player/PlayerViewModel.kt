@@ -5,6 +5,8 @@ import android.os.Environment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.watermelon.domain.model.Song
+import com.watermelon.domain.autoplay.AutoplayEngine
+import com.watermelon.domain.autoplay.TransitionTracker
 import com.watermelon.domain.repository.LyricsRepository
 import com.watermelon.domain.repository.StreamingRepository
 import com.watermelon.domain.repository.UrlExtractorRepository
@@ -57,7 +59,8 @@ data class PlayerUiState(
     val isLyricsLoading: Boolean = false,
     val isDownloading: Boolean = false,
     val downloadProgress: Float = 0f,
-    val downloadErrorMessage: String? = null
+    val downloadErrorMessage: String? = null,
+    val isRadioStream: Boolean = false
 )
 
 @HiltViewModel
@@ -69,7 +72,9 @@ class PlayerViewModel @Inject constructor(
     private val userActionsRepository: UserActionsRepository,
     private val lyricsRepository: LyricsRepository,
     private val catalogRepository: com.watermelon.domain.repository.MusicCatalogRepository,
-    private val playlistRepository: com.watermelon.domain.repository.PlaylistRepository
+    private val playlistRepository: com.watermelon.domain.repository.PlaylistRepository,
+    private val autoplayEngine: AutoplayEngine,
+    private val transitionTracker: TransitionTracker
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -232,11 +237,24 @@ class PlayerViewModel @Inject constructor(
         playCurrent()
     }
 
-    fun loadAndPlay(sourceUrl: String, title: String, artist: String, artwork: String, songId: String = "") {
+    fun loadAndPlay(sourceUrl: String, title: String, artist: String, artwork: String, songId: String = "", isRadioStream: Boolean = false) {
         currentExtractionJob?.cancel()
         consecutiveErrors = 0
         currentExtractionJob = viewModelScope.launch {
-            _uiState.update { it.copy(isBuffering = true, errorMessage = null) }
+            _uiState.update { it.copy(isBuffering = true, errorMessage = null, isRadioStream = isRadioStream) }
+            if (sourceUrl.startsWith("file:")) {
+                streamingRepository.play(sourceUrl, title, artist, artwork)
+                _uiState.update {
+                    it.copy(
+                        currentTitle = title,
+                        currentArtist = artist,
+                        artworkUrl = artwork,
+                        currentSongId = songId,
+                        isBuffering = false
+                    )
+                }
+                return@launch
+            }
             runCatching {
                 val extractResult = urlExtractor.extractAudioUrl(sourceUrl)
                 extractResult
@@ -271,12 +289,19 @@ class PlayerViewModel @Inject constructor(
         val song = internalQueue.getOrNull(currentIndex) ?: return
         viewModelScope.launch {
             runCatching { userActionsRepository.recordRecentlyPlayed(song) }
+            runCatching { transitionTracker.recordPlayStart(song) }
             val favorites = runCatching { userActionsRepository.getFavorites().first() }.getOrDefault(emptyList())
             _uiState.update { it.copy(isFavorite = favorites.any { f -> f.id == song.id }) }
         }
-        val audioUrl = song.audioUrl?.takeIf { it.isNotBlank() }
-            ?: "https://www.youtube.com/watch?v=${song.id}"
-        loadAndPlay(audioUrl, song.title, song.artistName, song.coverUrl ?: "", song.id)
+        val musicDir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
+        val localFile = musicDir?.let { File(it, "${song.id}.mp3") }
+        val audioUrl = if (localFile != null && localFile.exists()) {
+            "file://${localFile.absolutePath}"
+        } else {
+            song.audioUrl?.takeIf { it.isNotBlank() }
+                ?: "https://www.youtube.com/watch?v=${song.id}"
+        }
+        loadAndPlay(audioUrl, song.title, song.artistName, song.coverUrl ?: "", song.id, isRadioStream = false)
         updateQueueState()
         fetchLyrics(song)
     }
@@ -399,12 +424,19 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun playNextInternal() {
+        val previousSong = internalQueue.getOrNull(currentIndex)
         if (currentIndex < internalQueue.size - 1) {
             currentIndex++
             playCurrent()
         } else if (repeatMode == RepeatMode.ALL && internalQueue.isNotEmpty()) {
             currentIndex = 0
             playCurrent()
+        }
+        val nextSong = internalQueue.getOrNull(currentIndex)
+        if (previousSong != null && nextSong != null && previousSong.id != nextSong.id) {
+            viewModelScope.launch {
+                runCatching { transitionTracker.recordTransition(previousSong.id, nextSong.id) }
+            }
         }
     }
 
@@ -443,37 +475,29 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun smartRefillQueue(lastSong: Song) {
-        val queries = listOfNotNull(
-            "${lastSong.artistName} ${lastSong.title} music".takeIf {
-                lastSong.artistName.isNotBlank() && lastSong.title.isNotBlank()
-            },
-            "${lastSong.artistName} music".takeIf { lastSong.artistName.isNotBlank() },
-            lastSong.genre?.takeIf { it.isNotBlank() },
-            "trending music"
-        )
+        // Fetch next candidate via autoplayEngine, which uses yt-dlp metadata (title, artist, channel, tags) to find similar tracks
+        // CandidateFetcher: build query strings from metadata and call catalogRepository.search() / genre endpoints via autoplayEngine
+        // Exclude recent and current-queue duplicates
         viewModelScope.launch {
-            var found = false
-            for (query in queries) {
-                if (found) break
-                val similar = runCatching {
-                    catalogRepository.search(query).first()
-                        .filter { it.id != lastSong.id }
-                        .take(5)
-                }.getOrNull()
-                if (!similar.isNullOrEmpty()) {
-                    originalQueue = similar.toList()
-                    internalQueue.clear()
-                    internalQueue.addAll(similar)
-                    currentIndex = 0
-                    isShuffleOn = false
-                    playCurrent()
-                    found = true
-                }
-            }
-            if (!found) {
+            val excludeIds = internalQueue.map { it.id }.toSet()
+            val nextSong = runCatching {
+                fetchCandidates(lastSong, excludeIds)
+            }.getOrNull()
+            if (nextSong != null) {
+                internalQueue.add(nextSong)
+                originalQueue = internalQueue.toList()
+                currentIndex++
+                playCurrent()
+            } else {
                 _uiState.update { it.copy(isPlaying = false, positionMs = 0, isBuffering = false) }
             }
         }
+    }
+
+    private suspend fun fetchCandidates(lastSong: Song, excludeIds: Set<String>): Song? {
+        // autoplayEngine internally ranks and scores candidates before returning the bestCandidate
+        val bestCandidate = autoplayEngine.findNextSong(lastSong, excludeIds)
+        return bestCandidate
     }
 
     fun startDownload() {
@@ -572,6 +596,8 @@ class PlayerViewModel @Inject constructor(
     fun clearDownloadError() {
         _uiState.update { it.copy(downloadErrorMessage = null) }
     }
+
+    fun isAutoplayEnabled(): Boolean = autoplayEngine.isAutoplayEnabled()
 
     override fun onCleared() {
         super.onCleared()

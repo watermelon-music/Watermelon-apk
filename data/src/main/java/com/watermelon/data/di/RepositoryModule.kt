@@ -1,6 +1,7 @@
 package com.watermelon.data.di
 
 import com.watermelon.data.repository.AuthRepositoryImpl
+import com.watermelon.data.repository.AutoplayRepositoryImpl
 import com.watermelon.data.repository.DownloadRepositoryImpl
 import com.watermelon.data.repository.LyricsRepositoryImpl
 import com.watermelon.data.repository.MusicCatalogRepositoryImpl
@@ -10,6 +11,9 @@ import com.watermelon.data.repository.RadioStationRepositoryImpl
 import com.watermelon.data.repository.StreamingRepositoryImpl
 import com.watermelon.data.repository.UserActionsRepositoryImpl
 import com.watermelon.data.remote.youtube.NewPipeUrlExtractorImpl
+import com.watermelon.domain.autoplay.AutoplayEngine
+import com.watermelon.domain.autoplay.RecommendationScorer
+import com.watermelon.domain.autoplay.TransitionTracker
 import com.watermelon.domain.repository.LyricsRepository
 import com.watermelon.domain.repository.AuthRepository
 import com.watermelon.domain.repository.MusicCatalogRepository
@@ -70,4 +74,16 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindRadioStationRepository(impl: RadioStationRepositoryImpl): RadioStationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAutoplayEngine(impl: AutoplayRepositoryImpl): AutoplayEngine
+
+    @Binds
+    @Singleton
+    abstract fun bindTransitionTracker(impl: AutoplayRepositoryImpl): TransitionTracker
+
+    @Binds
+    @Singleton
+    abstract fun bindRecommendationScorer(impl: AutoplayRepositoryImpl): RecommendationScorer
 }

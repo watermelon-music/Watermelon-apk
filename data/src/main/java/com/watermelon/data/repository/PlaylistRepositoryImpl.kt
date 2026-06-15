@@ -13,6 +13,7 @@ import com.watermelon.domain.model.Song
 import com.watermelon.domain.repository.PlaylistRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.gotrue.SessionStatus
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
@@ -49,7 +50,13 @@ class PlaylistRepositoryImpl @Inject constructor(
                 val cached = playlistCacheDao.getAll()
                 _playlists.value = cached.map { it.toDomain() }
             }
-            refreshPlaylists()
+        }
+        scope.launch {
+            client.auth.sessionStatus.collect { status ->
+                if (status is SessionStatus.Authenticated) {
+                    refreshPlaylists()
+                }
+            }
         }
     }
 

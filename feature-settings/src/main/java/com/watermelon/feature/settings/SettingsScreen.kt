@@ -229,12 +229,6 @@ fun SettingsScreen(
                 subtitle = "Watermelon v$versionName",
                 onClick = onNavigateToAbout
             )
-            SettingsItem(
-                icon = Icons.Default.CleaningServices,
-                title = "Clear Listening History",
-                subtitle = "Delete play history, skips, and transitions",
-                onClick = { viewModel.clearHistory() }
-            )
 
             Spacer(modifier = Modifier.weight(1f))
 

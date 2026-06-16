@@ -17,13 +17,13 @@ import kotlinx.coroutines.launch
 @Composable
 fun CreatePlaylistScreen(
     onBack: () -> Unit,
-    onCreate: (name: String, description: String) -> Unit = { _, _ -> }
+    onCreate: suspend (name: String) -> Unit = {}
 ) {
     var name by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
     val isValid = name.isNotBlank()
     val scope = rememberCoroutineScope()
     var isCreating by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
         topBar = {
@@ -35,7 +35,8 @@ fun CreatePlaylistScreen(
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -54,20 +55,6 @@ fun CreatePlaylistScreen(
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Description (Optional)") },
-                placeholder = { Text("Add a short description...") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 100.dp),
-                maxLines = 4,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
-            )
-
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
@@ -75,9 +62,14 @@ fun CreatePlaylistScreen(
                     if (isValid) {
                         isCreating = true
                         scope.launch {
-                            onCreate(name.trim(), description.trim())
-                            isCreating = false
-                            onBack()
+                            try {
+                                onCreate(name.trim())
+                                onBack()
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar(e.message ?: "Failed to create playlist")
+                            } finally {
+                                isCreating = false
+                            }
                         }
                     }
                 },

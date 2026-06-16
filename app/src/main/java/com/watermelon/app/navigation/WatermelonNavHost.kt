@@ -313,14 +313,10 @@ fun WatermelonNavHost(
         }
         composable(Routes.CREATE_PLAYLIST) {
             val libraryViewModel: LibraryViewModel = hiltViewModel(navController.getBackStackEntry(Routes.LIBRARY))
-            val scope = rememberCoroutineScope()
             CreatePlaylistScreen(
                 onBack = { navController.popBackStack() },
-                onCreate = { name, desc ->
-                    scope.launch {
-                        libraryViewModel.createPlaylist(name, desc)
-                        navController.popBackStack()
-                    }
+                onCreate = { name ->
+                    libraryViewModel.createPlaylist(name, null).getOrThrow()
                 }
             )
         }

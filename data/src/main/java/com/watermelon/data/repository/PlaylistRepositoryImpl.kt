@@ -140,6 +140,8 @@ class PlaylistRepositoryImpl @Inject constructor(
                 val updated = _playlists.value.filter { it.id != playlistId }
                 _playlists.value = updated
                 saveLocalCache(updated)
+                playlistCacheDao.deleteSongsForPlaylist(playlistId)
+                playlistCacheDao.deletePlaylist(playlistId)
             }.onFailure { Timber.e(it, "deletePlaylist failed for playlistId=$playlistId") }
         }
 

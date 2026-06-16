@@ -209,14 +209,7 @@ fun SettingsScreen(
                 subtitle = currentThemeLabel(context),
                 onClick = { showThemeDialog = true }
             )
-            val autoplayEnabled by viewModel.autoplayEnabled.collectAsStateWithLifecycle()
-            SettingsSwitchItem(
-                icon = Icons.Default.Share,
-                title = "Autoplay",
-                subtitle = "Auto-play next song when queue ends",
-                isChecked = autoplayEnabled,
-                onCheckedChange = { viewModel.setAutoplayEnabled(it) }
-            )
+            // Autoplay is now permanently enabled and hidden from settings
             SettingsItem(
                 icon = Icons.Default.Share,
                 title = "Share App",
@@ -335,13 +328,6 @@ private fun themePreviewColor(theme: AppTheme): Color {
     return when (theme) {
         AppTheme.Light -> Color(0xFFDC2626)
         AppTheme.Dark -> Color(0xFFE53935)
-        AppTheme.Amoled -> Color(0xFFE53935)
-        AppTheme.Student -> Color(0xFF20B2AA)
-        AppTheme.ObsidianGold -> Color(0xFFD4AF37)
-        AppTheme.EmeraldDynasty -> Color(0xFF50C878)
-        AppTheme.SapphireElite -> Color(0xFF3B82F6)
-        AppTheme.AmethystDreams -> Color(0xFFA78BFA)
-        AppTheme.CrimsonRoyale -> Color(0xFFFF3333)
         else -> Color(0xFFDC2626)
     }
 }
@@ -365,19 +351,11 @@ private fun ThemeSelectorDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         rowThemes.forEach { theme ->
-                            val isPremium = currentPlan != SubscriptionPlan.FREE
-                            val locked = when {
-                                theme.requiresStudent -> currentPlan != SubscriptionPlan.STUDENT
-                                theme.requiresPremium -> !isPremium
-                                else -> false
-                            }
                             val selected = currentMode == theme.key
                             val previewColor = themePreviewColor(theme)
                             val bgColor = if (selected) previewColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
                             Card(
-                                onClick = {
-                                    if (locked) onNavigateToPremium() else onSelect(theme.key)
-                                },
+                                onClick = { onSelect(theme.key) },
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(vertical = 4.dp),
@@ -394,22 +372,18 @@ private fun ThemeSelectorDialog(
                                         modifier = Modifier
                                             .size(36.dp)
                                             .clip(CircleShape)
-                                            .background(previewColor.copy(alpha = if (locked) 0.4f else 1f)),
+                                            .background(previewColor),
                                         contentAlignment = Alignment.Center
-                                    ) {
-                                        if (locked) {
-                                            Text("🔒", style = MaterialTheme.typography.labelSmall)
-                                        }
-                                    }
+                                    ) {}
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
                                         text = theme.label,
                                         style = MaterialTheme.typography.labelSmall,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
-                                        color = if (locked) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
-                                    if (selected && !locked) {
+                                    if (selected) {
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
                                             text = "✓",

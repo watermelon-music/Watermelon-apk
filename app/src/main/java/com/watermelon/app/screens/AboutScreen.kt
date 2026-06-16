@@ -133,22 +133,17 @@ fun AboutScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     OutlinedButton(
-                        onClick = { openUrl(context, "https://www.instagram.com/its.me_satu_") },
+                        onClick = {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
+                                data = android.net.Uri.parse("mailto:satyampote9999@gmail.com")
+                            }
+                            context.startActivity(intent)
+                        },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Filled.PhotoCamera, contentDescription = null)
+                        Icon(Icons.Filled.MailOutline, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Instagram")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedButton(
-                        onClick = { openUrl(context, "https://kaggle.com/satyampote") },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Filled.Assessment, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Kaggle")
+                        Text("Email: satyampote9999@gmail.com")
                     }
                 }
             }

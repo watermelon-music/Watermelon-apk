@@ -307,21 +307,13 @@ private val CrimsonRoyaleColorScheme = darkColorScheme(
     scrim = Color.Black.copy(alpha = 0.8f)
 )
 
-sealed class AppTheme(val key: String, val label: String, val requiresPremium: Boolean = false, val requiresStudent: Boolean = false) {
-    data object System : AppTheme("system", "System Default")
+sealed class AppTheme(val key: String, val label: String) {
     data object Light : AppTheme("light", "Light Watermelon")
     data object Dark : AppTheme("dark", "Dark Watermelon")
-    data object Amoled : AppTheme("amoled", "Pure Black", requiresPremium = true)
-    data object Student : AppTheme("student", "Student Teal", requiresStudent = true)
-    data object ObsidianGold : AppTheme("obsidian_gold", "Obsidian Gold", requiresPremium = true)
-    data object EmeraldDynasty : AppTheme("emerald_dynasty", "Emerald Dynasty", requiresPremium = true)
-    data object SapphireElite : AppTheme("sapphire_elite", "Sapphire Elite", requiresPremium = true)
-    data object AmethystDreams : AppTheme("amethyst_dreams", "Amethyst Dreams", requiresPremium = true)
-    data object CrimsonRoyale : AppTheme("crimson_royale", "Crimson Royale", requiresPremium = true)
 
     companion object {
-        val all: List<AppTheme> = listOf(System, Light, Dark, Amoled, Student, ObsidianGold, EmeraldDynasty, SapphireElite, AmethystDreams, CrimsonRoyale)
-        fun fromKey(key: String): AppTheme = all.find { it.key == key } ?: System
+        val all: List<AppTheme> = listOf(Light, Dark)
+        fun fromKey(key: String): AppTheme = all.find { it.key == key } ?: Light
     }
 }
 
@@ -335,18 +327,8 @@ fun WatermelonTheme(
     val theme = AppTheme.fromKey(themeMode)
 
     val colorScheme = when {
-        theme == AppTheme.System && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            if (isSystemDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        theme == AppTheme.Light -> LightColorScheme
         theme == AppTheme.Dark -> DarkColorScheme
-        theme == AppTheme.Amoled -> AmoledColorScheme
-        theme == AppTheme.Student -> StudentColorScheme
-        theme == AppTheme.ObsidianGold -> ObsidianGoldColorScheme
-        theme == AppTheme.EmeraldDynasty -> EmeraldDynastyColorScheme
-        theme == AppTheme.SapphireElite -> SapphireEliteColorScheme
-        theme == AppTheme.AmethystDreams -> AmethystDreamsColorScheme
-        theme == AppTheme.CrimsonRoyale -> CrimsonRoyaleColorScheme
+        theme == AppTheme.Light -> LightColorScheme
         else -> if (isSystemDark) DarkColorScheme else LightColorScheme
     }
 

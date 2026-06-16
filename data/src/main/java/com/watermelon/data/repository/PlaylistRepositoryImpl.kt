@@ -29,6 +29,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -52,9 +53,13 @@ class PlaylistRepositoryImpl @Inject constructor(
             }
         }
         scope.launch {
+            // Immediate refresh if already logged in, then listen to session changes
+            if (isLoggedIn()) {
+                kotlin.runCatching { refreshPlaylists() }.onFailure { Timber.e(it, "Playlist init refresh failed") }
+            }
             client.auth.sessionStatus.collect { status ->
                 if (status is SessionStatus.Authenticated) {
-                    refreshPlaylists()
+                    kotlin.runCatching { refreshPlaylists() }.onFailure { Timber.e(it, "Playlist session refresh failed") }
                 }
             }
         }
@@ -72,7 +77,7 @@ class PlaylistRepositoryImpl @Inject constructor(
         coverUrl: String?
     ): Result<Playlist> = withContext(Dispatchers.IO) {
         runCatching {
-            val userId = getUserId() ?: throw IllegalStateException("Not authenticated")
+            val userId = getUserId() ?: throw IllegalStateException("Not authenticated. Please sign in to create playlists.")
             val newRow = PlaylistRow(
                 id = java.util.UUID.randomUUID().toString(),
                 user_id = userId,
@@ -84,7 +89,7 @@ class PlaylistRepositoryImpl @Inject constructor(
             client.postgrest.from("playlists").insert(newRow)
             refreshPlaylists()
             _playlists.value.firstOrNull { it.id == newRow.id } ?: newRow.toDomain(emptyList())
-        }
+        }.onFailure { Timber.e(it, "createPlaylist failed for user=${getUserId()}") }
     }
 
     override suspend fun addSongToPlaylist(playlistId: String, song: Song): Result<Unit> =
@@ -135,7 +140,7 @@ class PlaylistRepositoryImpl @Inject constructor(
                 val updated = _playlists.value.filter { it.id != playlistId }
                 _playlists.value = updated
                 saveLocalCache(updated)
-            }
+            }.onFailure { Timber.e(it, "deletePlaylist failed for playlistId=$playlistId") }
         }
 
     override suspend fun sharePlaylist(playlistId: String): Result<String> = withContext(Dispatchers.IO) {

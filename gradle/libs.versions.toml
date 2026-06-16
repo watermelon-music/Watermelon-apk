@@ -22,6 +22,7 @@ supabase = "2.1.4"
 ktor = "2.3.12"
 serialization = "1.6.2"
 coroutines = "1.7.3"
+mockk = "1.13.9"
 ksp = "1.9.22-1.0.17"
 newpipe-extractor = "v0.26.2"
 junit = "4.13.2"
@@ -125,6 +126,8 @@ timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "tim
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-junit" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 
 [bundles]
 compose = [

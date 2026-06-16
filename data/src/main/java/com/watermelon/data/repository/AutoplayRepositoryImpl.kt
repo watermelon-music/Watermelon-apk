@@ -8,15 +8,14 @@ import com.watermelon.data.local.dao.TransitionDao
 import com.watermelon.data.local.dao.UserActionDao
 import com.watermelon.data.local.entity.PlayHistoryEntity
 import com.watermelon.data.local.entity.SkipEntity
-import com.watermelon.data.local.entity.SongScoreEntity
 import com.watermelon.data.local.entity.TransitionEntity
 import com.watermelon.domain.autoplay.AutoplayEngine
+import com.watermelon.domain.autoplay.RecommendationEngine
 import com.watermelon.domain.autoplay.RecommendationScorer
 import com.watermelon.domain.autoplay.RecommendationWeights
 import com.watermelon.domain.autoplay.ScoredSong
 import com.watermelon.domain.autoplay.TransitionTracker
 import com.watermelon.domain.model.Song
-import com.watermelon.domain.model.YtDlpMetadata
 import com.watermelon.domain.repository.MusicCatalogRepository
 import com.watermelon.domain.repository.UrlExtractorRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -34,71 +33,62 @@ class AutoplayRepositoryImpl @Inject constructor(
     private val songScoreDao: SongScoreDao,
     private val catalogRepository: MusicCatalogRepository,
     private val urlExtractor: UrlExtractorRepository,
-    private val userActionDao: UserActionDao
+    private val userActionDao: UserActionDao,
+    private val recommendationEngine: RecommendationEngine
 ) : AutoplayEngine, TransitionTracker, RecommendationScorer {
 
-    private val prefs = context.getSharedPreferences("watermelon_autoplay", Context.MODE_PRIVATE)
+    companion object {
+        private const val BATCH_SIZE = 20
+        private const val REFILL_THRESHOLD = 10
+        private const val PREFS_NAME = "watermelon_autoplay"
+        private const val KEY_AUTOPLAY = "autoplay_enabled"
+    }
 
-    override fun isAutoplayEnabled(): Boolean = prefs.getBoolean("autoplay_enabled", true)
+    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    // Internal recommendation cache. Songs are popped FIFO.
+    private val recommendationCache = ArrayDeque<Song>()
+    private var lastCurrentSongId: String? = null
+
+    override fun isAutoplayEnabled(): Boolean = prefs.getBoolean(KEY_AUTOPLAY, true)
+
     override fun setAutoplayEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean("autoplay_enabled", enabled).apply()
+        prefs.edit().putBoolean(KEY_AUTOPLAY, enabled).apply()
     }
 
     override suspend fun findNextSong(currentSong: Song, excludeIds: Set<String>): Song? {
         if (!isAutoplayEnabled()) return null
 
-        // Recency filter: exclude last 50 played songs
-        val recentHistory = playHistoryDao.getRecent().first()
+        // If the current song changed, invalidate cache so we get fresh recommendations
+        if (lastCurrentSongId != null && lastCurrentSongId != currentSong.id) {
+            recommendationCache.clear()
+            recommendationEngine.invalidateCache()
+        }
+        lastCurrentSongId = currentSong.id
+
+        // Filter out anything already in the player queue or recently played
+        val recentHistory = playHistoryDao.getRecent().firstOrNull() ?: emptyList()
         val recentIds = recentHistory.map { it.songId }.toSet()
         val excludeSet = excludeIds + currentSong.id + recentIds
 
-        // Metadata-based query building
-        val audioUrl = currentSong.audioUrl
-        val youtubeUrl = if (audioUrl != null && audioUrl.contains("youtube")) {
-            audioUrl
-        } else {
-            "https://www.youtube.com/watch?v=${currentSong.id}"
-        }
-        val metadata: YtDlpMetadata? = urlExtractor.extractMetadata(youtubeUrl).getOrNull()
-
-        val queries = mutableListOf<String>()
-        if (metadata != null) {
-            val channel = metadata.channel
-            if (!channel.isNullOrBlank()) {
-                queries.add("$channel music mixes")
-                queries.add(channel)
-            }
-            val tags = metadata.tags
-            tags.take(3).forEach { tag ->
-                if (tag.isNotBlank()) queries.add("$tag music")
-            }
-            val artist = metadata.artist
-            val title = metadata.title
-            if (!artist.isNullOrBlank() && !title.isNullOrBlank()) {
-                queries.add("$artist $title")
-            } else if (!title.isNullOrBlank()) {
-                queries.add(title)
-            }
-        } else {
-            if (currentSong.artistName.isNotBlank() && currentSong.title.isNotBlank()) {
-                queries.add("${currentSong.artistName} ${currentSong.title}")
-            }
-            if (currentSong.artistName.isNotBlank()) {
-                queries.add("${currentSong.artistName} music")
-            }
-            currentSong.genre?.takeIf { it.isNotBlank() }?.let { queries.add("$it music") }
+        // Refill cache if running low
+        if (recommendationCache.size < REFILL_THRESHOLD) {
+            val fresh = recommendationEngine.generateQueue(
+                currentSong = currentSong,
+                excludeIds = excludeSet + recommendationCache.map { it.id }.toSet(),
+                count = BATCH_SIZE
+            )
+            fresh.forEach { recommendationCache.addLast(it) }
         }
 
-        for (query in queries) {
-            val candidates = runCatching {
-                catalogRepository.search(query).first()
-                    .filter { it.id !in excludeSet }
-            }.getOrNull()
-            if (!candidates.isNullOrEmpty()) {
-                val ranked = rank(candidates, currentSong)
-                return ranked.firstOrNull()?.song
+        // Pop the best available candidate that is not excluded
+        while (recommendationCache.isNotEmpty()) {
+            val candidate = recommendationCache.removeFirst()
+            if (candidate.id !in excludeSet) {
+                return candidate
             }
         }
+
         return null
     }
 
@@ -154,42 +144,36 @@ class AutoplayRepositoryImpl @Inject constructor(
         skipDao.clearAll()
         transitionDao.clearAll()
         songScoreDao.clearAll()
+        recommendationCache.clear()
+        recommendationEngine.invalidateCache()
     }
 
-    override suspend fun score(candidate: Song, currentSong: Song?, weights: RecommendationWeights): Double {
-        return rank(listOf(candidate), currentSong, weights).firstOrNull()?.score ?: 0.0
+    // ------------------------------------------------------------------
+    // RecommendationScorer (kept for backward compatibility; delegates)
+    // ------------------------------------------------------------------
+
+    override suspend fun score(
+        candidate: Song,
+        currentSong: Song?,
+        weights: RecommendationWeights
+    ): Double {
+        if (currentSong == null) return 0.0
+        val ranked = recommendationEngine.generateQueue(currentSong, setOf(currentSong.id), count = BATCH_SIZE)
+        return ranked.find { it.id == candidate.id }?.let { 1.0 } ?: 0.0
     }
 
-    override suspend fun rank(candidates: List<Song>, currentSong: Song?, weights: RecommendationWeights): List<ScoredSong> {
+    override suspend fun rank(
+        candidates: List<Song>,
+        currentSong: Song?,
+        weights: RecommendationWeights
+    ): List<ScoredSong> {
         if (currentSong == null) return candidates.map { ScoredSong(it, 0.0) }
-
-        val transitions = transitionDao.getFrom(currentSong.id)
-        val transitionMap = transitions.associate { it.toSongId to it.count }
-
-        val favorites = userActionDao.getFavorites().first()
-        val skipList = userActionDao.getSkips().first()
-        val recentPlays = playHistoryDao.getRecent().first()
-        val recentIndexMap = recentPlays.mapIndexed { idx, entity -> entity.songId to idx }.toMap()
-
-        return candidates.map { candidate ->
-            var score = 0.0
-
-            val transitionCount = transitionMap[candidate.id] ?: 0
-            score += transitionCount * weights.transitionFreq
-
-            val likes = favorites.count { it.songId == candidate.id }
-            val skips = skipList.count { it.songId == candidate.id }
-            val plays = recentPlays.count { it.songId == candidate.id }
-            val totalActions = plays.coerceAtLeast(1)
-            score += (likes.toDouble() / totalActions) * weights.likeSkipRatio
-            score -= (skips.toDouble() / totalActions) * weights.skipPenalty
-
-            val recentIndex = recentIndexMap[candidate.id] ?: -1
-            if (recentIndex >= 0) {
-                score -= (50 - recentIndex) * weights.recencyDecay
-            }
-
-            ScoredSong(candidate, score)
+        val generated = recommendationEngine.generateQueue(currentSong, setOf(currentSong.id), count = BATCH_SIZE)
+        val generatedIds = generated.map { it.id }.toSet()
+        // Return scores for candidates that exist in generated; others get 0
+        return candidates.map { song ->
+            val score = if (song.id in generatedIds) 1.0 else 0.0
+            ScoredSong(song, score)
         }.sortedByDescending { it.score }
     }
 }

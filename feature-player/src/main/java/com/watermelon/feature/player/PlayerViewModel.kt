@@ -448,6 +448,27 @@ class PlayerViewModel @Inject constructor(
                 runCatching { transitionTracker.recordTransition(previousSong.id, nextSong.id) }
             }
         }
+        // Proactive refill: keep at least 10 future songs queued
+        val remaining = internalQueue.size - currentIndex - 1
+        if (remaining < 10) {
+            val currentSong = internalQueue.getOrNull(currentIndex)
+            if (currentSong != null) {
+                viewModelScope.launch {
+                    runCatching {
+                        val excludeIds = internalQueue.map { it.id }.toSet()
+                        val batch = mutableListOf<Song>()
+                        repeat(10 - remaining) {
+                            autoplayEngine.findNextSong(currentSong, excludeIds + batch.map { it.id })?.let { batch.add(it) }
+                        }
+                        if (batch.isNotEmpty()) {
+                            internalQueue.addAll(batch)
+                            originalQueue = internalQueue.toList()
+                            updateQueueState()
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private fun shuffleQueue() {
@@ -485,13 +506,12 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun smartRefillQueue(lastSong: Song) {
-        // Fetch next candidate via autoplayEngine, which uses yt-dlp metadata (title, artist, channel, tags) to find similar tracks
-        // CandidateFetcher: build query strings from metadata and call catalogRepository.search() / genre endpoints via autoplayEngine
-        // Exclude recent and current-queue duplicates
+        // AutoplayRepositoryImpl maintains an internal batch cache.
+        // Calling findNextSong refills the cache automatically when it drops below 10 songs.
         viewModelScope.launch {
             val excludeIds = internalQueue.map { it.id }.toSet()
             val nextSong = runCatching {
-                fetchCandidates(lastSong, excludeIds)
+                autoplayEngine.findNextSong(lastSong, excludeIds)
             }.getOrNull()
             if (nextSong != null) {
                 internalQueue.add(nextSong)
@@ -502,12 +522,6 @@ class PlayerViewModel @Inject constructor(
                 _uiState.update { it.copy(isPlaying = false, positionMs = 0, isBuffering = false) }
             }
         }
-    }
-
-    private suspend fun fetchCandidates(lastSong: Song, excludeIds: Set<String>): Song? {
-        // autoplayEngine internally ranks and scores candidates before returning the bestCandidate
-        val bestCandidate = autoplayEngine.findNextSong(lastSong, excludeIds)
-        return bestCandidate
     }
 
     fun startDownload() {

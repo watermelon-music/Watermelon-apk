@@ -37,8 +37,11 @@ fun DownloadsScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val context = LocalContext.current
     val storagePath = remember {
-        context.getExternalFilesDir(android.os.Environment.DIRECTORY_MUSIC)?.absolutePath
-            ?: "App private music folder"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            "Music/watermelon/ (accessible via any file manager)"
+        } else {
+            "/storage/emulated/0/Music/watermelon/"
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -124,7 +127,7 @@ fun DownloadsScreen(
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "(App-private storage — accessible via this app or file manager with root access)",
+                                    text = "(Public storage — accessible via any file manager or music player)",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                 )

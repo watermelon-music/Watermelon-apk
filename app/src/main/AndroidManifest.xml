@@ -24,6 +24,7 @@
 
         <activity
             android:name=".MainActivity"
+            android:theme="@style/Theme.Watermelon.Splash"
             android:exported="true"
             android:screenOrientation="portrait"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize"

@@ -32,7 +32,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
-import org.json.JSONObject
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
@@ -296,12 +295,20 @@ class PlayerViewModel @Inject constructor(
             _uiState.update { it.copy(isFavorite = favorites.any { f -> f.id == song.id }) }
 
             val localPath = runCatching { downloadRepository.getDownloadPath(song.id) }.getOrNull()
-            val localFile = localPath?.let { File(it) }?.takeIf { it.exists() }
-            val audioUrl = if (localFile != null) {
-                localFile.toURI().toString()
-            } else {
-                song.audioUrl?.takeIf { it.isNotBlank() }
-                    ?: "https://www.youtube.com/watch?v=${song.id}"
+            val audioUrl = when {
+                localPath == null -> {
+                    song.audioUrl?.takeIf { it.isNotBlank() }
+                        ?: "https://www.youtube.com/watch?v=${song.id}"
+                }
+                localPath.startsWith("content://") -> {
+                    localPath
+                }
+                else -> {
+                    val localFile = File(localPath)
+                    if (localFile.exists()) localFile.toURI().toString()
+                    else song.audioUrl?.takeIf { it.isNotBlank() }
+                        ?: "https://www.youtube.com/watch?v=${song.id}"
+                }
             }
             loadAndPlay(audioUrl, song.title, song.artistName, song.coverUrl ?: "", song.id, isRadioStream = false)
             updateQueueState()
@@ -524,14 +531,9 @@ class PlayerViewModel @Inject constructor(
     }
 
     private suspend fun downloadToPrivateStorage(song: Song, url: String) {
-        val musicDir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
-            ?: throw IOException("Music directory not available")
-        if (!musicDir.exists()) musicDir.mkdirs()
-
-        val destFile = File(musicDir, "${song.id}.mp3")
-        if (destFile.exists()) {
-            throw IOException("Already downloaded")
-        }
+        val tempDir = context.cacheDir
+        val tempFile = File(tempDir, "${song.id}.mp3")
+        if (tempFile.exists()) tempFile.delete()
 
         val request = okhttp3.Request.Builder().url(url).build()
         okHttpClient.newCall(request).execute().use { response ->
@@ -540,7 +542,7 @@ class PlayerViewModel @Inject constructor(
             val totalBytes = body.contentLength()
 
             body.byteStream().use { input ->
-                FileOutputStream(destFile).use { output ->
+                FileOutputStream(tempFile).use { output ->
                     val buffer = ByteArray(8192)
                     var downloadedBytes = 0L
                     var read: Int
@@ -556,15 +558,18 @@ class PlayerViewModel @Inject constructor(
             }
         }
 
-        // Write metadata JSON alongside MP3
-        try {
-            val meta = JSONObject().apply {
-                put("title", song.title)
-                put("artistName", song.artistName)
-                put("coverUrl", song.coverUrl ?: "")
-            }
-            File(musicDir, "${song.id}.json").writeText(meta.toString())
-        } catch (_: Exception) { /* ignore meta write failure */ }
+        val fileSize = tempFile.length()
+
+        // Export to public storage
+        val publicUriOrPath = com.watermelon.data.repository.PublicStorageHelper.saveToPublicStorage(
+            context, song, tempFile
+        ) ?: throw IOException("Failed to save to public storage")
+
+        // Record in database so DownloadsScreen can show it
+        downloadRepository.recordDownload(song, publicUriOrPath, fileSize)
+
+        // Clean up temp file
+        tempFile.delete()
     }
 
     private var sleepTimerJob: Job? = null

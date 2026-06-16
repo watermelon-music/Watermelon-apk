@@ -3,6 +3,7 @@ package com.watermelon.app.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -19,6 +20,7 @@ sealed class BottomNavItem(
     val icon: ImageVector
 ) {
     data object Home : BottomNavItem("home", "Home", Icons.Filled.Home)
+    data object Radio : BottomNavItem("radio", "Radio", Icons.Filled.Radio)
     data object Search : BottomNavItem("search", "Search", Icons.Filled.Search)
     data object Library : BottomNavItem("library", "Playlist", Icons.Filled.LibraryMusic)
     data object Premium : BottomNavItem("premium", "Premium", Icons.Filled.Star)
@@ -26,6 +28,7 @@ sealed class BottomNavItem(
 
 val bottomNavItems = listOf(
     BottomNavItem.Home,
+    BottomNavItem.Radio,
     BottomNavItem.Search,
     BottomNavItem.Library,
     BottomNavItem.Premium

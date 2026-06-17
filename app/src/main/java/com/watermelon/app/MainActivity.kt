@@ -143,20 +143,32 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         bottomBar = {
                             if (showBottomNav) {
-                                BottomNavBar(
-                                    currentRoute = currentRoute,
-                                    onNavigate = { route ->
-                                        if (currentRoute != route) {
-                                            navController.navigate(route) {
-                                                popUpTo(navController.graph.getStartDestination()) {
-                                                    saveState = true
+                                Column {
+                                    val isSongActive = playerState.currentTitle.isNotBlank() || playerState.currentArtist.isNotBlank()
+                                    AnimatedVisibility(
+                                        visible = isSongActive && currentRoute != Routes.PLAYER,
+                                        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                                        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+                                    ) {
+                                        MiniPlayer(
+                                            onClick = { navController.navigate(Routes.PLAYER) }
+                                        )
+                                    }
+                                    BottomNavBar(
+                                        currentRoute = currentRoute,
+                                        onNavigate = { route ->
+                                            if (currentRoute != route) {
+                                                navController.navigate(route) {
+                                                    popUpTo(navController.graph.getStartDestination()) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
                                                 }
-                                                launchSingleTop = true
-                                                restoreState = true
                                             }
                                         }
-                                    }
-                                )
+                                    )
+                                }
                             }
                         }
                     ) { padding ->

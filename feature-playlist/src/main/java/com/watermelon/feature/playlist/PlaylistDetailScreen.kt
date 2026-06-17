@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -43,7 +44,7 @@ import com.watermelon.domain.model.Song
 fun PlaylistDetailScreen(
     playlistId: String,
     onBackClick: () -> Unit,
-    onSongClick: (Song) -> Unit,
+    onSongClick: (Song, List<Song>) -> Unit,
     onShuffleClick: (List<Song>) -> Unit = {},
     onPlayAllClick: (List<Song>) -> Unit = {},
     viewModel: PlaylistDetailViewModel = hiltViewModel()
@@ -79,11 +80,10 @@ fun PlaylistDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        val ids = playlist?.songs?.joinToString(",") { it.songId } ?: ""
-                        val link = "watermelon://playlist?songs=$ids"
+                        val link = playlistId
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        clipboard.setPrimaryClip(ClipData.newPlainText("Playlist", link))
-                        Toast.makeText(context, "Playlist link copied!", Toast.LENGTH_SHORT).show()
+                        clipboard.setPrimaryClip(ClipData.newPlainText("Playlist ID", link))
+                        Toast.makeText(context, "Playlist ID copied to clipboard!", Toast.LENGTH_SHORT).show()
                     }) {
                         Icon(Icons.Filled.Share, contentDescription = "Share")
                     }
@@ -165,6 +165,24 @@ fun PlaylistDetailScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                         )
+                        playlist?.id?.let { pid ->
+                            Spacer(modifier = Modifier.height(8.dp))
+                            val blocks = listOf('▁', '▂', '▃', '▄', '▅', '▆', '▇', '█')
+                            val code = remember(pid) {
+                                val random = kotlin.random.Random(pid.hashCode())
+                                buildString {
+                                    for (i in 0 until 16) {
+                                        append(blocks[random.nextInt(blocks.size)])
+                                    }
+                                }
+                            }
+                            Text(
+                                text = code,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                letterSpacing = 2.sp
+                            )
+                        }
                     }
                 }
             }
@@ -241,7 +259,10 @@ fun PlaylistDetailScreen(
                     items(songs, key = { it.songId }) { song ->
                         PlaylistSongItem(
                             song = song,
-                            onClick = { onSongClick(song.toSong()) },
+                            onClick = { 
+                                val allSongs = songs.map { it.toSong() }
+                                onSongClick(song.toSong(), allSongs) 
+                            },
                             onDelete = { songToDelete = song }
                         )
                     }

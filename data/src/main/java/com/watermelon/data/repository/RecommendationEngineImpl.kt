@@ -76,6 +76,7 @@ class RecommendationEngineImpl @Inject constructor(
         val genreCandidates = fetchSameGenreCandidates(currentSong, excludeSet)
         val historyCandidates = fetchUserHistoryCandidates(excludeSet)
         val randomCandidates = fetchRandomDiscoveryCandidates(excludeSet)
+        val hashtagCandidates = fetchHashtagCandidates(currentSong, excludeSet)
 
         // Combine all candidates, dedup by ID
         val allCandidates = mutableMapOf<String, Song>()
@@ -83,6 +84,7 @@ class RecommendationEngineImpl @Inject constructor(
         genreCandidates.forEach { allCandidates[it.id] = it }
         historyCandidates.forEach { allCandidates[it.id] = it }
         randomCandidates.forEach { allCandidates[it.id] = it }
+        hashtagCandidates.forEach { allCandidates[it.id] = it }
 
         if (allCandidates.isEmpty()) return emptyList()
 
@@ -95,8 +97,12 @@ class RecommendationEngineImpl @Inject constructor(
         val favoriteArtistNames = favorites.mapNotNull { it.songArtist?.lowercase() }.toSet()
 
         // 3. Score every candidate
-        val scored = allCandidates.values.map { candidate ->
+        val scored = allCandidates.values.mapNotNull { candidate ->
             var score = 0.0
+
+            // Strict filter: Do not play the exact same song or film song with just different text
+            val titleSim = titleSimilarity(currentSong.title.lowercase(), candidate.title.lowercase())
+            if (titleSim > 0.45) return@mapNotNull null // Drop highly similar titles outright
 
             // === Source scores (the 40/30/20/10 split) ===
             if (candidate.id in artistCandidates.map { it.id }) {
@@ -110,6 +116,9 @@ class RecommendationEngineImpl @Inject constructor(
             }
             if (candidate.id in randomCandidates.map { it.id }) {
                 score += weights.randomDiscovery
+            }
+            if (candidate.id in hashtagCandidates.map { it.id }) {
+                score += 35.0 // High boost for hashtag/semantic matches
             }
 
             // === Fine-grained adjustments ===
@@ -134,12 +143,6 @@ class RecommendationEngineImpl @Inject constructor(
                 score -= (recentPlays.size - recentIndex).toDouble() / recentPlays.size * weights.recencyDecayBase
             }
 
-            // Title similarity penalty (critical: prevents "Happy Nation Remix")
-            val titleSim = titleSimilarity(currentSong.title.lowercase(), candidate.title.lowercase())
-            if (titleSim > 0.70) {
-                score -= weights.titleSimilarityPenalty * titleSim
-            }
-
             ScoredSong(candidate, score)
         }
 
@@ -159,6 +162,29 @@ class RecommendationEngineImpl @Inject constructor(
     // Candidate fetchers
     // ---------------------------------------------------------------------------
 
+    private suspend fun fetchHashtagCandidates(
+        currentSong: Song,
+        excludeIds: Set<String>
+    ): List<Song> {
+        val results = mutableListOf<Song>()
+        val words = currentSong.title.split(Regex("\\s+"))
+            .map { it.replace(Regex("[^a-zA-Z0-9]"), "") }
+            .filter { it.length > 3 && !it.equals("song", true) && !it.equals("video", true) && !it.equals("lyric", true) }
+            .shuffled(random)
+            .take(2)
+        
+        if (words.isNotEmpty()) {
+            val query = words.joinToString(" ")
+            runCatching {
+                catalogRepository.search(query).firstOrNull()
+                    ?.filter { it.id !in excludeIds }
+                    ?.filter { titleSimilarity(currentSong.title.lowercase(), it.title.lowercase()) < 0.45 }
+                    ?.let { results.addAll(it.take(10)) }
+            }
+        }
+        return results.distinctBy { it.id }
+    }
+
     private suspend fun fetchRelatedArtistCandidates(
         currentSong: Song,
         excludeIds: Set<String>
@@ -170,7 +196,7 @@ class RecommendationEngineImpl @Inject constructor(
             runCatching {
                 catalogRepository.search(currentSong.artistName).firstOrNull()
                     ?.filter { it.id !in excludeIds }
-                    ?.filter { titleSimilarity(currentSong.title.lowercase(), it.title.lowercase()) < 0.70 }
+                    ?.filter { titleSimilarity(currentSong.title.lowercase(), it.title.lowercase()) < 0.45 }
                     ?.let { results.addAll(it.take(15)) }
             }
         }
@@ -183,7 +209,7 @@ class RecommendationEngineImpl @Inject constructor(
             runCatching {
                 catalogRepository.search(trimmed).firstOrNull()
                     ?.filter { it.id !in excludeIds && it.id !in results.map { r -> r.id } }
-                    ?.filter { titleSimilarity(currentSong.title.lowercase(), it.title.lowercase()) < 0.70 }
+                    ?.filter { titleSimilarity(currentSong.title.lowercase(), it.title.lowercase()) < 0.45 }
                     ?.let { results.addAll(it.take(8)) }
             }
         }

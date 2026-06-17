@@ -318,21 +318,16 @@ fun PlayerScreen(
                 if (state.durationMs > 0) state.positionMs.toFloat() / state.durationMs.toFloat() else 0f
             }
 
-            // Handles both tap-to-seek and drag-release via LaunchedEffect
-            LaunchedEffect(sliderDragValue, isSliderDragging) {
-                if (!isSliderDragging && state.durationMs > 0) {
-                    val currentValue = state.positionMs.toFloat() / state.durationMs.toFloat()
-                    if (kotlin.math.abs(sliderDragValue - currentValue) > 0.005f) {
-                        val target = (sliderDragValue * state.durationMs).toLong()
-                        viewModel.seekTo(target)
-                    }
-                }
-            }
-
             Slider(
                 value = if (isSliderDragging) sliderDragValue.coerceIn(0f, 1f) else sliderValue.coerceIn(0f, 1f),
                 onValueChange = {
                     sliderDragValue = it.coerceIn(0f, 1f)
+                },
+                onValueChangeFinished = {
+                    if (state.durationMs > 0) {
+                        val target = (sliderDragValue * state.durationMs).toLong()
+                        viewModel.seekTo(target)
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()

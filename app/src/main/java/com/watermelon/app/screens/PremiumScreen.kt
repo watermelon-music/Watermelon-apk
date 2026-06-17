@@ -47,40 +47,57 @@ fun PremiumScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Premium") },
+                title = { 
+                    Text(
+                        "Watermelon Plus",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    ) 
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        if (isPremium) {
-            PremiumActiveContent(
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Background visual element
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(24.dp)
+                    .size(300.dp)
+                    .offset(x = (-100).dp, y = (-100).dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(Color(0xFFFF6B6B).copy(alpha = 0.15f), Color.Transparent)
+                        )
+                    )
             )
-        } else {
-            PremiumPlansContent(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                isLoading = isLoading,
-                onPlanSelected = { key, paise, label ->
-                    if (!isLoading) {
-                        viewModel.createOrder(key, paise) { orderId ->
-                            onStartCheckout(orderId, paise, label)
+
+            if (isPremium) {
+                PremiumActiveContent(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp)
+                )
+            } else {
+                PremiumPlansContent(
+                    modifier = Modifier.fillMaxSize(),
+                    isLoading = isLoading,
+                    onPlanSelected = { key, paise, label ->
+                        if (!isLoading) {
+                            viewModel.createOrder(key, paise) { orderId ->
+                                onStartCheckout(orderId, paise, label)
+                            }
                         }
-                    }
-                },
-                onStudentVerify = { email ->
-                    viewModel.submitStudentVerification(email)
-                },
-                studentStatus = viewModel.studentStatus.collectAsState().value
-            )
+                    },
+                    onStudentVerify = { email ->
+                        viewModel.submitStudentVerification(email)
+                    },
+                    studentStatus = viewModel.studentStatus.collectAsState().value
+                )
+            }
         }
     }
 }
@@ -100,91 +117,107 @@ private fun PremiumPlansContent(
         modifier = modifier.verticalScroll(scrollState),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    tint = Color(0xFFFFD700),
+                    modifier = Modifier.size(40.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Upgrade to Premium",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Experience music like never before with high-quality audio and no interruptions.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Choose Your Plan",
-            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center
+            text = "CHOOSE YOUR PLAN",
+            style = MaterialTheme.typography.labelLarge.copy(
+                letterSpacing = 2.sp,
+                fontWeight = FontWeight.Bold
+            ),
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 16.dp)
         )
-
-        Text(
-            text = "Unlock unlimited music, HQ audio, and exclusive features.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         // Monthly
         PlanCardGradient(
-            title = "Individual Monthly",
+            title = "Individual",
             price = "₹29",
             period = "/ month",
-            subtitle = "Billed monthly",
+            subtitle = "Perfect for one person",
             features = listOf("Ad-free music", "Unlimited skips", "HQ audio (256kbps)"),
-            gradient = Brush.linearGradient(listOf(Color(0xFFFF6B6B), Color(0xFFFF8E53))),
-            primaryColor = Color(0xFFFF6B6B),
+            gradient = Brush.linearGradient(listOf(Color(0xFFFE8C00), Color(0xFFF83600))),
+            primaryColor = Color(0xFFF83600),
             onClick = { onPlanSelected("ind_mo", 2900, "Individual Monthly") }
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Yearly
         PlanCardGradient(
-            title = "Individual Yearly",
+            title = "Best Value",
             price = "₹299",
             period = "/ year",
-            subtitle = "Save 14% • ₹25/month",
-            features = listOf("Everything in Monthly", "Offline downloads", "10+ themes"),
-            gradient = Brush.linearGradient(listOf(Color(0xFF4ECDC4), Color(0xFF44A08D))),
-            primaryColor = Color(0xFF4ECDC4),
-            badge = "BEST VALUE",
+            subtitle = "Individual Yearly Plan",
+            features = listOf("Everything in Monthly", "Offline downloads", "Premium themes"),
+            gradient = Brush.linearGradient(listOf(Color(0xFF00C6FF), Color(0xFF0072FF))),
+            primaryColor = Color(0xFF0072FF),
+            badge = "14% OFF",
             onClick = { onPlanSelected("ind_yr", 29900, "Individual Yearly") }
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Family Monthly
         PlanCardGradient(
-            title = "Family Monthly",
+            title = "Family",
             price = "₹149",
             period = "/ month",
-            subtitle = "Up to 5 members",
+            subtitle = "Up to 5 accounts",
             features = listOf("5 separate accounts", "Family mix playlist", "Parental controls"),
-            gradient = Brush.linearGradient(listOf(Color(0xFF667EEA), Color(0xFF764BA2))),
-            primaryColor = Color(0xFF667EEA),
+            gradient = Brush.linearGradient(listOf(Color(0xFF6A11CB), Color(0xFF2575FC))),
+            primaryColor = Color(0xFF2575FC),
             onClick = { onPlanSelected("fam_mo", 14900, "Family Monthly") }
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Family Yearly
-        PlanCardGradient(
-            title = "Family Yearly",
-            price = "₹1,499",
-            period = "/ year",
-            subtitle = "Save 16% • ₹125/month for 5",
-            features = listOf("Everything in Family Monthly", "Yearly discount", "Priority support"),
-            gradient = Brush.linearGradient(listOf(Color(0xFFF093FB), Color(0xFFF5576C))),
-            primaryColor = Color(0xFFF093FB),
-            onClick = { onPlanSelected("fam_yr", 149900, "Family Yearly") }
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Student
         PlanCardGradient(
             title = "Student",
             price = "₹19",
             period = "/ month",
-            subtitle = "Verification required",
-            features = listOf("Everything in Individual", "Valid student ID needed", "Manual review within 24h"),
-            gradient = Brush.linearGradient(listOf(Color(0xFF43E97B), Color(0xFF38F9D7))),
-            primaryColor = Color(0xFF43E97B),
+            subtitle = "Valid ID required",
+            features = listOf("Full Individual features", "Verified student status"),
+            gradient = Brush.linearGradient(listOf(Color(0xFF11998E), Color(0xFF38EF7D))),
+            primaryColor = Color(0xFF11998E),
             isStudent = true,
             studentStatus = studentStatus,
             onClick = { showStudentDialog = true },
@@ -192,11 +225,11 @@ private fun PremiumPlansContent(
         )
 
         if (isLoading) {
-            Spacer(modifier = Modifier.height(16.dp))
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.height(24.dp))
+            CircularProgressIndicator(strokeWidth = 3.dp)
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(40.dp))
     }
 
     if (showStudentDialog) {

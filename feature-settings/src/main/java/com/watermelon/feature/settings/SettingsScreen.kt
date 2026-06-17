@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,12 +31,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.ui.res.painterResource
 import com.watermelon.core.designsystem.theme.AppTheme
 import com.watermelon.core.designsystem.theme.ThemeManager
@@ -333,71 +336,79 @@ private fun ThemeSelectorDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Choose Theme") },
+        title = { 
+            Text(
+                text = "App Appearance", 
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            ) 
+        },
         text = {
-            Column {
-                AppTheme.all.chunked(2).forEach { rowThemes ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                items(AppTheme.all, key = { it.key }) { theme ->
+                    val isSelected = currentMode == theme.key
+                    val previewColor = themePreviewColor(theme)
+                    
+                    Card(
+                        onClick = { onSelect(theme.key) },
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected) previewColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        border = if (isSelected) BorderStroke(2.dp, previewColor) else BorderStroke(1.dp, Color.Transparent),
+                        elevation = CardDefaults.cardElevation(if (isSelected) 4.dp else 0.dp)
                     ) {
-                        rowThemes.forEach { theme ->
-                            val selected = currentMode == theme.key
-                            val previewColor = themePreviewColor(theme)
-                            val bgColor = if (selected) previewColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
-                            Card(
-                                onClick = { onSelect(theme.key) },
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .padding(vertical = 4.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = bgColor)
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(CircleShape)
-                                            .background(previewColor),
-                                        contentAlignment = Alignment.Center
-                                    ) {}
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = theme.label,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    if (selected) {
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "✓",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = previewColor
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                            colors = listOf(previewColor, previewColor.copy(alpha = 0.7f))
                                         )
-                                    }
+                                    )
+                            ) {
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = Color.White,
+                                        modifier = Modifier.align(Alignment.Center)
+                                    )
                                 }
                             }
-                        }
-                        if (rowThemes.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = theme.label,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = if (isSelected) previewColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { 
+                Text("Close", style = MaterialTheme.typography.labelLarge) 
+            }
         },
         containerColor = MaterialTheme.colorScheme.surface,
-        titleContentColor = MaterialTheme.colorScheme.onSurface,
-        textContentColor = MaterialTheme.colorScheme.onSurface
+        shape = RoundedCornerShape(28.dp)
     )
 }
 

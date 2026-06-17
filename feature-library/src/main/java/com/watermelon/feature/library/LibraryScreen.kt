@@ -47,7 +47,7 @@ import java.io.File
 fun LibraryScreen(
     onBackClick: () -> Unit,
     onPlaylistClick: (Playlist) -> Unit,
-    onSongClick: (Song) -> Unit,
+    onSongClick: (Song, List<Song>) -> Unit,
     onCreatePlaylist: () -> Unit = {},
     onNavigateToPremium: () -> Unit = {},
     viewModel: LibraryViewModel = hiltViewModel()
@@ -143,13 +143,32 @@ fun LibraryScreen(
                 } else PlaylistList(
                     playlists = playlists,
                     onPlaylistClick = onPlaylistClick,
-                    onPlayPlaylist = { onPlaylistClick(it) },
+                    onPlayPlaylist = { playlist -> 
+                        // Just map it and trigger the click on the first song to queue the whole playlist
+                        val songs = playlist.songs.map { 
+                            Song(
+                                id = it.songId,
+                                title = it.title,
+                                artistId = "",
+                                artistName = it.artist,
+                                albumId = null,
+                                albumName = null,
+                                durationMs = 0L,
+                                coverUrl = it.coverUrl,
+                                audioUrl = it.audioUrl,
+                                genre = "",
+                                releaseDate = ""
+                            ) 
+                        }
+                        if (songs.isNotEmpty()) {
+                            onSongClick(songs.first(), songs)
+                        }
+                    },
                     onShufflePlaylist = { onPlaylistClick(it) },
                     onSharePlaylist = { playlist ->
                         viewModel.sharePlaylist(playlist.id) { code ->
                             shareMessage = "Share code: $code"
-                            val deepLink = "https://watermelon.app/playlist/${playlist.id}"
-                            val shareText = "Listen to my playlist \"${playlist.name}\" on Watermelon\n$deepLink"
+                            val shareText = playlist.id
                             val sendIntent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
                                 putExtra(Intent.EXTRA_TEXT, shareText)
@@ -165,16 +184,16 @@ fun LibraryScreen(
                 )
                 1 -> SongList(
                     songs = favorites,
-                    onSongClick = onSongClick,
+                    onSongClick = { onSongClick(it, favorites) },
                     emptyText = "No favorites yet",
                     modifier = Modifier.fillMaxSize()
                 )
                 2 -> FeedContent(
                     recentlyPlayed = recentlyPlayed,
-                    onSongClick = onSongClick,
+                    onSongClick = { onSongClick(it, recentlyPlayed) },
                     modifier = Modifier.fillMaxSize()
                 )
-                3 -> DownloadsPlaceholder(onSongClick = onSongClick)
+                3 -> DownloadsPlaceholder(onSongClick = { song, downloadsList -> onSongClick(song, downloadsList) })
             }
         }
     }
@@ -205,7 +224,7 @@ fun LibraryScreen(
             onDismissRequest = { showPaywall = false },
             title = { Text("Playlist Limit Reached") },
             text = {
-                Text("Free users can create up to 3 playlists. Upgrade to Premium for unlimited playlists.")
+                Text("Free users can create up to 2 playlists. Upgrade to Premium to create up to 5 playlists.")
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -613,7 +632,7 @@ private fun FeedContent(
 data class DownloadMeta(val title: String, val artistName: String, val coverUrl: String)
 
 @Composable
-private fun DownloadsPlaceholder(onSongClick: (Song) -> Unit) {
+private fun DownloadsPlaceholder(onSongClick: (Song, List<Song>) -> Unit) {
     val context = LocalContext.current
     var refreshKey by remember { mutableIntStateOf(0) }
     var fileToDelete by rememberSaveable { mutableStateOf<java.io.File?>(null) }
@@ -637,6 +656,24 @@ private fun DownloadsPlaceholder(onSongClick: (Song) -> Unit) {
                 } catch (_: Exception) { null }
             } else null
             file to meta
+        }
+    }
+
+    val downloadedSongs = remember(downloads) {
+        downloads.map { (file, meta) ->
+            Song(
+                id = file.nameWithoutExtension,
+                title = meta?.title?.takeIf { it.isNotBlank() } ?: file.nameWithoutExtension,
+                artistId = meta?.artistName ?: "",
+                artistName = meta?.artistName?.takeIf { it.isNotBlank() } ?: "Unknown Artist",
+                albumId = null,
+                albumName = null,
+                durationMs = 0,
+                coverUrl = meta?.coverUrl?.takeIf { it.isNotBlank() },
+                audioUrl = file.toURI().toString(),
+                genre = null,
+                releaseDate = null
+            )
         }
     }
 
@@ -666,7 +703,8 @@ private fun DownloadsPlaceholder(onSongClick: (Song) -> Unit) {
                 .padding(WatermelonSpacing.md),
             verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
         ) {
-            items(downloads, key = { it.first.absolutePath }) { (file, meta) ->
+            items(downloads.size, key = { downloads[it].first.absolutePath }) { index ->
+                val (file, meta) = downloads[index]
                 val sizeText = remember(file) {
                     val len = file.length()
                     when {
@@ -675,25 +713,11 @@ private fun DownloadsPlaceholder(onSongClick: (Song) -> Unit) {
                         else -> "${len} B"
                     }
                 }
-                val song = remember(file, meta) {
-                    Song(
-                        id = file.nameWithoutExtension,
-                        title = meta?.title?.takeIf { it.isNotBlank() } ?: file.nameWithoutExtension,
-                        artistId = meta?.artistName ?: "",
-                        artistName = meta?.artistName?.takeIf { it.isNotBlank() } ?: "Unknown Artist",
-                        albumId = null,
-                        albumName = null,
-                        durationMs = 0,
-                        coverUrl = meta?.coverUrl?.takeIf { it.isNotBlank() },
-                        audioUrl = file.toURI().toString(),
-                        genre = null,
-                        releaseDate = null
-                    )
-                }
+                val song = downloadedSongs[index]
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onSongClick(song) },
+                        .clickable { onSongClick(song, downloadedSongs) },
                     shape = RoundedCornerShape(12.dp),
                     elevation = CardDefaults.cardElevation(2.dp)
                 ) {

@@ -240,8 +240,8 @@ fun WatermelonNavHost(
                 onPlaylistClick = { playlist ->
                     navController.navigate("playlist_detail/${playlist.id}")
                 },
-                onSongClick = { song: Song ->
-                    playerViewModel.playSong(song)
+                onSongClick = { song: Song, songs: List<Song> ->
+                    playerViewModel.playQueue(songs, songs.indexOf(song).takeIf { it >= 0 } ?: 0)
                     navController.navigate(Routes.PLAYER)
                 },
                 onCreatePlaylist = { navController.navigate(Routes.CREATE_PLAYLIST) },
@@ -256,8 +256,8 @@ fun WatermelonNavHost(
             PlaylistDetailScreen(
                 playlistId = playlistId,
                 onBackClick = { navController.popBackStack() },
-                onSongClick = { song: Song ->
-                    playerViewModel.playSong(song)
+                onSongClick = { song: Song, songs: List<Song> ->
+                    playerViewModel.playQueue(songs, songs.indexOf(song).takeIf { it >= 0 } ?: 0)
                     navController.navigate(Routes.PLAYER)
                 },
                 onPlayAllClick = { songs: List<Song> ->

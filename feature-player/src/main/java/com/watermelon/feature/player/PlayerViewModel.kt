@@ -163,10 +163,18 @@ class PlayerViewModel @Inject constructor(
                     streamingRepository.seekTo(0)
                     streamingRepository.resume()
                 }
-                else -> {
+                RepeatMode.ALL -> {
                     if (hasNextInternal()) {
                         playNextInternal()
-                    } else if (repeatMode == RepeatMode.ALL && internalQueue.isNotEmpty()) {
+                    } else if (internalQueue.isNotEmpty()) {
+                        currentIndex = 0
+                        playCurrent()
+                    }
+                }
+                RepeatMode.NONE -> {
+                    if (hasNextInternal()) {
+                        playNextInternal()
+                    } else if (internalQueue.size > 1) { // Implicitly repeat playlists by default if they are > 1
                         currentIndex = 0
                         playCurrent()
                     } else {

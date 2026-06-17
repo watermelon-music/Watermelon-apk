@@ -36,6 +36,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.watermelon.core.designsystem.animation.ShimmerCard
 import com.watermelon.core.designsystem.theme.WatermelonRed
+import com.watermelon.feature.player.MiniPlayer
+import com.watermelon.feature.player.PlayerViewModel
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.Song
 
@@ -44,6 +46,8 @@ fun HomeScreen(
     onSearchClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onSongClick: (Song, List<Song>) -> Unit = { _, _ -> },
+    onPlayerClick: () -> Unit = {},
+    playerViewModel: PlayerViewModel,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -62,9 +66,11 @@ fun HomeScreen(
 
     HomeScreenContent(
         uiState = uiState,
+        playerViewModel = playerViewModel,
         onSearchClick = onSearchClick,
         onSettingsClick = onSettingsClick,
         onSongClick = onSongClick,
+        onPlayerClick = onPlayerClick,
         onAddToPlaylist = viewModel::onAddToPlaylistClick,
         snackbarHostState = snackbarHostState
     )
@@ -132,14 +138,25 @@ fun HomeScreen(
 @Composable
 private fun HomeScreenContent(
     uiState: HomeUiState,
+    playerViewModel: PlayerViewModel,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onSongClick: (Song, List<Song>) -> Unit,
+    onPlayerClick: () -> Unit,
     onAddToPlaylist: (Song) -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            val playerState by playerViewModel.uiState.collectAsStateWithLifecycle()
+            if (playerState.currentTitle.isNotBlank()) {
+                MiniPlayer(
+                    onClick = onPlayerClick,
+                    viewModel = playerViewModel
+                )
+            }
+        },
         topBar = {
             TopAppBar(
                 title = {

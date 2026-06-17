@@ -131,15 +131,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    val hideMiniPlayerRoutes = setOf(
-                        Routes.PLAYER,
-                        Routes.SPLASH,
-                        Routes.LOGIN,
-                        Routes.REGISTER,
-                        Routes.FORGOT_PASSWORD,
-                        Routes.ONBOARDING
-                    )
-
                     val showBottomNav = currentRoute in setOf(
                         Routes.HOME,
                         Routes.RADIO,
@@ -151,34 +142,21 @@ class MainActivity : ComponentActivity() {
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
                         bottomBar = {
-                            Column {
-                                AnimatedVisibility(
-                                    visible = currentRoute !in hideMiniPlayerRoutes && playerState.currentTitle.isNotBlank(),
-                                    enter = slideInVertically { it } + fadeIn(),
-                                    exit = slideOutVertically { it } + fadeOut()
-                                ) {
-                                    MiniPlayer(
-                                        modifier = Modifier,
-                                        onClick = { navController.navigate(Routes.PLAYER) },
-                                        viewModel = playerViewModel
-                                    )
-                                }
-                                if (showBottomNav) {
-                                    BottomNavBar(
-                                        currentRoute = currentRoute,
-                                        onNavigate = { route ->
-                                            if (currentRoute != route) {
-                                                navController.navigate(route) {
-                                                    popUpTo(navController.graph.getStartDestination()) {
-                                                        saveState = true
-                                                    }
-                                                    launchSingleTop = true
-                                                    restoreState = true
+                            if (showBottomNav) {
+                                BottomNavBar(
+                                    currentRoute = currentRoute,
+                                    onNavigate = { route ->
+                                        if (currentRoute != route) {
+                                            navController.navigate(route) {
+                                                popUpTo(navController.graph.getStartDestination()) {
+                                                    saveState = true
                                                 }
+                                                launchSingleTop = true
+                                                restoreState = true
                                             }
                                         }
-                                    )
-                                }
+                                    }
+                                )
                             }
                         }
                     ) { padding ->

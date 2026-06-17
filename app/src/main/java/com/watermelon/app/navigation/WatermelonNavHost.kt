@@ -202,7 +202,9 @@ fun WatermelonNavHost(
                 onSongClick = { song: Song, songs: List<Song> ->
                     playerViewModel.playQueue(songs, songs.indexOf(song))
                     navController.navigate(Routes.PLAYER)
-                }
+                },
+                playerViewModel = playerViewModel,
+                onPlayerClick = { navController.navigate(Routes.PLAYER) }
             )
         }
         composable(Routes.RADIO) {

@@ -7,9 +7,7 @@ import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.runtime.Composable
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -42,8 +40,6 @@ fun BottomNavBar(
     onNavigate: (String) -> Unit
 ) {
     NavigationBar(
-        modifier = Modifier.height(56.dp),
-        windowInsets = WindowInsets(0.dp),
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
         tonalElevation = 0.dp
     ) {

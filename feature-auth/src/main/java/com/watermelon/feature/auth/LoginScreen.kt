@@ -70,7 +70,7 @@ fun LoginScreen(
                     colors = listOf(
                         MaterialTheme.colorScheme.background,
                         MaterialTheme.colorScheme.background,
-                        Color(0xFF1A0505)
+                        WatermelonRed.copy(alpha = 0.15f)
                     )
                 )
             )

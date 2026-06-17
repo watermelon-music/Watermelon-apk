@@ -44,8 +44,7 @@ fun MiniPlayer(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-            .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+            .padding(horizontal = 12.dp, vertical = 6.dp)
             .clip(RoundedCornerShape(20.dp))
             .clickable(
                 onClick = onClick,
@@ -70,15 +69,15 @@ fun MiniPlayer(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AsyncImage(
                     model = state.artworkUrl.takeIf { it.isNotBlank() }
-                        ?: "https://via.placeholder.com/48?text=W",
+                        ?: com.watermelon.core.designsystem.R.drawable.app_logo,
                     contentDescription = null,
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(52.dp)
                         .clip(RoundedCornerShape(12.dp))
                 )
                 Spacer(modifier = Modifier.width(12.dp))

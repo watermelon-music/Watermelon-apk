@@ -35,6 +35,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.ui.res.painterResource
 import com.watermelon.core.designsystem.theme.AppTheme
 import com.watermelon.core.designsystem.theme.ThemeManager
 import com.watermelon.core.designsystem.theme.WatermelonRed
@@ -135,9 +138,10 @@ fun SettingsScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(64.dp)
+                            .size(80.dp)
                             .clip(CircleShape)
-                            .background(avatarColor),
+                            .background(avatarColor)
+                            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         if (!user?.avatarUrl.isNullOrBlank()) {
@@ -153,7 +157,7 @@ fun SettingsScreen(
                             Text(
                                 text = initial.uppercase().toString(),
                                 style = MaterialTheme.typography.headlineMedium,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     }

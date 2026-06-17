@@ -175,7 +175,7 @@ private fun DownloadTrackItem(
         ) {
             AsyncImage(
                 model = track.coverUrl.takeIf { it.isNotBlank() }
-                    ?: "https://via.placeholder.com/56?text=W",
+                    ?: com.watermelon.core.designsystem.R.drawable.app_logo,
                 contentDescription = track.title,
                 modifier = Modifier
                     .size(56.dp)

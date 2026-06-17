@@ -311,7 +311,7 @@ private fun PlaylistSongItem(
         ) {
             AsyncImage(
                 model = song.coverUrl
-                    ?: "https://via.placeholder.com/48?text=♪",
+                    ?: com.watermelon.core.designsystem.R.drawable.app_logo,
                 contentDescription = song.title,
                 modifier = Modifier
                     .size(48.dp)

@@ -415,7 +415,7 @@ private fun BigSongItem(song: Song, onClick: () -> Unit, onAddToPlaylist: () -> 
                 Box(modifier = Modifier.fillMaxSize()) {
                     AsyncImage(
                         model = song.coverUrl?.takeIf { it.isNotBlank() }
-                            ?: "https://via.placeholder.com/170?text=W",
+                            ?: com.watermelon.core.designsystem.R.drawable.app_logo,
                         contentDescription = song.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -535,7 +535,7 @@ private fun SongItem(song: Song, onClick: () -> Unit, onAddToPlaylist: () -> Uni
                 Box(modifier = Modifier.fillMaxSize()) {
                     AsyncImage(
                         model = song.coverUrl?.takeIf { it.isNotBlank() }
-                            ?: "https://via.placeholder.com/130?text=W",
+                            ?: com.watermelon.core.designsystem.R.drawable.app_logo,
                         contentDescription = song.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

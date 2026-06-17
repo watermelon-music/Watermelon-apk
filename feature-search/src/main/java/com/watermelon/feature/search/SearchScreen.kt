@@ -259,7 +259,7 @@ private fun SearchResultItem(
             ) {
                 AsyncImage(
                     model = song.coverUrl?.takeIf { it.isNotBlank() }
-                        ?: "https://via.placeholder.com/56?text=W",
+                        ?: com.watermelon.core.designsystem.R.drawable.app_logo,
                     contentDescription = song.title,
                     modifier = Modifier
                         .size(56.dp)

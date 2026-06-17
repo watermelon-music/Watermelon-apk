@@ -272,11 +272,11 @@ fun PlayerScreen(
                         .scale(pulseAnim),
                     shape = RoundedCornerShape(24.dp),
                     elevation = CardDefaults.cardElevation(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.Black)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     AsyncImage(
                         model = state.artworkUrl.takeIf { it.isNotBlank() }
-                            ?: "https://via.placeholder.com/400?text=Watermelon",
+                            ?: com.watermelon.core.designsystem.R.drawable.app_logo,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize()
                     )

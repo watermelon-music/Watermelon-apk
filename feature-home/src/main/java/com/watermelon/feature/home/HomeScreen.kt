@@ -410,7 +410,7 @@ private fun BigSongItem(song: Song, onClick: () -> Unit, onAddToPlaylist: () -> 
                     .clickable(onClick = onClick),
                 shape = RoundedCornerShape(20.dp),
                 elevation = CardDefaults.cardElevation(6.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Black)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     AsyncImage(
@@ -530,7 +530,7 @@ private fun SongItem(song: Song, onClick: () -> Unit, onAddToPlaylist: () -> Uni
                     .clickable(onClick = onClick),
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(4.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Black)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     AsyncImage(

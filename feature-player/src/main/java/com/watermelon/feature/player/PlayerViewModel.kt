@@ -251,8 +251,15 @@ class PlayerViewModel @Inject constructor(
         consecutiveErrors = 0
         currentExtractionJob = viewModelScope.launch {
             _uiState.update { it.copy(isBuffering = true, errorMessage = null, isRadioStream = isRadioStream) }
-            if (sourceUrl.startsWith("file:")) {
-                streamingRepository.play(sourceUrl, title, artist, artwork)
+            if (sourceUrl.startsWith("file:") || sourceUrl.startsWith("/")) {
+                val playUrl = if (sourceUrl.startsWith("/")) {
+                    android.net.Uri.fromFile(File(sourceUrl)).toString()
+                } else if (sourceUrl.startsWith("file:/") && !sourceUrl.startsWith("file:///")) {
+                    sourceUrl.replace("file:/", "file:///")
+                } else {
+                    sourceUrl
+                }
+                streamingRepository.play(playUrl, title, artist, artwork)
                 _uiState.update {
                     it.copy(
                         currentTitle = title,
@@ -313,7 +320,7 @@ class PlayerViewModel @Inject constructor(
                 }
                 else -> {
                     val localFile = File(localPath)
-                    if (localFile.exists()) localFile.toURI().toString()
+                    if (localFile.exists()) android.net.Uri.fromFile(localFile).toString()
                     else song.audioUrl?.takeIf { it.isNotBlank() }
                         ?: "https://www.youtube.com/watch?v=${song.id}"
                 }

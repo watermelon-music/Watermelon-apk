@@ -29,7 +29,233 @@ function i(text) { return `<i>${text}</i>`; }
 function c(text) { return `<code>${text}</code>`; }
 function hr() { return '\n───────────────────\n'; }
 
-// ========== START ==========
+// ========== HANDLER FUNCTIONS FOR REUSE ==========
+
+async function handleStats(ctx) {
+  if (!isAdmin(ctx)) return;
+  try {
+    const { count: users } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+    const { count: free } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'FREE');
+    const { count: paid } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).neq('plan', 'FREE');
+    const { count: playlists } = await supabase.from('playlists').select('*', { count: 'exact', head: true });
+    const { count: favorites } = await supabase.from('favorites').select('*', { count: 'exact', head: true });
+    const { count: plays } = await supabase.from('listening_history').select('*', { count: 'exact', head: true });
+    const { count: todayPlays } = await supabase.from('listening_history').select('*', { count: 'exact', head: true }).gte('played_at', new Date(Date.now() - 864e5).toISOString());
+    ctx.reply(
+      `🍉 ${b('Watermelon App Dashboard')}\n` +
+      hr() +
+      `👥 ${b('User Registry')}\n` +
+      `• Total Accounts: ${b(users)}\n` +
+      `• Free Tier: ${free}\n` +
+      `• Premium Tier: ${paid}\n\n` +
+      `📦 ${b('User Creations')}\n` +
+      `• Total Playlists: ${b(playlists)}\n` +
+      `• Total Liked Tracks: ${b(favorites)}\n\n` +
+      `🎵 ${b('Streaming Stats')}\n` +
+      `• Total Plays Streamed: ${b(plays)}\n` +
+      `• Plays (Last 24h): ${b(todayPlays)}`,
+      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
+    );
+  } catch (e) {
+    ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
+  }
+}
+
+async function handleUsers(ctx) {
+  if (!isAdmin(ctx)) return;
+  try {
+    const { count: total, error: e1 } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+    const { count: free, error: e2 } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'FREE');
+    const { count: paid, error: e3 } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).neq('plan', 'FREE');
+    if (e1 || e2 || e3) throw e1 || e2 || e3;
+    
+    ctx.reply(
+      `👥 ${b('User Registry Summary')}\n` +
+      hr() +
+      `🟢 Total Users: ${b(total)}\n` +
+      `⚪ Free Tier: ${b(free)}\n` +
+      `💎 Premium Tier: ${b(paid)}\n\n` +
+      `⚡ Paid Ratio: ${b(((paid/total)*100).toFixed(1))}%`,
+      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
+    );
+  } catch (e) {
+    ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
+  }
+}
+
+async function handleSubs(ctx) {
+  if (!isAdmin(ctx)) return;
+  try {
+    const { data, error } = await supabase.from('profiles')
+      .select('email, plan, created_at')
+      .neq('plan', 'FREE')
+      .order('created_at', { ascending: false })
+      .limit(15);
+    if (error) throw error;
+    
+    let list = (data || []).map((u, index) => {
+      return `${index + 1}. 💎 ${c(u.email)} - ${b(u.plan)} (${u.created_at?.slice(0,10)})`;
+    }).join('\n');
+    
+    ctx.reply(
+      `💎 ${b('Premium Subscribers (Latest)')}\n` +
+      hr() +
+      (list || '📭 No active premium subscriptions found.'),
+      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
+    );
+  } catch (e) {
+    ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
+  }
+}
+
+async function handleDaily(ctx) {
+  if (!isAdmin(ctx)) return;
+  try {
+    const yesterday = new Date(Date.now() - 864e5).toISOString();
+    const { count: todayPlays } = await supabase.from('listening_history').select('*', { count: 'exact', head: true }).gte('played_at', yesterday);
+    const { count: todaySignups } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', yesterday);
+    const { data: topSong } = await supabase.from('listening_history').select('title, artist').gte('played_at', yesterday).limit(1).order('played_at', { ascending: false });
+    const top = topSong?.[0] ? `${topSong[0].title} — ${topSong[0].artist || 'Unknown'}` : '📭 No plays yet';
+    ctx.reply(
+      `📅 ${b('Watermelon Daily Digest')} ${i('(24h)')}\n` +
+      hr() +
+      `🎵 Total Plays: ${b(todayPlays)}\n` +
+      `🆕 New Signups: ${b(todaySignups)}\n` +
+      `🔥 Top Song Played: ${i(top)}`,
+      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
+    );
+  } catch (e) {
+    ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
+  }
+}
+
+async function handlePending(ctx) {
+  if (!isAdmin(ctx)) return;
+  try {
+    const { data, error } = await supabase.from('premium_requests').select('*').eq('status', 'pending').order('created_at', { ascending: false }).limit(10);
+    if (error) throw error;
+    if (!data.length) return ctx.reply('⏳ No pending requests.', MAIN_KEYBOARD);
+
+    for (const r of data) {
+      const inlineKeyboard = Markup.inlineKeyboard([
+        Markup.button.callback('✅ Approve', `approve_${r.id}`),
+        Markup.button.callback('❌ Reject', `reject_${r.id}`)
+      ]);
+      await ctx.reply(
+        `⏳ ${b('Pending Request')}\n\n` +
+        `📧 Email: ${c(r.email)}\n` +
+        `💎 Plan: ${b(r.plan)}\n` +
+        `💰 Amount: ₹${r.amount / 100}\n` +
+        `📅 Date: ${r.created_at?.slice(0, 10)}`,
+        { parse_mode: 'HTML', ...inlineKeyboard }
+      );
+    }
+  } catch (e) {
+    ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
+  }
+}
+
+async function handleTopUsers(ctx) {
+  if (!isAdmin(ctx)) return;
+  try {
+    const { data, error } = await supabase.from('listening_history').select('user_id, title').order('played_at', { ascending: false }).limit(500);
+    if (error) throw error;
+    const counts = {};
+    data.forEach(d => { counts[d.user_id] = (counts[d.user_id] || 0) + 1; });
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([uid, c]) => ({ uid, count: c }));
+    if (!top.length) return ctx.reply('📭 No plays yet.', MAIN_KEYBOARD);
+    const ids = top.map(t => t.uid);
+    const { data: users, error: ue } = await supabase.from('profiles').select('id, email, display_name').in('id', ids);
+    if (ue) throw ue;
+    const lines = top.map((t, i) => {
+      const u = users?.find(u => u.id === t.uid);
+      const name = u?.display_name || u?.email || t.uid.slice(0, 8);
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🏅';
+      return `${medal} ${b(name)} — ${t.count} plays`;
+    }).join('\n');
+    ctx.reply(
+      `🏆 ${b('Listener Leaderboard')}\n` +
+      hr() +
+      lines,
+      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
+    );
+  } catch (e) {
+    ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
+  }
+}
+
+async function handleRecent(ctx) {
+  if (!isAdmin(ctx)) return;
+  try {
+    const yesterday = new Date(Date.now() - 864e5).toISOString();
+    const { data, error } = await supabase.from('profiles').select('email, display_name, created_at').gte('created_at', yesterday).order('created_at', { ascending: false }).limit(15);
+    if (error) throw error;
+    if (!data.length) return ctx.reply('📭 No new signups today.', MAIN_KEYBOARD);
+    const lines = data.map((u, idx) => `${idx + 1}. 🆕 ${b(u.display_name || u.email)} (${u.created_at?.slice(11, 16)})`).join('\n');
+    ctx.reply(
+      `🆕 ${b('New Signups (Last 24h)')}\n` +
+      hr() +
+      lines,
+      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
+    );
+  } catch (e) {
+    ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
+  }
+}
+
+async function handleConfig(ctx) {
+  if (!isAdmin(ctx)) return;
+  try {
+    let { data, error } = await supabase.from('remote_config').select('*').limit(1).single();
+    
+    if (error && error.code === 'PGRST116') {
+      const defaultConfig = {
+        maintenance_mode: false,
+        disable_youtube: false,
+        disable_audius: false,
+        disable_jamendo: false,
+        free_max_playlists: 3
+      };
+      const { data: inserted, error: initError } = await supabase.from('remote_config').insert(defaultConfig).select().single();
+      if (!initError) data = inserted;
+    }
+    
+    const config = data || {
+      maintenance_mode: false,
+      disable_youtube: false,
+      disable_audius: false,
+      disable_jamendo: false,
+      free_max_playlists: 3
+    };
+
+    ctx.reply(
+      `⚙️ ${b('Watermelon App Remote Config')}\n` +
+      hr() +
+      `🛠️ Maintenance Mode: ${config.maintenance_mode ? '🚨 ' + b('ENABLED (BLOCKING)') : '🟢 ' + b('OFF (ACTIVE)')}\n` +
+      `📺 YouTube Stream: ${config.disable_youtube ? '❌ ' + b('DISABLED') : '🟢 ' + b('ENABLED')}\n` +
+      `🎧 Audius Stream: ${config.disable_audius ? '❌ ' + b('DISABLED') : '🟢 ' + b('ENABLED')}\n` +
+      `🎵 Jamendo Stream: ${config.disable_jamendo ? '❌ ' + b('DISABLED') : '🟢 ' + b('ENABLED')}\n` +
+      `📋 Max Free Playlists: ${b(config.free_max_playlists)}\n` +
+      hr() +
+      i('Modify these tags using commands (e.g. /maintenance on, /toggle_youtube off)'),
+      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
+    );
+  } catch (e) {
+    ctx.reply(
+      `⚙️ ${b('Remote Config (Firebase Connected)')}\n` +
+      hr() +
+      `ℹ️ App uses Firebase Remote Config. To override with Telegram Remote Control, create a table named ` + c('remote_config') + ` in Supabase with columns:\n` +
+      `• ` + c('maintenance_mode') + ` (boolean)\n` +
+      `• ` + c('disable_youtube') + ` (boolean)\n` +
+      `• ` + c('disable_audius') + ` (boolean)\n` +
+      `• ` + c('disable_jamendo') + ` (boolean)\n` +
+      `• ` + c('free_max_playlists') + ` (int4)`,
+      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
+    );
+  }
+}
+
+// ========== REGISTER COMMANDS AND TEXT TRIGGERS ==========
 
 bot.start((ctx) => {
   if (!isAdmin(ctx)) {
@@ -96,65 +322,34 @@ bot.command('commands', (ctx) => {
   );
 });
 
-// ========== KEYBOARD HANDLERS ==========
-bot.hears('🍉 Dashboard', (ctx) => ctx.reply('/stats'));
-bot.hears('👥 Users', (ctx) => ctx.reply('/users'));
-bot.hears('📊 Stats', (ctx) => ctx.reply('/stats'));
-bot.hears('📅 Daily', (ctx) => ctx.reply('/daily'));
-bot.hears('⏳ Pending', (ctx) => ctx.reply('/pending'));
-bot.hears('🏆 Top Users', (ctx) => ctx.reply('/topusers'));
-bot.hears('🆕 Recent', (ctx) => ctx.reply('/recent'));
-bot.hears('⚙️ Remote Config', (ctx) => ctx.reply('/config'));
-bot.hears('📢 Broadcast', (ctx) => ctx.reply('📢 Usage: /broadcast [message] - Broadcast message to all active users.'));
-bot.hears('💎 Subs', (ctx) => ctx.reply('/subs'));
+// Map dashboard buttons directly to the exact function handlers
+bot.command('stats', handleStats);
+bot.hears(['🍉 Dashboard', '📊 Stats'], handleStats);
 
-// ========== STATS & USERS ==========
+bot.command('users', handleUsers);
+bot.hears('👥 Users', handleUsers);
 
-bot.command('users', async (ctx) => {
+bot.command('subs', handleSubs);
+bot.hears('💎 Subs', handleSubs);
+
+bot.command('daily', handleDaily);
+bot.hears('📅 Daily', handleDaily);
+
+bot.command('pending', handlePending);
+bot.hears('⏳ Pending', handlePending);
+
+bot.command('topusers', handleTopUsers);
+bot.hears('🏆 Top Users', handleTopUsers);
+
+bot.command('recent', handleRecent);
+bot.hears('🆕 Recent', handleRecent);
+
+bot.command('config', handleConfig);
+bot.hears('⚙️ Remote Config', handleConfig);
+
+bot.hears('📢 Broadcast', (ctx) => {
   if (!isAdmin(ctx)) return;
-  try {
-    const { count: total, error: e1 } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-    const { count: free, error: e2 } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'FREE');
-    const { count: paid, error: e3 } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).neq('plan', 'FREE');
-    if (e1 || e2 || e3) throw e1 || e2 || e3;
-    
-    ctx.reply(
-      `👥 ${b('User Registry Summary')}\n` +
-      hr() +
-      `🟢 Total Users: ${b(total)}\n` +
-      `⚪ Free Tier: ${b(free)}\n` +
-      `💎 Premium Tier: ${b(paid)}\n\n` +
-      `⚡ Paid Ratio: ${b(((paid/total)*100).toFixed(1))}%`,
-      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
-    );
-  } catch (e) {
-    ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
-  }
-});
-
-bot.command('subs', async (ctx) => {
-  if (!isAdmin(ctx)) return;
-  try {
-    const { data, error } = await supabase.from('profiles')
-      .select('email, plan, created_at')
-      .neq('plan', 'FREE')
-      .order('created_at', { ascending: false })
-      .limit(15);
-    if (error) throw error;
-    
-    let list = data.map((u, index) => {
-      return `${index + 1}. 💎 ${c(u.email)} - ${b(u.plan)} (${u.created_at?.slice(0,10)})`;
-    }).join('\n');
-    
-    ctx.reply(
-      `💎 ${b('Premium Subscribers (Latest)')}\n` +
-      hr() +
-      (list || '📭 No active premium subscriptions found.'),
-      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
-    );
-  } catch (e) {
-    ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
-  }
+  ctx.reply('📢 Usage: /broadcast [message] - Broadcast message to all active users.', MAIN_KEYBOARD);
 });
 
 bot.command('plays', async (ctx) => {
@@ -179,60 +374,6 @@ bot.command('plays', async (ctx) => {
     );
   } catch (e) {
     ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
-  }
-});
-
-// ========== REMOTE CONFIG COMMANDS ==========
-
-bot.command('config', async (ctx) => {
-  if (!isAdmin(ctx)) return;
-  try {
-    let { data, error } = await supabase.from('remote_config').select('*').limit(1).single();
-    
-    if (error && error.code === 'PGRST116') {
-      const defaultConfig = {
-        maintenance_mode: false,
-        disable_youtube: false,
-        disable_audius: false,
-        disable_jamendo: false,
-        free_max_playlists: 3
-      };
-      const { data: inserted, error: initError } = await supabase.from('remote_config').insert(defaultConfig).select().single();
-      if (!initError) data = inserted;
-    }
-    
-    const config = data || {
-      maintenance_mode: false,
-      disable_youtube: false,
-      disable_audius: false,
-      disable_jamendo: false,
-      free_max_playlists: 3
-    };
-
-    ctx.reply(
-      `⚙️ ${b('Watermelon App Remote Config')}\n` +
-      hr() +
-      `🛠️ Maintenance Mode: ${config.maintenance_mode ? '🚨 ' + b('ENABLED (BLOCKING)') : '🟢 ' + b('OFF (ACTIVE)')}\n` +
-      `📺 YouTube Stream: ${config.disable_youtube ? '❌ ' + b('DISABLED') : '🟢 ' + b('ENABLED')}\n` +
-      `🎧 Audius Stream: ${config.disable_audius ? '❌ ' + b('DISABLED') : '🟢 ' + b('ENABLED')}\n` +
-      `🎵 Jamendo Stream: ${config.disable_jamendo ? '❌ ' + b('DISABLED') : '🟢 ' + b('ENABLED')}\n` +
-      `📋 Max Free Playlists: ${b(config.free_max_playlists)}\n` +
-      hr() +
-      i('Modify these tags using commands (e.g. /maintenance on, /toggle_youtube off)'),
-      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
-    );
-  } catch (e) {
-    ctx.reply(
-      `⚙️ ${b('Remote Config (Firebase Connected)')}\n` +
-      hr() +
-      `ℹ️ App uses Firebase Remote Config. To override with Telegram Remote Control, create a table named ` + c('remote_config') + ` in Supabase with columns:\n` +
-      `• ` + c('maintenance_mode') + ` (boolean)\n` +
-      `• ` + c('disable_youtube') + ` (boolean)\n` +
-      `• ` + c('disable_audius') + ` (boolean)\n` +
-      `• ` + c('disable_jamendo') + ` (boolean)\n` +
-      `• ` + c('free_max_playlists') + ` (int4)`,
-      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
-    );
   }
 });
 
@@ -305,8 +446,6 @@ bot.command('set_playlists', async (ctx) => {
   }
 });
 
-// ========== BROADCAST ANNOUNCEMENTS ==========
-
 bot.command('broadcast', async (ctx) => {
   if (!isAdmin(ctx)) return;
   const msg = ctx.message.text.split(' ').slice(1).join(' ').trim();
@@ -324,8 +463,6 @@ bot.command('broadcast', async (ctx) => {
     ctx.reply(`❌ Error: ${e.message}. Ensure database has 'broadcasts' table setup.`);
   }
 });
-
-// ========== USER CONTROLS ==========
 
 bot.command('verify', async (ctx) => {
   if (!isAdmin(ctx)) return;
@@ -393,33 +530,31 @@ bot.command('unban', async (ctx) => {
   }
 });
 
-// ========== INLINE CALLBACKS AND PENDING REQUESTS ==========
-
-bot.command('pending', async (ctx) => {
+bot.command('retention', async (ctx) => {
   if (!isAdmin(ctx)) return;
   try {
-    const { data, error } = await supabase.from('premium_requests').select('*').eq('status', 'pending').order('created_at', { ascending: false }).limit(10);
-    if (error) throw error;
-    if (!data.length) return ctx.reply('⏳ No pending requests.', MAIN_KEYBOARD);
-
-    for (const r of data) {
-      const inlineKeyboard = Markup.inlineKeyboard([
-        Markup.button.callback('✅ Approve', `approve_${r.id}`),
-        Markup.button.callback('❌ Reject', `reject_${r.id}`)
-      ]);
-      await ctx.reply(
-        `⏳ ${b('Pending Request')}\n\n` +
-        `📧 Email: ${c(r.email)}\n` +
-        `💎 Plan: ${b(r.plan)}\n` +
-        `💰 Amount: ₹${r.amount / 100}\n` +
-        `📅 Date: ${r.created_at?.slice(0, 10)}`,
-        { parse_mode: 'HTML', ...inlineKeyboard }
-      );
-    }
+    const d7 = new Date(Date.now() - 7 * 864e5).toISOString();
+    const d30 = new Date(Date.now() - 30 * 864e5).toISOString();
+    const { data: week } = await supabase.from('listening_history').select('user_id').gte('played_at', d7);
+    const { data: month } = await supabase.from('listening_history').select('user_id').gte('played_at', d30);
+    const active7 = week ? new Set(week.map(r => r.user_id)).size : 0;
+    const active30 = month ? new Set(month.map(r => r.user_id)).size : 0;
+    const { count: total } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+    
+    ctx.reply(
+      `📈 ${b('App Retention Rates')}\n` +
+      hr() +
+      `👥 Total User Base: ${b(total)}\n` +
+      `• Weekly Active (WAU): ${b(active7)} (${((active7/total)*100).toFixed(1)}%)\n` +
+      `• Monthly Active (MAU): ${b(active30)} (${((active30/total)*100).toFixed(1)}%)`,
+      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
+    );
   } catch (e) {
     ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
   }
 });
+
+// ========== INLINE CALLBACKS AND PENDING REQUESTS ==========
 
 bot.action(/approve_(.+)/, async (ctx) => {
   if (!isAdmin(ctx)) return;
@@ -456,129 +591,6 @@ bot.action(/reject_(.+)/, async (ctx) => {
     await ctx.answerCbQuery('❌ Rejected.');
   } catch (e) {
     ctx.answerCbQuery(`❌ Error: ${e.message}`);
-  }
-});
-
-bot.command('stats', async (ctx) => {
-  if (!isAdmin(ctx)) return;
-  try {
-    const { count: users } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-    const { count: free } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'FREE');
-    const { count: paid } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).neq('plan', 'FREE');
-    const { count: playlists } = await supabase.from('playlists').select('*', { count: 'exact', head: true });
-    const { count: favorites } = await supabase.from('favorites').select('*', { count: 'exact', head: true });
-    const { count: plays } = await supabase.from('listening_history').select('*', { count: 'exact', head: true });
-    const { count: todayPlays } = await supabase.from('listening_history').select('*', { count: 'exact', head: true }).gte('played_at', new Date(Date.now() - 864e5).toISOString());
-    ctx.reply(
-      `🍉 ${b('Watermelon App Dashboard')}\n` +
-      hr() +
-      `👥 ${b('User Registry')}\n` +
-      `• Total Accounts: ${b(users)}\n` +
-      `• Free Tier: ${free}\n` +
-      `• Premium Tier: ${paid}\n\n` +
-      `📦 ${b('User Creations')}\n` +
-      `• Total Playlists: ${b(playlists)}\n` +
-      `• Total Liked Tracks: ${b(favorites)}\n\n` +
-      `🎵 ${b('Streaming Stats')}\n` +
-      `• Total Plays Streamed: ${b(plays)}\n` +
-      `• Plays (Last 24h): ${b(todayPlays)}`,
-      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
-    );
-  } catch (e) {
-    ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
-  }
-});
-
-bot.command('daily', async (ctx) => {
-  if (!isAdmin(ctx)) return;
-  try {
-    const yesterday = new Date(Date.now() - 864e5).toISOString();
-    const { count: todayPlays } = await supabase.from('listening_history').select('*', { count: 'exact', head: true }).gte('played_at', yesterday);
-    const { count: todaySignups } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', yesterday);
-    const { data: topSong } = await supabase.from('listening_history').select('title, artist').gte('played_at', yesterday).limit(1).order('played_at', { ascending: false });
-    const top = topSong?.[0] ? `${topSong[0].title} — ${topSong[0].artist || 'Unknown'}` : '📭 No plays yet';
-    ctx.reply(
-      `📅 ${b('Watermelon Daily Digest')} ${i('(24h)')}\n` +
-      hr() +
-      `🎵 Total Plays: ${b(todayPlays)}\n` +
-      `🆕 New Signups: ${b(todaySignups)}\n` +
-      `🔥 Top Song Played: ${i(top)}`,
-      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
-    );
-  } catch (e) {
-    ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
-  }
-});
-
-bot.command('topusers', async (ctx) => {
-  if (!isAdmin(ctx)) return;
-  try {
-    const { data, error } = await supabase.from('listening_history').select('user_id, title').order('played_at', { ascending: false }).limit(500);
-    if (error) throw error;
-    const counts = {};
-    data.forEach(d => { counts[d.user_id] = (counts[d.user_id] || 0) + 1; });
-    const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([uid, c]) => ({ uid, count: c }));
-    if (!top.length) return ctx.reply('📭 No plays yet.', MAIN_KEYBOARD);
-    const ids = top.map(t => t.uid);
-    const { data: users, error: ue } = await supabase.from('profiles').select('id, email, display_name').in('id', ids);
-    if (ue) throw ue;
-    const lines = top.map((t, i) => {
-      const u = users?.find(u => u.id === t.uid);
-      const name = u?.display_name || u?.email || t.uid.slice(0, 8);
-      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🏅';
-      return `${medal} ${b(name)} — ${t.count} plays`;
-    }).join('\n');
-    ctx.reply(
-      `🏆 ${b('Listener Leaderboard')}\n` +
-      hr() +
-      lines,
-      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
-    );
-  } catch (e) {
-    ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
-  }
-});
-
-bot.command('recent', async (ctx) => {
-  if (!isAdmin(ctx)) return;
-  try {
-    const yesterday = new Date(Date.now() - 864e5).toISOString();
-    const { data, error } = await supabase.from('profiles').select('email, display_name, created_at').gte('created_at', yesterday).order('created_at', { ascending: false }).limit(15);
-    if (error) throw error;
-    if (!data.length) return ctx.reply('📭 No new signups today.', MAIN_KEYBOARD);
-    const lines = data.map((u, idx) => `${idx + 1}. 🆕 ${b(u.display_name || u.email)} (${u.created_at?.slice(11, 16)})`).join('\n');
-    ctx.reply(
-      `🆕 ${b('New Signups (Last 24h)')}\n` +
-      hr() +
-      lines,
-      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
-    );
-  } catch (e) {
-    ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
-  }
-});
-
-bot.command('retention', async (ctx) => {
-  if (!isAdmin(ctx)) return;
-  try {
-    const d7 = new Date(Date.now() - 7 * 864e5).toISOString();
-    const d30 = new Date(Date.now() - 30 * 864e5).toISOString();
-    const { data: week } = await supabase.from('listening_history').select('user_id').gte('played_at', d7);
-    const { data: month } = await supabase.from('listening_history').select('user_id').gte('played_at', d30);
-    const active7 = week ? new Set(week.map(r => r.user_id)).size : 0;
-    const active30 = month ? new Set(month.map(r => r.user_id)).size : 0;
-    const { count: total } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-    
-    ctx.reply(
-      `📈 ${b('App Retention Rates')}\n` +
-      hr() +
-      `👥 Total User Base: ${b(total)}\n` +
-      `🕐 Weekly Active (WAU): ${b(active7)} (${((active7/total)*100).toFixed(1)}%)\n` +
-      `🕐 Monthly Active (MAU): ${b(active30)} (${((active30/total)*100).toFixed(1)}%)`,
-      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
-    );
-  } catch (e) {
-    ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
   }
 });
 

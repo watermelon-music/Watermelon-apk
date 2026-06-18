@@ -204,7 +204,8 @@ class MainActivity : ComponentActivity() {
                                         exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
                                     ) {
                                         MiniPlayer(
-                                            onClick = { navController.navigate(Routes.PLAYER) }
+                                            onClick = { navController.navigate(Routes.PLAYER) },
+                                            viewModel = playerViewModel
                                         )
                                     }
                                     BottomNavBar(

@@ -44,6 +44,24 @@ class StreamingRepositoryImpl @Inject constructor(
             listeners.forEach { it.onPositionDiscontinuity() }
         }
 
+        override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
+            val dur = player.duration
+            if (dur > 0) {
+                listeners.forEach { it.onDurationChanged(dur) }
+            }
+        }
+
+        override fun onEvents(player: Player, events: Player.Events) {
+            if (events.contains(Player.EVENT_TIMELINE_CHANGED) ||
+                events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED)
+            ) {
+                val dur = player.duration
+                if (dur > 0) {
+                    listeners.forEach { it.onDurationChanged(dur) }
+                }
+            }
+        }
+
         override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
             val detail = "${error.errorCodeName}: ${error.localizedMessage ?: "Playback error"}"
             listeners.forEach { it.onPlaybackError(detail) }

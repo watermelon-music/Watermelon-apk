@@ -196,6 +196,7 @@ class PlayerViewModel @Inject constructor(
     init {
         streamingRepository.addListener(listener)
         loadPlaylists()
+        updatePosition()
     }
 
     private fun loadPlaylists() {
@@ -397,7 +398,7 @@ class PlayerViewModel @Inject constructor(
 
     fun seekTo(positionMs: Long) {
         streamingRepository.seekTo(positionMs)
-        updatePosition()
+        _uiState.update { it.copy(positionMs = positionMs) }
     }
 
     fun updatePosition() {

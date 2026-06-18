@@ -49,6 +49,14 @@ import android.os.Build
 import android.Manifest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.*
+import androidx.compose.foundation.layout.*
+import android.provider.Settings
+import android.net.Uri
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -103,6 +111,46 @@ class MainActivity : ComponentActivity() {
         setContent {
             val context = LocalContext.current
             val mode = remember { ThemeManager.get(context) }
+
+            // Updater States
+            var updateInfo by remember { mutableStateOf<com.watermelon.app.updater.AppUpdater.UpdateInfo?>(null) }
+            var downloadProgress by remember { mutableStateOf<Int?>(null) }
+            var isDownloading by remember { mutableStateOf(false) }
+            var showPermissionDialog by remember { mutableStateOf(false) }
+            val updaterScope = rememberCoroutineScope()
+            var downloadJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+
+            LaunchedEffect(Unit) {
+                val currentVersion = BuildConfig.VERSION_NAME
+                val info = com.watermelon.app.updater.AppUpdater.checkForUpdate(currentVersion)
+                if (info != null) {
+                    updateInfo = info
+                }
+            }
+
+            fun startDownloadFlow(info: com.watermelon.app.updater.AppUpdater.UpdateInfo) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    if (!context.packageManager.canRequestPackageInstalls()) {
+                        showPermissionDialog = true
+                        return
+                    }
+                }
+                isDownloading = true
+                downloadProgress = 0
+                downloadJob = updaterScope.launch {
+                    val apkFile = com.watermelon.app.updater.AppUpdater.downloadApk(context, info.downloadUrl) { progress ->
+                        downloadProgress = progress
+                    }
+                    isDownloading = false
+                    downloadProgress = null
+                    if (apkFile != null) {
+                        com.watermelon.app.updater.AppUpdater.installApk(context, apkFile)
+                    } else {
+                        android.widget.Toast.makeText(context, "Update download failed", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+
             WatermelonTheme(themeMode = mode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -189,6 +237,110 @@ class MainActivity : ComponentActivity() {
                                 startRazorpayCheckout(orderId, amount, label)
                             }
                         )
+
+                        // Render updater dialogs
+                        updateInfo?.let { info ->
+                            AlertDialog(
+                                onDismissRequest = {
+                                    if (!isDownloading) {
+                                        updateInfo = null
+                                    }
+                                },
+                                title = {
+                                    Text("Update Available 🍉", style = MaterialTheme.typography.titleLarge)
+                                },
+                                text = {
+                                    Column {
+                                        Text("Version ${info.version} is now available. You are currently on version ${BuildConfig.VERSION_NAME}.", style = MaterialTheme.typography.bodyLarge)
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        if (info.changelog.isNotBlank()) {
+                                            Text("What's New:", style = MaterialTheme.typography.titleSmall)
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(120.dp)
+                                                    .background(MaterialTheme.colorScheme.surfaceVariant, shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                                                    .padding(8.dp)
+                                            ) {
+                                                androidx.compose.foundation.lazy.LazyColumn {
+                                                    item {
+                                                        Text(info.changelog, style = MaterialTheme.typography.bodyMedium)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if (isDownloading) {
+                                            Spacer(modifier = Modifier.height(16.dp))
+                                            Text("Downloading: ${downloadProgress ?: 0}%", style = MaterialTheme.typography.bodyMedium)
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            LinearProgressIndicator(
+                                                progress = { (downloadProgress ?: 0) / 100f },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                color = Color(0xDC, 0x26, 0x26)
+                                            )
+                                        }
+                                    }
+                                },
+                                confirmButton = {
+                                    if (isDownloading) {
+                                        Button(
+                                            onClick = {
+                                                downloadJob?.cancel()
+                                                isDownloading = false
+                                                downloadProgress = null
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                                        ) {
+                                            Text("Cancel")
+                                        }
+                                    } else {
+                                        Button(
+                                            onClick = { startDownloadFlow(info) },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xDC, 0x26, 0x26))
+                                        ) {
+                                            Text("Update Now")
+                                        }
+                                    }
+                                },
+                                dismissButton = {
+                                    if (!isDownloading) {
+                                        TextButton(onClick = { updateInfo = null }) {
+                                            Text("Later")
+                                        }
+                                    }
+                                }
+                            )
+                        }
+
+                        if (showPermissionDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showPermissionDialog = false },
+                                title = { Text("Permission Required") },
+                                text = { Text("To install the update directly, please enable the 'Install unknown apps' permission for Watermelon in system settings.") },
+                                confirmButton = {
+                                    Button(
+                                        onClick = {
+                                            showPermissionDialog = false
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                                                    data = Uri.parse("package:${context.packageName}")
+                                                }
+                                                context.startActivity(intent)
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xDC, 0x26, 0x26))
+                                    ) {
+                                        Text("Settings")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showPermissionDialog = false }) {
+                                        Text("Cancel")
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }

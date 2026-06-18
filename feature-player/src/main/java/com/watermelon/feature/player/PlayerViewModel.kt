@@ -259,6 +259,19 @@ class PlayerViewModel @Inject constructor(
                 } else {
                     sourceUrl
                 }
+                Timber.d("Local playback requested. playUrl: $playUrl")
+                try {
+                    val uri = android.net.Uri.parse(playUrl)
+                    val path = uri.path
+                    if (path != null) {
+                        val file = File(path)
+                        Timber.d("Local file check - exists: ${file.exists()}, canRead: ${file.canRead()}, length: ${file.length()} bytes")
+                    } else {
+                        Timber.w("Local file URI path is null")
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "Error checking local file state")
+                }
                 streamingRepository.play(playUrl, title, artist, artwork)
                 _uiState.update {
                     it.copy(
@@ -564,11 +577,18 @@ class PlayerViewModel @Inject constructor(
         val tempFile = File(tempDir, "${song.id}.mp3")
         if (tempFile.exists()) tempFile.delete()
 
-        val request = okhttp3.Request.Builder().url(url).build()
+        val request = okhttp3.Request.Builder()
+            .url(url)
+            .header("User-Agent", "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36")
+            .build()
         okHttpClient.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("Server returned ${response.code}")
+            if (!response.isSuccessful) {
+                Timber.e("Download failed with HTTP ${response.code}: ${response.message}")
+                throw IOException("Server returned ${response.code}")
+            }
             val body = response.body ?: throw IOException("Empty response")
             val totalBytes = body.contentLength()
+            Timber.d("Starting download. Total size: $totalBytes bytes")
 
             body.byteStream().use { input ->
                 FileOutputStream(tempFile).use { output ->

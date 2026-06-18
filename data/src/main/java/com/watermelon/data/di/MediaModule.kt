@@ -36,9 +36,14 @@ object MediaModule {
             .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .build()
 
+        val httpDataSourceFactory = OkHttpDataSource.Factory(playClient)
+            .setUserAgent(USER_AGENT)
+
         val dataSourceFactory: androidx.media3.datasource.DataSource.Factory =
-            OkHttpDataSource.Factory(playClient)
-                .setUserAgent(USER_AGENT)
+            androidx.media3.datasource.DefaultDataSource.Factory(
+                context,
+                httpDataSourceFactory
+            )
 
         val loadErrorPolicy = object : androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy(3) {
             override fun getRetryDelayMsFor(

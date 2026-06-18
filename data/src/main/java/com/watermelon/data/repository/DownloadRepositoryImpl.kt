@@ -121,7 +121,10 @@ class DownloadRepositoryImpl @Inject constructor(
                 }
             }
 
-            val request = Request.Builder().url(url).build()
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36")
+                .build()
             val response = okHttpClient.newCall(request).execute()
 
             if (!response.isSuccessful) {

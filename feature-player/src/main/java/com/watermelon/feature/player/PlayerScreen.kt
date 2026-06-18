@@ -63,12 +63,11 @@ fun PlayerScreen(
     val haptic = LocalHapticFeedback.current
 
     val isPlaying = state.isPlaying
-    var sliderDragValue by rememberSaveable { mutableStateOf(0f) }
-    val sliderInteractionSource = remember { MutableInteractionSource() }
-    val isSliderDragging by sliderInteractionSource.collectIsDraggedAsState()
+    var localProgress by remember { mutableStateOf<Float?>(null) }
+    val isInteracting = localProgress != null
 
-    LaunchedEffect(isPlaying, isSliderDragging) {
-        while (isPlaying && !isSliderDragging) {
+    LaunchedEffect(isPlaying, isInteracting) {
+        while (isPlaying && !isInteracting) {
             delay(1000)
             viewModel.updatePosition()
         }
@@ -314,25 +313,28 @@ fun PlayerScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Seekbar with duration labels — tap or drag to seek
-            val sliderValue = remember(state.positionMs, state.durationMs) {
+            val currentProgress = remember(state.positionMs, state.durationMs) {
                 if (state.durationMs > 0) state.positionMs.toFloat() / state.durationMs.toFloat() else 0f
             }
+            val displayProgress = localProgress ?: currentProgress
 
             Slider(
-                value = if (isSliderDragging) sliderDragValue.coerceIn(0f, 1f) else sliderValue.coerceIn(0f, 1f),
+                value = displayProgress.coerceIn(0f, 1f),
                 onValueChange = {
-                    sliderDragValue = it.coerceIn(0f, 1f)
+                    localProgress = it.coerceIn(0f, 1f)
                 },
                 onValueChangeFinished = {
-                    if (state.durationMs > 0) {
-                        val target = (sliderDragValue * state.durationMs).toLong()
-                        viewModel.seekTo(target)
+                    localProgress?.let { progress ->
+                        if (state.durationMs > 0) {
+                            val target = (progress * state.durationMs).toLong()
+                            viewModel.seekTo(target)
+                        }
                     }
+                    localProgress = null
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp),
-                interactionSource = sliderInteractionSource,
                 colors = SliderDefaults.colors(
                     thumbColor = WatermelonRed,
                     activeTrackColor = WatermelonRed,
@@ -344,7 +346,7 @@ fun PlayerScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    formatDuration(if (isSliderDragging) (sliderDragValue * state.durationMs).toLong() else state.positionMs),
+                    formatDuration(if (localProgress != null) (localProgress!! * state.durationMs).toLong() else state.positionMs),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -237,7 +237,7 @@ fun PlayerScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 24.dp)
-                .verticalScroll(scrollState),
+                .verticalScroll(state = scrollState, enabled = !isInteracting),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(16.dp))

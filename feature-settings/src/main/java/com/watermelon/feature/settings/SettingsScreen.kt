@@ -222,7 +222,12 @@ fun SettingsScreen(
                     val sendIntent = Intent().apply {
                         action = Intent.ACTION_SEND
                         type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, "Check out Watermelon - the best free music app!")
+                        putExtra(
+                            Intent.EXTRA_TEXT,
+                            "Check out Watermelon - the best free music app! 🍉\n\n" +
+                            "Download directly to your phone with one click:\n" +
+                            "https://github.com/SatyamPote/Watermelon-apk/releases/latest/download/app-release-unsigned.apk"
+                        )
                     }
                     context.startActivity(Intent.createChooser(sendIntent, null))
                 }

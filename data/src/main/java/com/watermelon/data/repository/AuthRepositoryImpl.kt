@@ -240,6 +240,25 @@ class AuthRepositoryImpl @Inject constructor(
         )
     }
 
+    override suspend fun fetchLatestActiveBroadcast(): com.watermelon.domain.model.Broadcast? = runCatching {
+        val row = client.postgrest.from("broadcasts")
+            .select {
+                filter { eq("active", true) }
+                order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                limit(1)
+            }
+            .decodeList<BroadcastRow>()
+            .firstOrNull() ?: return null
+
+        com.watermelon.domain.model.Broadcast(
+            id = row.id,
+            message = row.message,
+            sender = row.sender,
+            active = row.active,
+            createdAt = row.created_at
+        )
+    }.onFailure { timber.log.Timber.e(it, "fetchLatestActiveBroadcast failed") }.getOrNull()
+
     companion object {
         private const val PREFS_NAME = "watermelon_auth"
         private const val KEY_LOGGED_IN = "is_logged_in"
@@ -247,3 +266,12 @@ class AuthRepositoryImpl @Inject constructor(
         private const val KEY_PLAN = "auth_plan"
     }
 }
+
+@Serializable
+private data class BroadcastRow(
+    val id: Long,
+    val message: String,
+    val sender: String,
+    val active: Boolean,
+    val created_at: String
+)

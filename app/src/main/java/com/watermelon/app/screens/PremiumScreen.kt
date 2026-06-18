@@ -138,40 +138,13 @@ private fun PremiumPlansContent(
     ) {
         Spacer(modifier = Modifier.height(8.dp))
 
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = null,
-                    tint = Color(0xFFFFD700),
-                    modifier = Modifier.size(40.dp)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Upgrade to Premium",
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = "Experience music like never before with high-quality audio and no interruptions.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-        }
+        Text(
+            text = "Select a plan below to upgrade your account. Payments are securely processed via Razorpay.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -278,18 +251,16 @@ private fun PlanCardGradient(
     onStudentVerify: (String) -> Unit = {}
 ) {
     // Watermelon theme: white/black/red only
-    val isBlackCard = title.contains("Best Value", ignoreCase = true)
-    val isFamilyCard = title.contains("Family", ignoreCase = true)
-    val isStudentCard = isStudent
+    val isBlackCard = when {
+        title.contains("Individual", ignoreCase = true) -> true
+        title.contains("Best Value", ignoreCase = true) -> false
+        title.contains("Family", ignoreCase = true) -> true
+        isStudent -> true
+        else -> true
+    }
 
-    val cardBg = when {
-        isBlackCard -> Color.Black
-        else -> Color.White
-    }
-    val contentColor = when {
-        isBlackCard -> Color.White
-        else -> Color.Black
-    }
+    val cardBg = if (isBlackCard) Color.Black else Color.White
+    val contentColor = if (isBlackCard) Color.White else Color.Black
     val accentColor = WatermelonRed
 
     Card(
@@ -300,11 +271,7 @@ private fun PlanCardGradient(
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(8.dp),
         colors = CardDefaults.cardColors(containerColor = cardBg),
-        border = when {
-            isFamilyCard -> BorderStroke(2.dp, accentColor)
-            isStudentCard -> BorderStroke(1.dp, accentColor.copy(alpha = 0.5f))
-            else -> null
-        }
+        border = BorderStroke(2.dp, accentColor)
     ) {
         Box(
             modifier = Modifier

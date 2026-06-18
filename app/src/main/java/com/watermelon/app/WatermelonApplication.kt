@@ -4,6 +4,9 @@ import android.app.Application
 import coil.decode.SvgDecoder
 import coil.Coil
 import coil.ImageLoader
+import coil.intercept.Interceptor
+import coil.request.ImageResult
+import coil.request.SuccessResult
 import com.google.firebase.FirebaseApp
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.crashlytics.ktx.crashlytics
@@ -38,6 +41,7 @@ class WatermelonApplication : Application() {
                 .crossfade(true)
                 .components {
                     add(SvgDecoder.Factory())
+                    add(YoutubeThumbnailInterceptor())
                 }
                 .memoryCache {
                     coil.memory.MemoryCache.Builder(this@WatermelonApplication)
@@ -106,5 +110,24 @@ class WatermelonApplication : Application() {
                 }
             }.onFailure { Timber.e(it, "RemoteConfig fetch failed") }
         }
+    }
+}
+
+class YoutubeThumbnailInterceptor : Interceptor {
+    override suspend fun intercept(chain: Interceptor.Chain): ImageResult {
+        val request = chain.request
+        val data = request.data
+        if (data is String && data.contains("i.ytimg.com") && data.contains("maxresdefault.jpg")) {
+            val result = chain.proceed(request)
+            if (result !is SuccessResult) {
+                val fallbackUrl = data.replace("maxresdefault.jpg", "hqdefault.jpg")
+                val fallbackRequest = request.newBuilder()
+                    .data(fallbackUrl)
+                    .build()
+                return chain.proceed(fallbackRequest)
+            }
+            return result
+        }
+        return chain.proceed(request)
     }
 }

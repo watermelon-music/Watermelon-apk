@@ -3,6 +3,7 @@ package com.watermelon.feature.playlist
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -57,11 +58,13 @@ fun PlaylistDetailScreen(
     viewModel: PlaylistDetailViewModel = hiltViewModel()
 ) {
     val playlist by viewModel.playlist.collectAsStateWithLifecycle()
+    val currentUserId by viewModel.currentUserId.collectAsStateWithLifecycle()
     LaunchedEffect(playlistId) { viewModel.loadPlaylist(playlistId) }
     val context = LocalContext.current
     var songToDelete by remember { mutableStateOf<PlaylistSong?>(null) }
 
     val songs = playlist?.songs ?: emptyList()
+    val isOwned = playlist?.ownerId == currentUserId
 
     Scaffold(
         topBar = {
@@ -89,9 +92,14 @@ fun PlaylistDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        clipboard.setPrimaryClip(ClipData.newPlainText("Playlist ID", playlistId))
-                        Toast.makeText(context, "Playlist ID copied!", Toast.LENGTH_SHORT).show()
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(
+                                Intent.EXTRA_TEXT,
+                                "Check out this awesome playlist on Watermelon! 🍉\n\nhttps://watermelon-api-oxx2.onrender.com/playlist/$playlistId"
+                            )
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Share Playlist"))
                     }) {
                         Icon(Icons.Filled.Share, contentDescription = "Share")
                     }
@@ -114,6 +122,11 @@ fun PlaylistDetailScreen(
                     playlist = playlist,
                     playlistId = playlistId,
                     songs = songs,
+                    isOwned = isOwned,
+                    onImportClick = {
+                        playlist?.let { viewModel.importPlaylist(it) }
+                        Toast.makeText(context, "Playlist imported to library! 🍉", Toast.LENGTH_SHORT).show()
+                    },
                     onPlayAllClick = onPlayAllClick,
                     onShuffleClick = onShuffleClick
                 )
@@ -185,7 +198,7 @@ fun PlaylistDetailScreen(
                         val allSongs = songs.map { it.toSong() }
                         onSongClick(song.toSong(), allSongs)
                     },
-                    onDelete = { songToDelete = song }
+                    onDelete = if (isOwned) { { songToDelete = song } } else null
                 )
             }
         }
@@ -218,6 +231,8 @@ private fun PlaylistCoverHeader(
     playlist: com.watermelon.domain.model.Playlist?,
     playlistId: String,
     songs: List<PlaylistSong>,
+    isOwned: Boolean,
+    onImportClick: () -> Unit,
     onPlayAllClick: (List<Song>) -> Unit,
     onShuffleClick: (List<Song>) -> Unit
 ) {
@@ -323,6 +338,24 @@ private fun PlaylistCoverHeader(
                 text = "${songs.size} songs",
                 style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.75f))
             )
+            if (!isOwned && playlist != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = onImportClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = WatermelonRed,
+                        contentColor = Color.White
+                    ),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text(
+                        text = "Add to Library",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+            }
         }
 
         // Play + Shuffle buttons (bottom right)
@@ -390,7 +423,7 @@ private fun PlaylistSongItem(
     index: Int,
     song: PlaylistSong,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: (() -> Unit)?
 ) {
     Row(
         modifier = Modifier
@@ -452,13 +485,15 @@ private fun PlaylistSongItem(
         }
 
         // Delete button
-        IconButton(onClick = onDelete) {
-            Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = "Remove",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.size(20.dp)
-            )
+        if (onDelete != null) {
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Remove",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 

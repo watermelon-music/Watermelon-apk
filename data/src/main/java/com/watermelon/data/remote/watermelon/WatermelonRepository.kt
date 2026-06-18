@@ -59,8 +59,7 @@ class WatermelonRepository @Inject constructor(
             albumId = null,
             albumName = null,
             durationMs = parseDuration(duration),
-            coverUrl = thumbnail.takeIf { it.isNotBlank() }
-                ?: "https://i.ytimg.com/vi/$id/hqdefault.jpg",
+            coverUrl = "https://i.ytimg.com/vi/$id/maxresdefault.jpg",
             audioUrl = "https://www.youtube.com/watch?v=$id",
             genre = "",
             releaseDate = ""
@@ -76,8 +75,7 @@ class WatermelonRepository @Inject constructor(
             albumId = null,
             albumName = null,
             durationMs = parseDuration(duration),
-            coverUrl = thumbnail.takeIf { it.isNotBlank() }
-                ?: "https://i.ytimg.com/vi/$id/hqdefault.jpg",
+            coverUrl = "https://i.ytimg.com/vi/$id/maxresdefault.jpg",
             audioUrl = "https://www.youtube.com/watch?v=$id",
             genre = "",
             releaseDate = ""

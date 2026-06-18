@@ -203,6 +203,43 @@ async function handleRecent(ctx) {
   }
 }
 
+async function sendOrEditConfig(ctx, config, edit = false) {
+  const text = `⚙️ ${b('Watermelon App Remote Config')}\n` +
+    hr() +
+    `🛠️ Maintenance Mode: ${config.maintenance_mode ? '🚨 ' + b('ENABLED (BLOCKING)') : '🟢 ' + b('OFF (ACTIVE)')}\n` +
+    `📺 YouTube Stream: ${config.disable_youtube ? '❌ ' + b('DISABLED') : '🟢 ' + b('ENABLED')}\n` +
+    `🎧 Audius Stream: ${config.disable_audius ? '❌ ' + b('DISABLED') : '🟢 ' + b('ENABLED')}\n` +
+    `🎵 Jamendo Stream: ${config.disable_jamendo ? '❌ ' + b('DISABLED') : '🟢 ' + b('ENABLED')}\n` +
+    `📋 Max Free Playlists: ${b(config.free_max_playlists)}\n` +
+    hr() +
+    i('Use buttons below for one-tap changes, or commands like /disableall, /enableall');
+
+  const inlineKeyboard = Markup.inlineKeyboard([
+    [
+      Markup.button.callback('🚨 Disable All', 'cfg_disable_all'),
+      Markup.button.callback('🟢 Enable All', 'cfg_enable_all')
+    ],
+    [
+      Markup.button.callback(config.maintenance_mode ? '🟢 Turn Maint OFF' : '🚨 Turn Maint ON', 'toggle_maint'),
+      Markup.button.callback(config.disable_youtube ? '🟢 Enable YouTube' : '❌ Disable YouTube', 'toggle_yt')
+    ],
+    [
+      Markup.button.callback(config.disable_audius ? '🟢 Enable Audius' : '❌ Disable Audius', 'toggle_aud'),
+      Markup.button.callback(config.disable_jamendo ? '🟢 Enable Jamendo' : '❌ Disable Jamendo', 'toggle_jam')
+    ]
+  ]);
+
+  if (edit) {
+    try {
+      await ctx.editMessageText(text, { parse_mode: 'HTML', ...inlineKeyboard });
+    } catch (e) {
+      // Message might be identical, ignore
+    }
+  } else {
+    await ctx.reply(text, { parse_mode: 'HTML', ...inlineKeyboard });
+  }
+}
+
 async function handleConfig(ctx) {
   if (!isAdmin(ctx)) return;
   try {
@@ -228,18 +265,7 @@ async function handleConfig(ctx) {
       free_max_playlists: 3
     };
 
-    ctx.reply(
-      `⚙️ ${b('Watermelon App Remote Config')}\n` +
-      hr() +
-      `🛠️ Maintenance Mode: ${config.maintenance_mode ? '🚨 ' + b('ENABLED (BLOCKING)') : '🟢 ' + b('OFF (ACTIVE)')}\n` +
-      `📺 YouTube Stream: ${config.disable_youtube ? '❌ ' + b('DISABLED') : '🟢 ' + b('ENABLED')}\n` +
-      `🎧 Audius Stream: ${config.disable_audius ? '❌ ' + b('DISABLED') : '🟢 ' + b('ENABLED')}\n` +
-      `🎵 Jamendo Stream: ${config.disable_jamendo ? '❌ ' + b('DISABLED') : '🟢 ' + b('ENABLED')}\n` +
-      `📋 Max Free Playlists: ${b(config.free_max_playlists)}\n` +
-      hr() +
-      i('Modify these tags using commands (e.g. /maintenance on, /toggle_youtube off)'),
-      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
-    );
+    await sendOrEditConfig(ctx, config, false);
   } catch (e) {
     ctx.reply(
       `⚙️ ${b('Remote Config (Firebase Connected)')}\n` +
@@ -307,6 +333,8 @@ bot.command('commands', (ctx) => {
     '🛠️ ' + b('Remote Config Controls') + '\n' +
     '• /config — Current app remote configuration flags\n' +
     '• /maintenance &lt;on|off&gt; — Toggle global maintenance mode\n' +
+    '• /disableall — One-tap disable all services / Maintenance ON\n' +
+    '• /enableall — One-tap enable all services / Maintenance OFF\n' +
     '• /toggle_youtube &lt;on|off&gt; — Enable/disable YouTube streaming\n' +
     '• /toggle_audius &lt;on|off&gt; — Enable/disable Audius streaming\n' +
     '• /toggle_jamendo &lt;on|off&gt; — Enable/disable Jamendo streaming\n' +
@@ -374,6 +402,48 @@ bot.command('plays', async (ctx) => {
     );
   } catch (e) {
     ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
+  }
+});
+
+bot.command('disableall', async (ctx) => {
+  if (!isAdmin(ctx)) return;
+  try {
+    const { data, error } = await supabase
+      .from('remote_config')
+      .update({
+        maintenance_mode: true,
+        disable_youtube: true,
+        disable_audius: true,
+        disable_jamendo: true
+      })
+      .neq('id', 0)
+      .select()
+      .single();
+    if (error) throw error;
+    ctx.reply(`🚨 ${b('Disable All Executed!')}\n\n• Maintenance: ${b('ON')}\n• YouTube: ${b('DISABLED')}\n• Audius: ${b('DISABLED')}\n• Jamendo: ${b('DISABLED')}`, { parse_mode: 'HTML', ...MAIN_KEYBOARD });
+  } catch (e) {
+    ctx.reply(`❌ Database Error: ${e.message}`);
+  }
+});
+
+bot.command('enableall', async (ctx) => {
+  if (!isAdmin(ctx)) return;
+  try {
+    const { data, error } = await supabase
+      .from('remote_config')
+      .update({
+        maintenance_mode: false,
+        disable_youtube: false,
+        disable_audius: false,
+        disable_jamendo: false
+      })
+      .neq('id', 0)
+      .select()
+      .single();
+    if (error) throw error;
+    ctx.reply(`🟢 ${b('Enable All Executed!')}\n\n• Maintenance: ${b('OFF')}\n• YouTube: ${b('ENABLED')}\n• Audius: ${b('ENABLED')}\n• Jamendo: ${b('ENABLED')}`, { parse_mode: 'HTML', ...MAIN_KEYBOARD });
+  } catch (e) {
+    ctx.reply(`❌ Database Error: ${e.message}`);
   }
 });
 
@@ -591,6 +661,132 @@ bot.action(/reject_(.+)/, async (ctx) => {
     await ctx.answerCbQuery('❌ Rejected.');
   } catch (e) {
     ctx.answerCbQuery(`❌ Error: ${e.message}`);
+  }
+});
+
+// Callback action: Disable All
+bot.action('cfg_disable_all', async (ctx) => {
+  if (!isAdmin(ctx)) return ctx.answerCbQuery('🔒 Unauthorized');
+  try {
+    const { data, error } = await supabase
+      .from('remote_config')
+      .update({
+        maintenance_mode: true,
+        disable_youtube: true,
+        disable_audius: true,
+        disable_jamendo: true
+      })
+      .neq('id', 0)
+      .select()
+      .single();
+    if (error) throw error;
+    await ctx.answerCbQuery('🚨 All services disabled / Maintenance ON!');
+    await sendOrEditConfig(ctx, data, true);
+  } catch (e) {
+    await ctx.answerCbQuery(`❌ Error: ${e.message}`);
+  }
+});
+
+// Callback action: Enable All
+bot.action('cfg_enable_all', async (ctx) => {
+  if (!isAdmin(ctx)) return ctx.answerCbQuery('🔒 Unauthorized');
+  try {
+    const { data, error } = await supabase
+      .from('remote_config')
+      .update({
+        maintenance_mode: false,
+        disable_youtube: false,
+        disable_audius: false,
+        disable_jamendo: false
+      })
+      .neq('id', 0)
+      .select()
+      .single();
+    if (error) throw error;
+    await ctx.answerCbQuery('🟢 All services enabled / Maintenance OFF!');
+    await sendOrEditConfig(ctx, data, true);
+  } catch (e) {
+    await ctx.answerCbQuery(`❌ Error: ${e.message}`);
+  }
+});
+
+// Callback action: Toggle Maintenance
+bot.action('toggle_maint', async (ctx) => {
+  if (!isAdmin(ctx)) return ctx.answerCbQuery('🔒 Unauthorized');
+  try {
+    let { data: current } = await supabase.from('remote_config').select('*').limit(1).single();
+    const target = !current.maintenance_mode;
+    const { data, error } = await supabase
+      .from('remote_config')
+      .update({ maintenance_mode: target })
+      .neq('id', 0)
+      .select()
+      .single();
+    if (error) throw error;
+    await ctx.answerCbQuery(`Maintenance Mode: ${target ? 'ON' : 'OFF'}`);
+    await sendOrEditConfig(ctx, data, true);
+  } catch (e) {
+    await ctx.answerCbQuery(`❌ Error: ${e.message}`);
+  }
+});
+
+// Callback action: Toggle YouTube
+bot.action('toggle_yt', async (ctx) => {
+  if (!isAdmin(ctx)) return ctx.answerCbQuery('🔒 Unauthorized');
+  try {
+    let { data: current } = await supabase.from('remote_config').select('*').limit(1).single();
+    const target = !current.disable_youtube;
+    const { data, error } = await supabase
+      .from('remote_config')
+      .update({ disable_youtube: target })
+      .neq('id', 0)
+      .select()
+      .single();
+    if (error) throw error;
+    await ctx.answerCbQuery(`YouTube: ${target ? 'DISABLED' : 'ENABLED'}`);
+    await sendOrEditConfig(ctx, data, true);
+  } catch (e) {
+    await ctx.answerCbQuery(`❌ Error: ${e.message}`);
+  }
+});
+
+// Callback action: Toggle Audius
+bot.action('toggle_aud', async (ctx) => {
+  if (!isAdmin(ctx)) return ctx.answerCbQuery('🔒 Unauthorized');
+  try {
+    let { data: current } = await supabase.from('remote_config').select('*').limit(1).single();
+    const target = !current.disable_audius;
+    const { data, error } = await supabase
+      .from('remote_config')
+      .update({ disable_audius: target })
+      .neq('id', 0)
+      .select()
+      .single();
+    if (error) throw error;
+    await ctx.answerCbQuery(`Audius: ${target ? 'DISABLED' : 'ENABLED'}`);
+    await sendOrEditConfig(ctx, data, true);
+  } catch (e) {
+    await ctx.answerCbQuery(`❌ Error: ${e.message}`);
+  }
+});
+
+// Callback action: Toggle Jamendo
+bot.action('toggle_jam', async (ctx) => {
+  if (!isAdmin(ctx)) return ctx.answerCbQuery('🔒 Unauthorized');
+  try {
+    let { data: current } = await supabase.from('remote_config').select('*').limit(1).single();
+    const target = !current.disable_jamendo;
+    const { data, error } = await supabase
+      .from('remote_config')
+      .update({ disable_jamendo: target })
+      .neq('id', 0)
+      .select()
+      .single();
+    if (error) throw error;
+    await ctx.answerCbQuery(`Jamendo: ${target ? 'DISABLED' : 'ENABLED'}`);
+    await sendOrEditConfig(ctx, data, true);
+  } catch (e) {
+    await ctx.answerCbQuery(`❌ Error: ${e.message}`);
   }
 });
 

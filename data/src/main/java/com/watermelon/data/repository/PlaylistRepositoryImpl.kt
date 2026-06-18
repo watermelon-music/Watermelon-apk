@@ -189,6 +189,24 @@ class PlaylistRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getPlaylistById(playlistId: String): Result<Playlist> = withContext(Dispatchers.IO) {
+        runCatching {
+            _playlists.value.firstOrNull { it.id == playlistId }?.let { return@runCatching it }
+
+            val playlistRow = client.postgrest.from("playlists")
+                .select { filter { eq("id", playlistId) } }
+                .decodeList<PlaylistRow>()
+                .firstOrNull() ?: throw IllegalStateException("Playlist not found")
+            val songRows = client.postgrest.from("playlist_songs")
+                .select {
+                    filter { eq("playlist_id", playlistId) }
+                    order("position", Order.ASCENDING)
+                }
+                .decodeList<PlaylistSongRow>()
+            playlistRow.toDomain(songRows)
+        }.onFailure { Timber.e(it, "getPlaylistById failed for playlistId=$playlistId") }
+    }
+
     private fun generateShareCode(): String {
         val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
         return (1..8).map { chars.random() }.joinToString("")

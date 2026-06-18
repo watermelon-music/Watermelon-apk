@@ -120,77 +120,6 @@ fun AboutScreenContent(paddingValues: PaddingValues) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ── Developer card ───────────────────────────────────────
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(2.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Avatar
-                SubcomposeAsyncImage(
-                    model = "https://avatars.githubusercontent.com/u/139366115?v=4",
-                    contentDescription = "Satyam Pote",
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .border(2.dp, WatermelonRed, CircleShape),
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    loading = {
-                        CircularProgressIndicator(color = WatermelonRed, modifier = Modifier.padding(16.dp))
-                    },
-                    error = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.linearGradient(
-                                        listOf(Color(0xFF1A0000), WatermelonRed)
-                                    )
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "SP",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                            )
-                        }
-                    }
-                )
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Satyam Pote",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "Developer & Designer",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = WatermelonRed
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Building Watermelon — a music app made with ❤",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
 
         // ── Links ────────────────────────────────────────────────
         Text(
@@ -254,7 +183,7 @@ fun AboutScreenContent(paddingValues: PaddingValues) {
 
         // ── Footer ───────────────────────────────────────────────
         Text(
-            text = "Made with ❤️ in India\n© 2026 Satyam Pote. All rights reserved.",
+            text = "Made with ❤️ in India\n© 2026 Watermelon. All rights reserved.",
             style = MaterialTheme.typography.bodySmall.copy(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center

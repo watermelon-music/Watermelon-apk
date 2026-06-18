@@ -219,8 +219,7 @@ class MusicCatalogRepositoryImpl @Inject constructor(
     private fun StreamInfoItem.toSong(): Song {
         val fullUrl = if (url.startsWith("http")) url else "https://www.youtube.com$url"
         val videoId = extractVideoId(fullUrl)
-        val thumbUrl = thumbnails.orEmpty().maxByOrNull { it.height }?.url?.takeIf { it.isNotBlank() }
-            ?: "https://i.ytimg.com/vi/$videoId/hqdefault.jpg"
+        val thumbUrl = "https://i.ytimg.com/vi/$videoId/maxresdefault.jpg"
         return Song(
             id = videoId,
             title = name,

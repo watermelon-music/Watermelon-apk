@@ -48,6 +48,16 @@ import timber.log.Timber
 import android.os.Build
 import android.Manifest
 import androidx.activity.result.contract.ActivityResultContracts
+import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.lifecycle.lifecycleScope
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.media.RingtoneManager
+import android.media.AudioAttributes
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.Color
@@ -58,8 +68,13 @@ import android.provider.Settings
 import android.net.Uri
 import kotlinx.coroutines.launch
 
+import com.watermelon.app.notifications.NotificationReceiver
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject
+    lateinit var authRepository: com.watermelon.domain.repository.AuthRepository
+
     private val premiumViewModel: PremiumViewModel by viewModels()
     private var pendingDeepLink by mutableStateOf<android.net.Uri?>(null)
 
@@ -102,6 +117,22 @@ class MainActivity : ComponentActivity() {
         }
 
         requestStoragePermission()
+        checkBroadcasts()
+
+        // Schedule first alarm if not already scheduled
+        val alarmIntent = Intent(this, NotificationReceiver::class.java).apply {
+            action = NotificationReceiver.ACTION_TRIGGER_ENGAGEMENT
+        }
+        val alreadyScheduled = PendingIntent.getBroadcast(
+            this,
+            100,
+            alarmIntent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        ) != null
+        if (!alreadyScheduled) {
+            NotificationReceiver.scheduleNextAlarm(this)
+            Timber.d("No engagement alarm found; scheduled initial alarm")
+        }
 
         val prefs = getSharedPreferences("watermelon_prefs", MODE_PRIVATE)
         val hasSeenOnboarding = prefs.getBoolean("has_seen_onboarding", false)
@@ -125,6 +156,12 @@ class MainActivity : ComponentActivity() {
                 val info = com.watermelon.app.updater.AppUpdater.checkForUpdate(currentVersion)
                 if (info != null) {
                     updateInfo = info
+                    val prefs = context.getSharedPreferences("watermelon_prefs", MODE_PRIVATE)
+                    val lastNotifiedVersion = prefs.getString("last_notified_version", "")
+                    if (lastNotifiedVersion != info.version) {
+                        showUpdateNotification(context, info.version, info.changelog)
+                        prefs.edit().putString("last_notified_version", info.version).apply()
+                    }
                 }
             }
 
@@ -381,7 +418,118 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         pendingDeepLink = intent?.data
     }
+
+    private fun checkBroadcasts() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            runCatching {
+                val latest = authRepository.fetchLatestActiveBroadcast()
+                if (latest != null) {
+                    val prefs = getSharedPreferences("watermelon_prefs", MODE_PRIVATE)
+                    val lastBroadcastId = prefs.getLong("last_broadcast_id", -1)
+                    if (latest.id > lastBroadcastId) {
+                        withContext(Dispatchers.Main) {
+                            showBroadcastNotification(applicationContext, latest.message)
+                        }
+                        prefs.edit().putLong("last_broadcast_id", latest.id).apply()
+                    }
+                }
+            }.onFailure { Timber.e(it, "Failed to check broadcasts") }
+        }
+    }
+
+    private fun showBroadcastNotification(context: Context, message: String) {
+        val channelId = "watermelon_broadcasts_v2"
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val soundUri = Uri.parse("android.resource://${context.packageName}/${R.raw.watermelon_tone}")
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "App Announcements"
+            val descriptionText = "Important alerts from the developer"
+            val importance = NotificationManager.IMPORTANCE_HIGH
+            val channel = NotificationChannel(channelId, name, importance).apply {
+                description = descriptionText
+                enableLights(true)
+                enableVibration(true)
+                val audioAttributes = AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .build()
+                setSound(soundUri, audioAttributes)
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, 
+            1, 
+            intent, 
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = androidx.core.app.NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Announcement 🍉")
+            .setContentText(message)
+            .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(message))
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+            .setSound(soundUri)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+
+        notificationManager.notify(998, builder.build())
+    }
+
+    private fun showUpdateNotification(context: Context, version: String, changelog: String) {
+        val channelId = "watermelon_updates_v2"
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val soundUri = Uri.parse("android.resource://${context.packageName}/${R.raw.watermelon_tone}")
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "App Updates"
+            val descriptionText = "Notifications for new Watermelon app releases"
+            val importance = NotificationManager.IMPORTANCE_HIGH
+            val channel = NotificationChannel(channelId, name, importance).apply {
+                description = descriptionText
+                enableLights(true)
+                enableVibration(true)
+                val audioAttributes = AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .build()
+                setSound(soundUri, audioAttributes)
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, 
+            0, 
+            intent, 
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = androidx.core.app.NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(android.R.drawable.stat_sys_download)
+            .setContentTitle("New Version Available! 🍉")
+            .setContentText("Version $version is available. Check out the new updates!")
+            .setStyle(androidx.core.app.NotificationCompat.BigTextStyle()
+                .bigText("Version $version is now available.\n\nUpdates:\n$changelog"))
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+            .setSound(soundUri)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+
+        notificationManager.notify(999, builder.build())
+    }
 }
+
+
 
 private fun handleDeepLink(
     navController: androidx.navigation.NavHostController,
@@ -392,7 +540,7 @@ private fun handleDeepLink(
             val id = uri.lastPathSegment ?: return
             navController.navigate("playlist_detail/$id")
         }
-        uri.scheme == "https" && uri.host == "watermelon.app" && uri.path?.startsWith("/playlist/") == true -> {
+        (uri.scheme == "https" && (uri.host == "watermelon.app" || uri.host == "watermelon-api-oxx2.onrender.com") && uri.path?.startsWith("/playlist/") == true) -> {
             val id = uri.pathSegments.getOrNull(1) ?: return
             navController.navigate("playlist_detail/$id")
         }

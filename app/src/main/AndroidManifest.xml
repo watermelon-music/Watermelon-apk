@@ -12,6 +12,7 @@
         android:maxSdkVersion="28" />
 
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".WatermelonApplication"
@@ -49,6 +50,12 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="watermelon.app" android:pathPrefix="/playlist/" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="watermelon-api-oxx2.onrender.com" android:pathPrefix="/playlist/" />
+            </intent-filter>
         </activity>
 
         <service
@@ -70,6 +77,17 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <receiver
+            android:name=".notifications.NotificationReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.watermelon.app.TRIGGER_ENGAGEMENT" />
+                <action android:name="com.watermelon.app.TRIGGER_ENGAGEMENT_NOTIFICATION" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

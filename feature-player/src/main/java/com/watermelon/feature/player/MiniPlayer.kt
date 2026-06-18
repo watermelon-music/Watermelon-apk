@@ -29,10 +29,9 @@ fun MiniPlayer(
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val isPlaying = state.isPlaying
 
-    LaunchedEffect(isPlaying) {
-        while (isPlaying) {
+    LaunchedEffect(state.isPlaying) {
+        while (state.isPlaying) {
             delay(500)
             viewModel.updatePosition()
         }
@@ -40,6 +39,25 @@ fun MiniPlayer(
 
     if (state.currentTitle.isBlank() && state.currentArtist.isBlank()) return
 
+    MiniPlayerContent(
+        modifier = modifier,
+        state = state,
+        onClick = onClick,
+        onPrevious = viewModel::playPrevious,
+        onTogglePlayPause = viewModel::togglePlayPause,
+        onNext = viewModel::playNext
+    )
+}
+
+@Composable
+fun MiniPlayerContent(
+    modifier: Modifier = Modifier,
+    state: PlayerUiState,
+    onClick: () -> Unit,
+    onPrevious: () -> Unit,
+    onTogglePlayPause: () -> Unit,
+    onNext: () -> Unit
+) {
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -106,7 +124,7 @@ fun MiniPlayer(
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 IconButton(
-                    onClick = { viewModel.playPrevious() },
+                    onClick = onPrevious,
                     enabled = state.hasPrevious,
                     modifier = Modifier.size(32.dp)
                 ) {
@@ -118,7 +136,7 @@ fun MiniPlayer(
                     )
                 }
                 IconButton(
-                    onClick = { viewModel.togglePlayPause() },
+                    onClick = onTogglePlayPause,
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
@@ -129,7 +147,7 @@ fun MiniPlayer(
                     )
                 }
                 IconButton(
-                    onClick = { viewModel.playNext() },
+                    onClick = onNext,
                     enabled = state.hasNext,
                     modifier = Modifier.size(32.dp)
                 ) {

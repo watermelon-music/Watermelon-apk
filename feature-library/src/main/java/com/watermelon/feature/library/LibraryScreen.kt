@@ -110,91 +110,262 @@ fun LibraryScreen(
             }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            TabRow(selectedTabIndex = selectedTab) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        icon = {
-                            Icon(
-                                imageVector = tabIcons[index],
-                                contentDescription = title,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    )
+        LibraryScreenContent(
+            paddingValues = padding,
+            selectedTab = selectedTab,
+            isLoading = isLoading,
+            playlists = playlists,
+            favorites = favorites,
+            recentlyPlayed = recentlyPlayed,
+            onPlaylistClick = onPlaylistClick,
+            onSongClick = onSongClick,
+            onPlayPlaylist = { playlist -> 
+                // Just map it and trigger the click on the first song to queue the whole playlist
+                val songs = playlist.songs.map { 
+                    Song(
+                        id = it.songId,
+                        title = it.title,
+                        artistId = "",
+                        artistName = it.artist,
+                        albumId = null,
+                        albumName = null,
+                        durationMs = 0L,
+                        coverUrl = it.coverUrl,
+                        audioUrl = it.audioUrl,
+                        genre = "",
+                        releaseDate = ""
+                    ) 
+                }
+                if (songs.isNotEmpty()) {
+                    onSongClick(songs.first(), songs)
+                }
+            },
+            onShufflePlaylist = { onPlaylistClick(it) },
+            onSharePlaylist = { playlist ->
+                viewModel.sharePlaylist(playlist.id) { code ->
+                    shareMessage = "Share code: $code"
+                    val shareText = playlist.id
+                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, shareText)
+                    }
+                    val shareIntent = Intent.createChooser(sendIntent, "Share Playlist")
+                    context.startActivity(shareIntent)
+                }
+            },
+            onEditPlaylist = { showEditDialog = it },
+            onShowQr = { showQrDialog = it },
+            onDeletePlaylist = { showDeleteDialog = it },
+            onTabSelected = { selectedTab = it },
+            tabs = tabs,
+            tabIcons = tabIcons
+        )
+    }
+
+    if (showDeleteDialog != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("Delete Playlist") },
+            text = { Text("Delete \"${showDeleteDialog?.name}\"? This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteDialog?.let { viewModel.deletePlaylist(it.id) }
+                    showDeleteDialog = null
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = null }) {
+                    Text("Cancel")
                 }
             }
+        )
+    }
 
-            val context = LocalContext.current
-            when (selectedTab) {
-                0 -> if (isLoading && playlists.isEmpty()) {
-                    Column(
-                        modifier = Modifier.fillMaxSize().padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        repeat(5) { ShimmerCard(height = 72.dp) }
-                    }
-                } else PlaylistList(
-                    playlists = playlists,
-                    onPlaylistClick = onPlaylistClick,
-                    onPlayPlaylist = { playlist -> 
-                        // Just map it and trigger the click on the first song to queue the whole playlist
-                        val songs = playlist.songs.map { 
-                            Song(
-                                id = it.songId,
-                                title = it.title,
-                                artistId = "",
-                                artistName = it.artist,
-                                albumId = null,
-                                albumName = null,
-                                durationMs = 0L,
-                                coverUrl = it.coverUrl,
-                                audioUrl = it.audioUrl,
-                                genre = "",
-                                releaseDate = ""
-                            ) 
-                        }
-                        if (songs.isNotEmpty()) {
-                            onSongClick(songs.first(), songs)
-                        }
-                    },
-                    onShufflePlaylist = { onPlaylistClick(it) },
-                    onSharePlaylist = { playlist ->
-                        viewModel.sharePlaylist(playlist.id) { code ->
-                            shareMessage = "Share code: $code"
-                            val shareText = playlist.id
-                            val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, shareText)
-                            }
-                            val shareIntent = Intent.createChooser(sendIntent, "Share Playlist")
-                            context.startActivity(shareIntent)
-                        }
-                    },
-                    onEditPlaylist = { showEditDialog = it },
-                    onShowQr = { showQrDialog = it },
-                    onDeletePlaylist = { showDeleteDialog = it },
-                    modifier = Modifier.fillMaxSize()
-                )
-                1 -> SongList(
-                    songs = favorites,
-                    onSongClick = { onSongClick(it, favorites) },
-                    emptyText = "No favorites yet",
-                    modifier = Modifier.fillMaxSize()
-                )
-                2 -> FeedContent(
-                    recentlyPlayed = recentlyPlayed,
-                    onSongClick = { onSongClick(it, recentlyPlayed) },
-                    modifier = Modifier.fillMaxSize()
-                )
-                3 -> DownloadsPlaceholder(onSongClick = { song, downloadsList -> onSongClick(song, downloadsList) })
+    if (showPaywall) {
+        AlertDialog(
+            onDismissRequest = { showPaywall = false },
+            title = { Text("Playlist Limit Reached") },
+            text = {
+                Text("Free users can create up to 2 playlists. Upgrade to Premium to create up to 5 playlists.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPaywall = false
+                    onNavigateToPremium()
+                }) {
+                    Text("Go Premium")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPaywall = false }) {
+                    Text("Maybe Later")
+                }
             }
+        )
+    }
+
+    if (showEditDialog != null) {
+        var editName by rememberSaveable { mutableStateOf(showEditDialog?.name ?: "") }
+        var editDesc by rememberSaveable { mutableStateOf(showEditDialog?.description ?: "") }
+        AlertDialog(
+            onDismissRequest = { showEditDialog = null },
+            title = { Text("Edit Playlist") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = editName, onValueChange = { editName = it }, label = { Text("Name") })
+                    OutlinedTextField(value = editDesc, onValueChange = { editDesc = it }, label = { Text("Description") })
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showEditDialog?.let { viewModel.editPlaylist(it.id, editName, editDesc.takeIf { it.isNotBlank() }) }
+                    showEditDialog = null
+                }) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    val context = LocalContext.current
+
+    shareMessage?.let { msg ->
+        LaunchedEffect(msg) {
+            kotlinx.coroutines.delay(3000)
+            shareMessage = null
+        }
+        Snackbar(
+            modifier = Modifier.padding(16.dp),
+            action = {
+                TextButton(onClick = { shareMessage = null }) {
+                    Text("Dismiss")
+                }
+            }
+        ) { Text(msg) }
+    }
+
+    showQrDialog?.let { playlist ->
+        val deepLink = "https://watermelon.app/playlist/${playlist.id}"
+        AlertDialog(
+            onDismissRequest = { showQrDialog = null },
+            title = { Text("${playlist.name} — QR Code") },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val bitmap = remember(deepLink) { generateQrBitmap(deepLink, 512) }
+                    bitmap?.let {
+                        androidx.compose.foundation.Image(
+                            bitmap = it.asImageBitmap(),
+                            contentDescription = "QR Code",
+                            modifier = Modifier.size(200.dp)
+                        )
+                    } ?: Text("Failed to generate QR")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(deepLink, style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "image/png"
+                        val path = android.provider.MediaStore.Images.Media.insertImage(
+                            context.contentResolver, generateQrBitmap(deepLink, 512), "qr_${playlist.id}", null
+                        )
+                        putExtra(Intent.EXTRA_STREAM, android.net.Uri.parse(path))
+                        putExtra(Intent.EXTRA_TEXT, "Scan this QR to open ${playlist.name} on Watermelon\n$deepLink")
+                    }
+                    context.startActivity(Intent.createChooser(sendIntent, "Share QR"))
+                }) {
+                    Text("Share")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showQrDialog = null }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun LibraryScreenContent(
+    paddingValues: PaddingValues,
+    selectedTab: Int,
+    isLoading: Boolean,
+    playlists: List<Playlist>,
+    favorites: List<Song>,
+    recentlyPlayed: List<Song>,
+    onPlaylistClick: (Playlist) -> Unit,
+    onSongClick: (Song, List<Song>) -> Unit,
+    onPlayPlaylist: (Playlist) -> Unit,
+    onShufflePlaylist: (Playlist) -> Unit,
+    onSharePlaylist: (Playlist) -> Unit,
+    onEditPlaylist: (Playlist) -> Unit,
+    onShowQr: (Playlist) -> Unit,
+    onDeletePlaylist: (Playlist) -> Unit,
+    onTabSelected: (Int) -> Unit,
+    tabs: List<String>,
+    tabIcons: List<androidx.compose.ui.graphics.vector.ImageVector>
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+    ) {
+        TabRow(selectedTabIndex = selectedTab) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTab == index,
+                    onClick = { onTabSelected(index) },
+                    icon = {
+                        Icon(
+                            imageVector = tabIcons[index],
+                            contentDescription = title,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                )
+            }
+        }
+
+        when (selectedTab) {
+            0 -> if (isLoading && playlists.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    repeat(5) { ShimmerCard(height = 72.dp) }
+                }
+            } else PlaylistList(
+                playlists = playlists,
+                onPlaylistClick = onPlaylistClick,
+                onPlayPlaylist = onPlayPlaylist,
+                onShufflePlaylist = onShufflePlaylist,
+                onSharePlaylist = onSharePlaylist,
+                onEditPlaylist = onEditPlaylist,
+                onShowQr = onShowQr,
+                onDeletePlaylist = onDeletePlaylist,
+                modifier = Modifier.fillMaxSize()
+            )
+            1 -> SongList(
+                songs = favorites,
+                onSongClick = { onSongClick(it, favorites) },
+                emptyText = "No favorites yet",
+                modifier = Modifier.fillMaxSize()
+            )
+            2 -> FeedContent(
+                recentlyPlayed = recentlyPlayed,
+                onSongClick = { onSongClick(it, recentlyPlayed) },
+                modifier = Modifier.fillMaxSize()
+            )
+            3 -> DownloadsPlaceholder(onSongClick = { song, downloadsList -> onSongClick(song, downloadsList) })
         }
     }
 

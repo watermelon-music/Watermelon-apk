@@ -38,9 +38,6 @@ private fun openUrl(context: android.content.Context, url: String) {
 fun AboutScreen(
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
-    val scrollState = rememberScrollState()
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -56,139 +53,149 @@ fun AboutScreen(
             )
         }
     ) { padding ->
-        Column(
+        AboutScreenContent(paddingValues = padding)
+    }
+}
+
+@Composable
+fun AboutScreenContent(
+    paddingValues: PaddingValues
+) {
+    val context = LocalContext.current
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .verticalScroll(scrollState)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // App logo
+        Image(
+            painter = painterResource(id = R.drawable.app_logo),
+            contentDescription = "Watermelon",
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(scrollState)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // App logo
-            Image(
-                painter = painterResource(id = R.drawable.app_logo),
-                contentDescription = "Watermelon",
-                modifier = Modifier
-                    .size(120.dp)
-                    .padding(16.dp)
-            )
+                .size(120.dp)
+                .padding(16.dp)
+        )
 
-            Text(
-                text = "Watermelon",
-                style = MaterialTheme.typography.headlineMedium
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Version ${BuildConfig.VERSION_NAME}  Build ${BuildConfig.VERSION_CODE}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = "Made with passion for music lovers everywhere.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
-            )
+        Text(
+            text = "Watermelon",
+            style = MaterialTheme.typography.headlineMedium
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Version ${BuildConfig.VERSION_NAME}  Build ${BuildConfig.VERSION_CODE}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = "Made with passion for music lovers everywhere.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
 
-            Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Your personal music universe. Stream millions of songs, discover new artists, build playlists, and enjoy curated radio stations from around the world.",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Text(
+            text = "Your personal music universe. Stream millions of songs, discover new artists, build playlists, and enjoy curated radio stations from around the world.",
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
 
-            Spacer(modifier = Modifier.height(24.dp))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+        Spacer(modifier = Modifier.height(24.dp))
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Developed by Satyam Pote",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedButton(
+                    onClick = { openUrl(context, "https://github.com/SatyamPote") },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "Developed by Satyam Pote",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Icon(Icons.Filled.Code, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("GitHub")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
 
-                    OutlinedButton(
-                        onClick = { openUrl(context, "https://github.com/SatyamPote") },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Filled.Code, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("GitHub")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { openUrl(context, "https://www.linkedin.com/in/satyam-pote") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Filled.Person, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("LinkedIn")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
 
-                    OutlinedButton(
-                        onClick = { openUrl(context, "https://www.linkedin.com/in/satyam-pote") },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Filled.Person, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("LinkedIn")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedButton(
-                        onClick = {
-                            val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
-                                data = android.net.Uri.parse("mailto:satyampote9999@gmail.com")
-                            }
-                            context.startActivity(intent)
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Filled.MailOutline, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Email: satyampote9999@gmail.com")
-                    }
+                OutlinedButton(
+                    onClick = {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
+                            data = android.net.Uri.parse("mailto:satyampote9999@gmail.com")
+                        }
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Filled.MailOutline, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Email: satyampote9999@gmail.com")
                 }
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Action buttons
-            OutlinedButton(
-                onClick = { /* TODO: open privacy policy URL */ },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Filled.Policy, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Privacy Policy")
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedButton(
-                onClick = { /* TODO: open terms URL */ },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Filled.Info, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Terms of Service")
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedButton(
-                onClick = { /* TODO: open support email */ },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Filled.MailOutline, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Contact Support")
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Text(
-                text = "2026 Watermelon Music. All rights reserved.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-            )
         }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Action buttons
+        OutlinedButton(
+            onClick = { /* TODO: open privacy policy URL */ },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Filled.Policy, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Privacy Policy")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = { /* TODO: open terms URL */ },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Filled.Info, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Terms of Service")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = { /* TODO: open support email */ },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Filled.MailOutline, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Contact Support")
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "2026 Watermelon Music. All rights reserved.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        )
     }
 }

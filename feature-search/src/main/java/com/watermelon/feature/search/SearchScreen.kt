@@ -71,104 +71,15 @@ fun SearchScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = WatermelonSpacing.md)
-        ) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = viewModel::onQueryChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search songs, artists...") },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = null,
-                        tint = WatermelonRed
-                    )
-                },
-                shape = RoundedCornerShape(20.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = WatermelonRed,
-                    focusedLabelColor = WatermelonRed,
-                    focusedLeadingIconColor = WatermelonRed,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
-                    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            )
-
-            Spacer(modifier = Modifier.height(WatermelonSpacing.lg))
-
-            if (isLoading) {
-                Column(verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)) {
-                    repeat(6) {
-                        ShimmerCard(height = 72.dp)
-                    }
-                }
-            } else if (query.isBlank()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(WatermelonSpacing.md))
-                        Text(
-                            text = "Type to search",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            } else if (results.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(WatermelonSpacing.md))
-                        Text(
-                            text = "No results found",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(WatermelonSpacing.sm))
-                        Text(
-                            text = "Try a different search term",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
-                ) {
-                    items(results, key = { it.id }) { song ->
-                        val index = results.indexOf(song)
-                        SearchResultItem(
-                            song = song,
-                            onClick = { onSongClick(song, index, results) },
-                            onAddToPlaylist = { viewModel.onAddToPlaylistClick(song) }
-                        )
-                    }
-                }
-            }
-        }
+        SearchScreenContent(
+            query = query,
+            results = results,
+            isLoading = isLoading,
+            padding = padding,
+            onQueryChange = viewModel::onQueryChange,
+            onSongClick = onSongClick,
+            onAddToPlaylist = viewModel::onAddToPlaylistClick
+        )
     }
 
     if (showSheet) {
@@ -224,6 +135,116 @@ fun SearchScreen(
                                 }
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SearchScreenContent(
+    query: String,
+    results: List<Song>,
+    isLoading: Boolean,
+    padding: PaddingValues,
+    onQueryChange: (String) -> Unit,
+    onSongClick: (Song, Int, List<Song>) -> Unit,
+    onAddToPlaylist: (Song) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .padding(horizontal = WatermelonSpacing.md)
+    ) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Search songs, artists...") },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = null,
+                    tint = WatermelonRed
+                )
+            },
+            shape = RoundedCornerShape(20.dp),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = WatermelonRed,
+                focusedLabelColor = WatermelonRed,
+                focusedLeadingIconColor = WatermelonRed,
+                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        )
+
+        Spacer(modifier = Modifier.height(WatermelonSpacing.lg))
+
+        if (isLoading) {
+            Column(verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)) {
+                repeat(6) {
+                    ShimmerCard(height = 72.dp)
+                }
+            }
+        } else if (query.isBlank()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(WatermelonSpacing.md))
+                    Text(
+                        text = "Type to search",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else if (results.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(WatermelonSpacing.md))
+                    Text(
+                        text = "No results found",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(WatermelonSpacing.sm))
+                    Text(
+                        text = "Try a different search term",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+            ) {
+                items(results, key = { it.id }) { song ->
+                    val index = results.indexOf(song)
+                    SearchResultItem(
+                        song = song,
+                        onClick = { onSongClick(song, index, results) },
+                        onAddToPlaylist = { onAddToPlaylist(song) }
+                    )
                 }
             }
         }

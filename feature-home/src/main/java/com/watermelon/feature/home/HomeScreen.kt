@@ -15,12 +15,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,7 +34,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.watermelon.core.designsystem.animation.ShimmerCard
 import com.watermelon.core.designsystem.theme.WatermelonRed
-import com.watermelon.feature.player.MiniPlayer
 import com.watermelon.feature.player.PlayerViewModel
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.Song
@@ -53,9 +50,9 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val showSheet by viewModel.showAddToPlaylistSheet.collectAsStateWithLifecycle()
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
-    val toastMessage by viewModel.addToPlaylistMessage.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val snackbarHostState = remember { SnackbarHostState() }
+    val toastMessage by viewModel.addToPlaylistMessage.collectAsStateWithLifecycle()
 
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
@@ -66,7 +63,6 @@ fun HomeScreen(
 
     HomeScreenContent(
         uiState = uiState,
-        playerViewModel = playerViewModel,
         onSearchClick = onSearchClick,
         onSettingsClick = onSettingsClick,
         onSongClick = onSongClick,
@@ -136,9 +132,8 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeScreenContent(
+fun HomeScreenContent(
     uiState: HomeUiState,
-    playerViewModel: PlayerViewModel,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onSongClick: (Song, List<Song>) -> Unit,
@@ -323,7 +318,7 @@ private fun HomeShimmerContent(paddingValues: PaddingValues) {
         repeat(4) {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)) {
                 items(4) {
-                        ShimmerCard(modifier = Modifier.width(170.dp), height = 200.dp)
+                    ShimmerCard(modifier = Modifier.width(170.dp), height = 200.dp)
                 }
             }
         }

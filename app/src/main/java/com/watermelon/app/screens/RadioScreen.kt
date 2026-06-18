@@ -76,101 +76,122 @@ fun RadioScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+        RadioScreenContent(
+            uiState = uiState,
+            padding = padding,
+            onPlayStation = { station ->
+                viewModel.recordRecentlyPlayed(station)
+                onPlayStation(station)
+            },
+            onToggleFavorite = viewModel::toggleFavorite,
+            isFavorite = viewModel::isFavorite,
+            onSelectTab = viewModel::selectTab,
+            onSelectCountry = viewModel::selectCountry,
+            onClearCountry = viewModel::clearCountry,
+            onSelectLanguage = viewModel::selectLanguage,
+            onClearLanguage = viewModel::clearLanguage,
+            onSearchQueryChange = viewModel::onSearchQueryChange,
+            onErrorDismiss = viewModel::clearError
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RadioScreenContent(
+    uiState: RadioUiState,
+    padding: PaddingValues,
+    onPlayStation: (RadioStation) -> Unit,
+    onToggleFavorite: (RadioStation) -> Unit,
+    isFavorite: (RadioStation) -> Boolean,
+    onSelectTab: (RadioTab) -> Unit,
+    onSelectCountry: (RadioCountry) -> Unit,
+    onClearCountry: () -> Unit,
+    onSelectLanguage: (String) -> Unit,
+    onClearLanguage: () -> Unit,
+    onSearchQueryChange: (String) -> Unit,
+    onErrorDismiss: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+    ) {
+        TabRow(
+            selectedTabIndex = uiState.selectedTab.ordinal,
+            containerColor = MaterialTheme.colorScheme.background,
+            contentColor = WatermelonRed
         ) {
-            TabRow(
-                selectedTabIndex = uiState.selectedTab.ordinal,
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = WatermelonRed
-            ) {
-                val tabIcons = mapOf(
-                    RadioTab.BROWSE to Icons.Default.Explore,
-                    RadioTab.LANGUAGES to Icons.Default.Language,
-                    RadioTab.SEARCH to Icons.Default.Search,
-                    RadioTab.FAVORITES to Icons.Default.Favorite,
-                    RadioTab.RECENT to Icons.Default.History
+            val tabIcons = mapOf(
+                RadioTab.BROWSE to Icons.Default.Explore,
+                RadioTab.LANGUAGES to Icons.Default.Language,
+                RadioTab.SEARCH to Icons.Default.Search,
+                RadioTab.FAVORITES to Icons.Default.Favorite,
+                RadioTab.RECENT to Icons.Default.History
+            )
+            RadioTab.entries.forEach { tab ->
+                Tab(
+                    selected = uiState.selectedTab == tab,
+                    onClick = { onSelectTab(tab) },
+                    icon = {
+                        Icon(
+                            imageVector = tabIcons[tab] ?: Icons.Default.Explore,
+                            contentDescription = tab.label,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 )
-                RadioTab.entries.forEach { tab ->
-                    Tab(
-                        selected = uiState.selectedTab == tab,
-                        onClick = { viewModel.selectTab(tab) },
-                        icon = {
-                            Icon(
-                                imageVector = tabIcons[tab] ?: Icons.Default.Explore,
-                                contentDescription = tab.label,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    )
-                }
+            }
+        }
+
+        Box(modifier = Modifier.fillMaxSize()) {
+            when (uiState.selectedTab) {
+                RadioTab.BROWSE -> BrowseTab(
+                    uiState = uiState,
+                    onCountryClick = onSelectCountry,
+                    onBack = onClearCountry,
+                    onPlayStation = onPlayStation,
+                    onToggleFavorite = onToggleFavorite,
+                    isFavorite = isFavorite
+                )
+                RadioTab.LANGUAGES -> LanguagesTab(
+                    uiState = uiState,
+                    onLanguageClick = onSelectLanguage,
+                    onBack = onClearLanguage,
+                    onPlayStation = onPlayStation,
+                    onToggleFavorite = onToggleFavorite,
+                    isFavorite = isFavorite
+                )
+                RadioTab.SEARCH -> SearchTab(
+                    uiState = uiState,
+                    onQueryChange = onSearchQueryChange,
+                    onPlayStation = onPlayStation,
+                    onToggleFavorite = onToggleFavorite,
+                    isFavorite = isFavorite
+                )
+                RadioTab.FAVORITES -> FavoritesTab(
+                    stations = uiState.favoriteStations,
+                    onPlayStation = onPlayStation,
+                    onToggleFavorite = onToggleFavorite
+                )
+                RadioTab.RECENT -> RecentTab(
+                    stations = uiState.recentStations,
+                    onPlayStation = onPlayStation,
+                    onToggleFavorite = onToggleFavorite,
+                    isFavorite = isFavorite
+                )
             }
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                when (uiState.selectedTab) {
-                    RadioTab.BROWSE -> BrowseTab(
-                        uiState = uiState,
-                        onCountryClick = { viewModel.selectCountry(it) },
-                        onBack = { viewModel.clearCountry() },
-                        onPlayStation = { station ->
-                            viewModel.recordRecentlyPlayed(station)
-                            onPlayStation(station)
-                        },
-                        onToggleFavorite = { viewModel.toggleFavorite(it) },
-                        isFavorite = { viewModel.isFavorite(it) }
-                    )
-                    RadioTab.LANGUAGES -> LanguagesTab(
-                        uiState = uiState,
-                        onLanguageClick = { viewModel.selectLanguage(it) },
-                        onBack = { viewModel.clearLanguage() },
-                        onPlayStation = { station ->
-                            viewModel.recordRecentlyPlayed(station)
-                            onPlayStation(station)
-                        },
-                        onToggleFavorite = { viewModel.toggleFavorite(it) },
-                        isFavorite = { viewModel.isFavorite(it) }
-                    )
-                    RadioTab.SEARCH -> SearchTab(
-                        uiState = uiState,
-                        onQueryChange = viewModel::onSearchQueryChange,
-                        onPlayStation = { station ->
-                            viewModel.recordRecentlyPlayed(station)
-                            onPlayStation(station)
-                        },
-                        onToggleFavorite = { viewModel.toggleFavorite(it) },
-                        isFavorite = { viewModel.isFavorite(it) }
-                    )
-                    RadioTab.FAVORITES -> FavoritesTab(
-                        stations = uiState.favoriteStations,
-                        onPlayStation = { station ->
-                            viewModel.recordRecentlyPlayed(station)
-                            onPlayStation(station)
-                        },
-                        onToggleFavorite = { viewModel.toggleFavorite(it) }
-                    )
-                    RadioTab.RECENT -> RecentTab(
-                        stations = uiState.recentStations,
-                        onPlayStation = { station ->
-                            viewModel.recordRecentlyPlayed(station)
-                            onPlayStation(station)
-                        },
-                        onToggleFavorite = { viewModel.toggleFavorite(it) },
-                        isFavorite = { viewModel.isFavorite(it) }
-                    )
-                }
-
-                if (uiState.error != null) {
-                    ErrorBanner(
-                        message = uiState.error!!,
-                        onDismiss = viewModel::clearError
-                    )
-                }
+            if (uiState.error != null) {
+                ErrorBanner(
+                    message = uiState.error!!,
+                    onDismiss = onErrorDismiss
+                )
             }
         }
     }
 }
+
 
 /* ---------- Browse Tab ---------- */
 

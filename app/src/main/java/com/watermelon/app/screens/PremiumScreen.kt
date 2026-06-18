@@ -62,42 +62,59 @@ fun PremiumScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            // Background visual element
-            Box(
-                modifier = Modifier
-                    .size(300.dp)
-                    .offset(x = (-100).dp, y = (-100).dp)
-                    .background(
-                        Brush.radialGradient(
-                            listOf(Color(0xFFFF6B6B).copy(alpha = 0.15f), Color.Transparent)
-                        )
-                    )
-            )
+        PremiumScreenContent(
+            paddingValues = padding,
+            isPremium = isPremium,
+            isLoading = isLoading,
+            onStartCheckout = onStartCheckout,
+            viewModel = viewModel
+        )
+    }
+}
 
-            if (isPremium) {
-                PremiumActiveContent(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp)
+@Composable
+fun PremiumScreenContent(
+    paddingValues: PaddingValues,
+    isPremium: Boolean,
+    isLoading: Boolean,
+    onStartCheckout: (orderId: String, amountPaise: Int, planLabel: String) -> Unit,
+    viewModel: PremiumViewModel
+) {
+    Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        // Background visual element
+        Box(
+            modifier = Modifier
+                .size(300.dp)
+                .offset(x = (-100).dp, y = (-100).dp)
+                .background(
+                    Brush.radialGradient(
+                        listOf(Color(0xFFFF6B6B).copy(alpha = 0.15f), Color.Transparent)
+                    )
                 )
-            } else {
-                PremiumPlansContent(
-                    modifier = Modifier.fillMaxSize(),
-                    isLoading = isLoading,
-                    onPlanSelected = { key, paise, label ->
-                        if (!isLoading) {
-                            viewModel.createOrder(key, paise) { orderId ->
-                                onStartCheckout(orderId, paise, label)
-                            }
+        )
+
+        if (isPremium) {
+            PremiumActiveContent(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp)
+            )
+        } else {
+            PremiumPlansContent(
+                modifier = Modifier.fillMaxSize(),
+                isLoading = isLoading,
+                onPlanSelected = { key, paise, label ->
+                    if (!isLoading) {
+                        viewModel.createOrder(key, paise) { orderId ->
+                            onStartCheckout(orderId, paise, label)
                         }
-                    },
-                    onStudentVerify = { email ->
-                        viewModel.submitStudentVerification(email)
-                    },
-                    studentStatus = viewModel.studentStatus.collectAsState().value
-                )
-            }
+                    }
+                },
+                onStudentVerify = { email ->
+                    viewModel.submitStudentVerification(email)
+                },
+                studentStatus = viewModel.studentStatus.collectAsState().value
+            )
         }
     }
 }

@@ -42,7 +42,8 @@ class ProfileViewModel @Inject constructor(
             it.copy(
                 isEditing = !it.isEditing,
                 displayName = current?.displayName ?: "",
-                username = current?.username ?: ""
+                username = current?.username ?: "",
+                avatarUrl = current?.avatarUrl ?: ""
             )
         }
     }
@@ -69,6 +70,10 @@ class ProfileViewModel @Inject constructor(
                 authRepository.updateUsername(state.username.trim())
                     .onFailure { error = "Failed to update username" }
             }
+            if (state.avatarUrl.isNotBlank() && state.avatarUrl != _user.value?.avatarUrl) {
+                authRepository.updateAvatar(state.avatarUrl)
+                    .onFailure { error = "Failed to update avatar" }
+            }
 
             if (error == null) {
                 authRepository.refreshUser()?.let { _user.value = it }
@@ -84,11 +89,8 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun updateAvatar(seed: String, style: String = "toon-head") {
-        viewModelScope.launch {
-            val url = "https://api.dicebear.com/10.x/$style/svg?seed=$seed"
-            authRepository.updateAvatar(url)
-                .onSuccess { authRepository.refreshUser()?.let { _user.value = it } }
-        }
+        val url = "https://api.dicebear.com/10.x/$style/svg?seed=$seed"
+        _editState.update { it.copy(avatarUrl = url) }
     }
 
     fun clearEditError() {
@@ -107,5 +109,6 @@ data class EditState(
     val isSaving: Boolean = false,
     val displayName: String = "",
     val username: String = "",
+    val avatarUrl: String = "",
     val error: String? = null
 )

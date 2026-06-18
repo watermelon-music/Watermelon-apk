@@ -2,6 +2,7 @@ package com.watermelon.app.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -370,7 +371,8 @@ private fun PlanCardGradient(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(accentColor.copy(alpha = 0.08f))
+                                    .background(Color.White)
+                                    .border(1.dp, accentColor, RoundedCornerShape(12.dp))
                                     .padding(horizontal = 16.dp, vertical = 10.dp)
                             ) {
                                 Text(
@@ -418,10 +420,10 @@ private fun StudentVerificationDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Student Verification") },
+        title = { Text("Student Verification", color = Color.Black) },
         text = {
             Column {
-                Text("Enter your student email address. We'll review it within 24 hours.")
+                Text("Enter your student email address. We'll review it within 24 hours.", color = Color.DarkGray)
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
                     value = email,
@@ -429,20 +431,33 @@ private fun StudentVerificationDialog(
                     label = { Text("Student Email") },
                     placeholder = { Text("you@university.edu") },
                     singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
+                        focusedLabelColor = WatermelonRed,
+                        unfocusedLabelColor = Color.DarkGray
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         },
+        containerColor = Color.White,
         confirmButton = {
             Button(
                 onClick = { onSubmit(email) },
-                enabled = isValid
+                enabled = isValid,
+                colors = ButtonDefaults.buttonColors(containerColor = WatermelonRed, contentColor = Color.White)
             ) {
                 Text("Submit")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(contentColor = Color.DarkGray)
+            ) {
+                Text("Cancel")
+            }
         }
     )
 }

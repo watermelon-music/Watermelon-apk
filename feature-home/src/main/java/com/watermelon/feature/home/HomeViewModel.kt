@@ -138,36 +138,33 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun loadHomeData() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+        _uiState.update { it.copy(isLoading = true) }
 
-            val trendingDeferred = async { runCatching { musicCatalogRepository.getTrendingMusic().first() }.getOrDefault(emptyList()) }
-
-            val bollywoodDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("bollywood").first() }.getOrDefault(emptyList()) }
-            val hollywoodDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("hollywood").first() }.getOrDefault(emptyList()) }
-            val popDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("pop").first() }.getOrDefault(emptyList()) }
-            val rockDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("rock").first() }.getOrDefault(emptyList()) }
-            val jazzDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("jazz").first() }.getOrDefault(emptyList()) }
-            val classicalDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("classical").first() }.getOrDefault(emptyList()) }
-            val hiphopDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("hiphop").first() }.getOrDefault(emptyList()) }
-            val electronicDeferred = async { runCatching { musicCatalogRepository.getSongsByGenre("electronic").first() }.getOrDefault(emptyList()) }
-
-            val trending = trendingDeferred.await()
-
-            _uiState.update { state ->
-                state.copy(
-                    isLoading = false,
-                    trendingMusic = trending,
-                    bollywood = bollywoodDeferred.await().take(7),
-                    hollywood = hollywoodDeferred.await().take(7),
-                    pop = popDeferred.await().take(7),
-                    rock = rockDeferred.await().take(7),
-                    jazz = jazzDeferred.await().take(7),
-                    classical = classicalDeferred.await().take(7),
-                    hiphop = hiphopDeferred.await().take(7),
-                    electronic = electronicDeferred.await().take(7)
-                )
+        musicCatalogRepository.getTrendingMusic()
+            .catch { emit(emptyList()) }
+            .onEach { songs ->
+                _uiState.update { it.copy(trendingMusic = songs, isLoading = false) }
             }
+            .launchIn(viewModelScope)
+
+        val genres = listOf(
+            "bollywood" to { songs: List<Song> -> _uiState.update { it.copy(bollywood = songs.take(7)) } },
+            "hollywood" to { songs: List<Song> -> _uiState.update { it.copy(hollywood = songs.take(7)) } },
+            "pop" to { songs: List<Song> -> _uiState.update { it.copy(pop = songs.take(7)) } },
+            "rock" to { songs: List<Song> -> _uiState.update { it.copy(rock = songs.take(7)) } },
+            "jazz" to { songs: List<Song> -> _uiState.update { it.copy(jazz = songs.take(7)) } },
+            "classical" to { songs: List<Song> -> _uiState.update { it.copy(classical = songs.take(7)) } },
+            "hiphop" to { songs: List<Song> -> _uiState.update { it.copy(hiphop = songs.take(7)) } },
+            "electronic" to { songs: List<Song> -> _uiState.update { it.copy(electronic = songs.take(7)) } }
+        )
+
+        for ((genre, updateState) in genres) {
+            musicCatalogRepository.getSongsByGenre(genre)
+                .catch { emit(emptyList()) }
+                .onEach { songs ->
+                    updateState(songs)
+                }
+                .launchIn(viewModelScope)
         }
     }
 }

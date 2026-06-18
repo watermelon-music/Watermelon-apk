@@ -98,30 +98,42 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun updateDisplayName(name: String): Result<Unit> = runCatching {
         val uid = getCurrentUserId() ?: throw IllegalStateException("Not logged in")
-        client.postgrest.from("profiles").update(
-            mapOf("display_name" to name)
-        ) {
-            filter { eq("id", uid) }
+        if (uid == "local_user") {
+            prefs.edit().putString(KEY_DISPLAY_NAME, name).apply()
+        } else {
+            client.postgrest.from("profiles").update({
+                set("display_name", name)
+            }) {
+                filter { eq("id", uid) }
+            }
         }
         Unit
     }
 
     override suspend fun updateUsername(name: String): Result<Unit> = runCatching {
         val uid = getCurrentUserId() ?: throw IllegalStateException("Not logged in")
-        client.postgrest.from("profiles").update(
-            mapOf("username" to name)
-        ) {
-            filter { eq("id", uid) }
+        if (uid == "local_user") {
+            prefs.edit().putString(KEY_USERNAME, name).apply()
+        } else {
+            client.postgrest.from("profiles").update({
+                set("username", name)
+            }) {
+                filter { eq("id", uid) }
+            }
         }
         Unit
     }
 
     override suspend fun updateAvatar(url: String): Result<Unit> = runCatching {
         val uid = getCurrentUserId() ?: throw IllegalStateException("Not logged in")
-        client.postgrest.from("profiles").update(
-            mapOf("avatar_url" to url)
-        ) {
-            filter { eq("id", uid) }
+        if (uid == "local_user") {
+            prefs.edit().putString(KEY_AVATAR_URL, url).apply()
+        } else {
+            client.postgrest.from("profiles").update({
+                set("avatar_url", url)
+            }) {
+                filter { eq("id", uid) }
+            }
         }
         Unit
     }
@@ -228,12 +240,13 @@ class AuthRepositoryImpl @Inject constructor(
         if (!prefs.getBoolean(KEY_LOGGED_IN, false)) return null
         val email = prefs.getString(KEY_EMAIL, "user@watermelon.app") ?: "user@watermelon.app"
         val planName = prefs.getString(KEY_PLAN, SubscriptionPlan.FREE.name)
+        val defaultUsername = email.substringBefore("@")
         return User(
             id = "local_user",
             email = email,
-            username = email.substringBefore("@"),
-            displayName = "User",
-            avatarUrl = "https://api.dicebear.com/10.x/toon-head/svg?seed=$email",
+            username = prefs.getString(KEY_USERNAME, defaultUsername) ?: defaultUsername,
+            displayName = prefs.getString(KEY_DISPLAY_NAME, "User") ?: "User",
+            avatarUrl = prefs.getString(KEY_AVATAR_URL, "https://api.dicebear.com/10.x/toon-head/svg?seed=$email") ?: "https://api.dicebear.com/10.x/toon-head/svg?seed=$email",
             plan = runCatching {
                 SubscriptionPlan.valueOf(planName ?: SubscriptionPlan.FREE.name)
             }.getOrDefault(SubscriptionPlan.FREE)
@@ -264,6 +277,9 @@ class AuthRepositoryImpl @Inject constructor(
         private const val KEY_LOGGED_IN = "is_logged_in"
         private const val KEY_EMAIL = "auth_email"
         private const val KEY_PLAN = "auth_plan"
+        private const val KEY_DISPLAY_NAME = "auth_display_name"
+        private const val KEY_USERNAME = "auth_username"
+        private const val KEY_AVATAR_URL = "auth_avatar_url"
     }
 }
 

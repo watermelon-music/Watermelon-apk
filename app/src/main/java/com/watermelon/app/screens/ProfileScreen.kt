@@ -97,7 +97,7 @@ fun ProfileScreenContent(
                 .background(Color.Black),
             contentAlignment = Alignment.Center
         ) {
-            val avatar = user?.avatarUrl
+            val avatar = if (editState.isEditing) editState.avatarUrl else user?.avatarUrl
             if (!avatar.isNullOrBlank()) {
                 AsyncImage(
                     model = avatar,

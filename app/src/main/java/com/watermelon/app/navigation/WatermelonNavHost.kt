@@ -285,7 +285,11 @@ fun WatermelonNavHost(
         }
         composable(Routes.DOWNLOADS) {
             DownloadsScreen(
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onPlaySong = { song ->
+                    playerViewModel.playSong(song)
+                    navController.navigate(Routes.PLAYER)
+                }
             )
         }
         composable(Routes.PROFILE) {

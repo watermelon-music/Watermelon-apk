@@ -19,6 +19,9 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.NewReleases
+import androidx.compose.material.icons.filled.Policy
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Share
@@ -30,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -336,75 +340,136 @@ private fun ThemeSelectorDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { 
+        title = {
             Text(
-                text = "App Appearance", 
-                style = MaterialTheme.typography.titleLarge,
+                text = "App Appearance",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface
-            ) 
+            )
         },
         text = {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(top = 8.dp)
+            Column(
+                modifier = Modifier.padding(top = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(AppTheme.all, key = { it.key }) { theme ->
+                AppTheme.all.forEach { theme ->
                     val isSelected = currentMode == theme.key
-                    val previewColor = themePreviewColor(theme)
-                    
+                    val (bgColor, topColor, textColor) = when (theme) {
+                        AppTheme.Light -> Triple(Color(0xFFF8F8F8), Color(0xFFDC2626), Color.Black)
+                        AppTheme.Dark -> Triple(Color(0xFF1A1A1A), Color(0xFFDC2626), Color.White)
+                        else -> Triple(MaterialTheme.colorScheme.surface, WatermelonRed, MaterialTheme.colorScheme.onSurface)
+                    }
+
                     Card(
                         onClick = { onSelect(theme.key) },
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) previewColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        ),
-                        border = if (isSelected) BorderStroke(2.dp, previewColor) else BorderStroke(1.dp, Color.Transparent),
-                        elevation = CardDefaults.cardElevation(if (isSelected) 4.dp else 0.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        border = if (isSelected) BorderStroke(2.dp, WatermelonRed) else null,
+                        elevation = CardDefaults.cardElevation(if (isSelected) 4.dp else 1.dp),
+                        colors = CardDefaults.cardColors(containerColor = bgColor)
                     ) {
-                        Column(
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
+                            // Mini phone preview
                             Box(
                                 modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                                            colors = listOf(previewColor, previewColor.copy(alpha = 0.7f))
-                                        )
-                                    )
+                                    .size(width = 42.dp, height = 58.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .border(1.5.dp, WatermelonRed.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                                    .background(bgColor)
                             ) {
-                                if (isSelected) {
+                                // Top bar
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(14.dp)
+                                        .background(topColor)
+                                )
+                                // Content lines
+                                Column(
+                                    modifier = Modifier
+                                        .padding(top = 18.dp, start = 4.dp, end = 4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    repeat(3) { i ->
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth(if (i == 2) 0.6f else 1f)
+                                                .height(4.dp)
+                                                .clip(RoundedCornerShape(2.dp))
+                                                .background(textColor.copy(alpha = 0.2f))
+                                        )
+                                    }
+                                }
+                                // Red accent dot
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(4.dp)
+                                        .size(8.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(WatermelonRed)
+                                )
+                            }
+
+                            // Label
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = theme.label,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = textColor
+                                    )
+                                )
+                                Text(
+                                    text = when (theme) {
+                                        AppTheme.Light -> "Bright white background"
+                                        AppTheme.Dark -> "Deep dark background"
+                                        else -> "System default"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = textColor.copy(alpha = 0.6f)
+                                    )
+                                )
+                            }
+
+                            // Checkmark
+                            if (isSelected) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .background(WatermelonRed),
+                                    contentAlignment = Alignment.Center
+                                ) {
                                     Icon(
                                         imageVector = Icons.Default.Check,
                                         contentDescription = "Selected",
                                         tint = Color.White,
-                                        modifier = Modifier.align(Alignment.Center)
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .border(1.5.dp, textColor.copy(alpha = 0.2f), CircleShape)
+                                )
                             }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = theme.label,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (isSelected) previewColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
                         }
                     }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { 
-                Text("Close", style = MaterialTheme.typography.labelLarge) 
+            TextButton(onClick = onDismiss) {
+                Text("Close", style = MaterialTheme.typography.labelLarge)
             }
         },
         containerColor = MaterialTheme.colorScheme.surface,

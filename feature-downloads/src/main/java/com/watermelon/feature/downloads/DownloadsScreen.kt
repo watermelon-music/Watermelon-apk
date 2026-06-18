@@ -1,6 +1,5 @@
 package com.watermelon.feature.downloads
 
-import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,11 +11,14 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,23 +28,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.watermelon.domain.model.Song
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadsScreen(
     onBackClick: () -> Unit,
+    onPlaySong: (Song) -> Unit,
     viewModel: DownloadsViewModel = hiltViewModel()
 ) {
     val tracks by viewModel.tracks.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val context = LocalContext.current
-    val storagePath = remember {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            "Music/watermelon/ (accessible via any file manager)"
-        } else {
-            "/storage/emulated/0/Music/watermelon/"
-        }
-    }
 
     LaunchedEffect(Unit) {
         viewModel.refresh()
@@ -118,20 +114,18 @@ fun DownloadsScreen(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "Saved to: $storagePath",
+                                        text = "Saved securely inside the app",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "(Public storage — accessible via any file manager or music player)",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "(Completely private — deleted if the app is uninstalled)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
                         }
                 }
             } else {
@@ -143,7 +137,22 @@ fun DownloadsScreen(
                     items(tracks) { track ->
                         DownloadTrackItem(
                             track = track,
-                            onPlay = { viewModel.playTrack(track.filePath) },
+                            onPlay = {
+                                val song = Song(
+                                    id = track.id,
+                                    title = track.title,
+                                    artistId = "",
+                                    artistName = track.artistName,
+                                    albumId = null,
+                                    albumName = "",
+                                    durationMs = 0L,
+                                    coverUrl = track.coverUrl,
+                                    audioUrl = track.filePath,
+                                    genre = null,
+                                    releaseDate = null
+                                )
+                                onPlaySong(song)
+                            },
                             onDelete = { viewModel.deleteTrack(track.id) }
                         )
                     }
@@ -198,12 +207,34 @@ private fun DownloadTrackItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Filled.Delete,
-                    contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.error
-                )
+            var showMenu by remember { mutableStateOf(false) }
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Delete") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.Delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        onClick = {
+                            showMenu = false
+                            onDelete()
+                        }
+                    )
+                }
             }
         }
     }

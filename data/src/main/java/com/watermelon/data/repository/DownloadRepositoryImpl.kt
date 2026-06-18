@@ -105,8 +105,7 @@ class DownloadRepositoryImpl @Inject constructor(
                 if (exists) return@runCatching // Already downloaded and file exists
             }
 
-            val musicDir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
-                ?: throw IllegalStateException("Cannot access music directory")
+            val musicDir = File(context.filesDir, "downloads")
             if (!musicDir.exists()) musicDir.mkdirs()
 
             val file = File(musicDir, "${song.id}.mp3")
@@ -144,8 +143,7 @@ class DownloadRepositoryImpl @Inject constructor(
 
             val fileSize = file.length()
 
-            // Export to public storage
-            val publicUriOrPath = PublicStorageHelper.saveToPublicStorage(context, song, file) ?: file.absolutePath
+            val publicUriOrPath = file.absolutePath
 
             downloadDao.insert(
                 DownloadedSongEntity(

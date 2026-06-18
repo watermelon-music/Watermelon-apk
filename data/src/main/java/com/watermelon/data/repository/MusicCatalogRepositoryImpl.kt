@@ -69,37 +69,13 @@ class MusicCatalogRepositoryImpl @Inject constructor(
     }
 
     override fun getTrendingMusic(): Flow<List<Song>> = flow {
-        val now = System.currentTimeMillis()
-        val cached = cachedSongDao.getTrendingSongs().firstOrNull() ?: emptyList()
-
-        if (cached.isNotEmpty()) {
-            val freshest = cached.maxOf { it.cachedAt }
-            if (now - freshest < cacheTtlMs) {
-                emit(cached.map { it.toSong() })
-            }
-        }
-
         val fresh = withContext(Dispatchers.IO) {
-            runCatching { fetchTrendingFromYouTube() }.getOrNull()
+            runCatching { fetchSearchFromYouTube("latest billboard trending music hits 2026") }.getOrNull()
                 ?.takeIf { it.isNotEmpty() }
-                ?: runCatching { watermelonRepository.search("top hits 2024") }.getOrNull()
-                    ?.takeIf { it.isNotEmpty() }
-                ?: runCatching { jamendoRepository.getTrendingTracks(limit = 20) }.getOrNull()
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.map { it.toSong() }
-                ?: runCatching { audiusRepository.getTrendingTracks() }.getOrNull()
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.map { it.toSong() }
-            // Podcasts removed from Trending — they are talk, not music
+                ?: runCatching { fetchTrendingFromYouTube() }.getOrNull()
+                ?: emptyList()
         }
-
-        if (fresh != null) {
-            cachedSongDao.clearTrending()
-            cachedSongDao.insertAll(fresh.map { it.toCachedEntity("trending") })
-            emit(fresh)
-        } else {
-            emit(emptyList())
-        }
+        emit(fresh)
     }
 
     override fun getSongsByGenre(genre: String): Flow<List<Song>> {

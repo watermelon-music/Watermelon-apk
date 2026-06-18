@@ -36,7 +36,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     override suspend fun signUp(username: String, email: String, password: String): Result<Unit> = runCatching {
-        val result = client.auth.signUpWith(Email) {
+        client.auth.signUpWith(Email) {
             this.email = email
             this.password = password
             this.data = buildJsonObject {
@@ -44,6 +44,10 @@ class AuthRepositoryImpl @Inject constructor(
                 put("display_name", username)
             }
         }
+        prefs.edit()
+            .putBoolean(KEY_LOGGED_IN, true)
+            .putString(KEY_EMAIL, email)
+            .apply()
         Unit
     }
 
@@ -52,6 +56,10 @@ class AuthRepositoryImpl @Inject constructor(
             this.email = email
             this.password = password
         }
+        prefs.edit()
+            .putBoolean(KEY_LOGGED_IN, true)
+            .putString(KEY_EMAIL, email)
+            .apply()
         Unit
     }
 
@@ -143,7 +151,9 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override fun isAuthenticated(): Flow<Boolean> {
-        return client.auth.sessionStatus.map { it is SessionStatus.Authenticated }
+        return client.auth.sessionStatus.map { status ->
+            status is SessionStatus.Authenticated || prefs.getBoolean(KEY_LOGGED_IN, false)
+        }
     }
 
     override fun getCurrentUser(): Flow<User?> {

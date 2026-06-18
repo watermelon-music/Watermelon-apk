@@ -8,6 +8,7 @@ import com.watermelon.domain.model.SubscriptionPlan
 import com.watermelon.domain.repository.AuthRepository
 import com.watermelon.domain.repository.PlaylistRepository
 import com.watermelon.domain.repository.UserActionsRepository
+import com.watermelon.domain.repository.DownloadRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,7 @@ import javax.inject.Inject
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
     private val playlistRepository: PlaylistRepository,
+    private val downloadRepository: DownloadRepository,
     userActionsRepository: UserActionsRepository,
     authRepository: AuthRepository
 ) : ViewModel() {
@@ -42,6 +44,32 @@ class LibraryViewModel @Inject constructor(
 
     val recentlyPlayed: StateFlow<List<Song>> = userActionsRepository.getRecentlyPlayed()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val downloadedSongs: StateFlow<List<Song>> = downloadRepository.getDownloads()
+        .map { list ->
+            list.map { entity ->
+                Song(
+                    id = entity.songId,
+                    title = entity.title,
+                    artistId = entity.artist,
+                    artistName = entity.artist,
+                    albumId = null,
+                    albumName = null,
+                    durationMs = 0L,
+                    coverUrl = entity.coverUrl,
+                    audioUrl = entity.localFilePath,
+                    genre = null,
+                    releaseDate = null
+                )
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun deleteDownload(songId: String) {
+        viewModelScope.launch {
+            downloadRepository.deleteDownload(songId)
+        }
+    }
 
     val userPlan: StateFlow<SubscriptionPlan> = authRepository.getCurrentUser()
         .map { it?.plan ?: SubscriptionPlan.FREE }

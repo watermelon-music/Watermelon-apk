@@ -582,16 +582,22 @@ class PlayerViewModel @Inject constructor(
 
         val fileSize = tempFile.length()
 
-        // Export to public storage
-        val publicUriOrPath = com.watermelon.data.repository.PublicStorageHelper.saveToPublicStorage(
-            context, song, tempFile
-        ) ?: throw IOException("Failed to save to public storage")
+        val musicDir = File(context.filesDir, "downloads")
+        if (!musicDir.exists()) musicDir.mkdirs()
+        val destFile = File(musicDir, "${song.id}.mp3")
+        if (destFile.exists()) destFile.delete()
+
+        if (!tempFile.renameTo(destFile)) {
+            tempFile.inputStream().use { input ->
+                destFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            tempFile.delete()
+        }
 
         // Record in database so DownloadsScreen can show it
-        downloadRepository.recordDownload(song, publicUriOrPath, fileSize)
-
-        // Clean up temp file
-        tempFile.delete()
+        downloadRepository.recordDownload(song, destFile.absolutePath, fileSize)
     }
 
     private var sleepTimerJob: Job? = null

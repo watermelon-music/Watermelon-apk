@@ -34,9 +34,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
@@ -235,7 +237,7 @@ private fun CountryGridContent(
         EmptyState("No countries found")
     } else {
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 140.dp),
+            columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(WatermelonSpacing.md),
             verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
@@ -256,7 +258,8 @@ private fun CountryCard(country: RadioCountry, onClick: () -> Unit) {
             .aspectRatio(1.2f)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(6.dp)
+        elevation = CardDefaults.cardElevation(6.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A))
     ) {
         Box(
             modifier = Modifier
@@ -264,41 +267,53 @@ private fun CountryCard(country: RadioCountry, onClick: () -> Unit) {
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
+                            Color(0xFF2C2C2C),
+                            Color(0xFF111111)
                         )
                     )
                 )
-                .padding(16.dp)
+                .padding(14.dp)
         ) {
+            // Red accent top bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.35f)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(WatermelonRed)
+                    .align(Alignment.TopStart)
+            )
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Explore,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(36.dp).padding(bottom = 8.dp)
+                Text(
+                    text = "🌍",
+                    fontSize = 28.sp,
+                    modifier = Modifier.padding(bottom = 6.dp)
                 )
                 Text(
                     text = country.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    ),
                     textAlign = TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Surface(
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f),
+                    color = WatermelonRed.copy(alpha = 0.18f),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "${country.stationcount} stns",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        text = "${country.stationcount} stations",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = WatermelonRed,
+                            fontWeight = FontWeight.Bold
+                        ),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -332,39 +347,20 @@ private fun CountryDetailContent(
             } else if (stations.isEmpty()) {
                 EmptyState("No stations found for this country")
             } else {
-                val grouped = remember(stations) {
-                    stations.groupBy { station ->
-                        station.tags?.split(",")
-                            ?.firstOrNull { it.isNotBlank() }
-                            ?.trim()
-                            ?.replaceFirstChar { it.uppercase() }
-                            ?: "General"
-                    }.toSortedMap()
-                }
-                LazyColumn(
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(WatermelonSpacing.md),
-                    verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    grouped.forEach { (genre, list) ->
-                        item {
-                            Surface(color = MaterialTheme.colorScheme.background) {
-                                Text(
-                                    text = genre,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = WatermelonRed,
-                                    modifier = Modifier.padding(vertical = 8.dp)
-                                )
-                            }
-                        }
-                        items(list, key = { it.stationuuid ?: it.url ?: it.hashCode() }) { station ->
-                            StationListItem(
-                                station = station,
-                                onPlay = { onPlayStation(station) },
-                                onToggleFavorite = { onToggleFavorite(station) },
-                                isFavorite = isFavorite(station)
-                            )
-                        }
+                    items(stations, key = { it.stationuuid ?: it.url ?: it.hashCode() }) { station ->
+                        StationGridCard(
+                            station = station,
+                            onPlay = { onPlayStation(station) },
+                            onToggleFavorite = { onToggleFavorite(station) },
+                            isFavorite = isFavorite(station)
+                        )
                     }
                 }
             }
@@ -414,7 +410,7 @@ private fun LanguageGridContent(
         EmptyState("No languages found")
     } else {
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 140.dp),
+            columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(WatermelonSpacing.md),
             verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
@@ -435,7 +431,8 @@ private fun LanguageCard(language: RadioLanguage, onClick: () -> Unit) {
             .aspectRatio(1.2f)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(6.dp)
+        elevation = CardDefaults.cardElevation(6.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A))
     ) {
         Box(
             modifier = Modifier
@@ -443,41 +440,53 @@ private fun LanguageCard(language: RadioLanguage, onClick: () -> Unit) {
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f),
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                            Color(0xFF2C2C2C),
+                            Color(0xFF111111)
                         )
                     )
                 )
-                .padding(16.dp)
+                .padding(14.dp)
         ) {
+            // Red accent top bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.35f)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(WatermelonRed)
+                    .align(Alignment.TopStart)
+            )
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Language,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.size(36.dp).padding(bottom = 8.dp)
+                Text(
+                    text = "🎧",
+                    fontSize = 28.sp,
+                    modifier = Modifier.padding(bottom = 6.dp)
                 )
                 Text(
                     text = language.name.replaceFirstChar { it.uppercase() },
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    ),
                     textAlign = TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Surface(
-                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.15f),
+                    color = WatermelonRed.copy(alpha = 0.18f),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "${language.stationcount} stns",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        text = "${language.stationcount} stations",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = WatermelonRed,
+                            fontWeight = FontWeight.Bold
+                        ),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -511,13 +520,15 @@ private fun LanguageDetailContent(
             } else if (stations.isEmpty()) {
                 EmptyState("No stations found for this language")
             } else {
-                LazyColumn(
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(WatermelonSpacing.md),
-                    verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(stations, key = { it.stationuuid ?: it.url ?: it.hashCode() }) { station ->
-                        StationListItem(
+                        StationGridCard(
                             station = station,
                             onPlay = { onPlayStation(station) },
                             onToggleFavorite = { onToggleFavorite(station) },
@@ -570,12 +581,15 @@ private fun SearchTab(
         } else if (uiState.searchResults.isEmpty()) {
             EmptyState("No stations found")
         } else {
-            LazyColumn(
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(top = WatermelonSpacing.md, bottom = WatermelonSpacing.md, start = WatermelonSpacing.md, end = WatermelonSpacing.md)
             ) {
                 items(uiState.searchResults, key = { it.stationuuid ?: it.url ?: it.hashCode() }) { station ->
-                    StationListItem(
+                    StationGridCard(
                         station = station,
                         onPlay = { onPlayStation(station) },
                         onToggleFavorite = { onToggleFavorite(station) },
@@ -598,13 +612,15 @@ private fun FavoritesTab(
     if (stations.isEmpty()) {
         EmptyState("No favorite stations yet")
     } else {
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(WatermelonSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(stations, key = { it.stationuuid ?: it.url ?: it.hashCode() }) { station ->
-                StationListItem(
+                StationGridCard(
                     station = station,
                     onPlay = { onPlayStation(station) },
                     onToggleFavorite = { onToggleFavorite(station) },
@@ -627,13 +643,15 @@ private fun RecentTab(
     if (stations.isEmpty()) {
         EmptyState("No recently played stations")
     } else {
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(WatermelonSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(stations, key = { it.stationuuid ?: it.url ?: it.hashCode() }) { station ->
-                StationListItem(
+                StationGridCard(
                     station = station,
                     onPlay = { onPlayStation(station) },
                     onToggleFavorite = { onToggleFavorite(station) },
@@ -645,6 +663,111 @@ private fun RecentTab(
 }
 
 /* ---------- Shared Components ---------- */
+
+/**
+ * Compact card for 2-column grid display.
+ * Two cards sit side by side horizontally — like OneDrive file grid.
+ */
+@Composable
+private fun StationGridCard(
+    station: RadioStation,
+    onPlay: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    isFavorite: Boolean
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(195.dp)
+            .clickable(onClick = onPlay),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Favicon
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            Brush.linearGradient(listOf(Color(0xFF1C1C1C), Color(0xFF2E2E2E)))
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val image = station.favicon
+                    if (!image.isNullOrBlank()) {
+                        SubcomposeAsyncImage(
+                            model = image,
+                            contentDescription = station.name,
+                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)),
+                            contentScale = ContentScale.Crop,
+                            error = {
+                                Icon(Icons.Default.Radio, contentDescription = null, tint = WatermelonRed, modifier = Modifier.size(26.dp))
+                            }
+                        )
+                    } else {
+                        Icon(Icons.Default.Radio, contentDescription = null, tint = WatermelonRed, modifier = Modifier.size(26.dp))
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = station.name ?: "Unknown",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                val bitrate = station.bitrate?.takeIf { it > 0 }
+                if (bitrate != null) {
+                    Text(
+                        text = "${bitrate}kbps",
+                        style = MaterialTheme.typography.labelSmall.copy(color = WatermelonRed, fontWeight = FontWeight.Bold),
+                    )
+                } else {
+                    Text(
+                        text = "● LIVE",
+                        style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF22C55E), fontWeight = FontWeight.Bold),
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onToggleFavorite, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = null,
+                        tint = if (isFavorite) WatermelonRed else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                FilledIconButton(
+                    onClick = onPlay,
+                    modifier = Modifier.size(36.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = WatermelonRed, contentColor = Color.White),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = "Play", modifier = Modifier.size(20.dp))
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun StationListItem(
@@ -658,24 +781,25 @@ private fun StationListItem(
             .fillMaxWidth()
             .clickable(onClick = onPlay),
         shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(2.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Favicon box with gradient bg
             Box(
                 modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .size(60.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(
                         Brush.linearGradient(
                             listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                                Color(0xFF1C1C1C),
+                                Color(0xFF2E2E2E)
                             )
                         )
                     ),
@@ -686,38 +810,95 @@ private fun StationListItem(
                     SubcomposeAsyncImage(
                         model = image,
                         contentDescription = station.name,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(16.dp)),
                         contentScale = ContentScale.Crop,
                         loading = {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), color = WatermelonRed, strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = WatermelonRed,
+                                strokeWidth = 2.dp
+                            )
                         },
                         error = {
-                            Icon(Icons.Default.Radio, contentDescription = null, tint = WatermelonRed, modifier = Modifier.size(28.dp))
+                            Icon(
+                                Icons.Default.Radio,
+                                contentDescription = null,
+                                tint = WatermelonRed,
+                                modifier = Modifier.size(28.dp)
+                            )
                         }
                     )
                 } else {
-                    Icon(Icons.Default.Radio, contentDescription = null, tint = WatermelonRed, modifier = Modifier.size(28.dp))
-                }
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = station.name ?: "Unknown Station",
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    val country = station.country?.takeIf { it.isNotBlank() } ?: "Unknown"
-                    val bitrate = station.bitrate?.takeIf { it > 0 }?.let { "${it}kbps" } ?: "Live"
-                    Text(
-                        text = "$country • $bitrate",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Icon(
+                        Icons.Default.Radio,
+                        contentDescription = null,
+                        tint = WatermelonRed,
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            // Station info
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = station.name ?: "Unknown Station",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val country = station.country?.takeIf { it.isNotBlank() } ?: "Unknown"
+                    Text(
+                        text = country,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    // Bitrate badge
+                    val bitrate = station.bitrate?.takeIf { it > 0 }
+                    if (bitrate != null) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = WatermelonRed.copy(alpha = 0.12f)
+                        ) {
+                            Text(
+                                text = "${bitrate}kbps",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = WatermelonRed,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    } else {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF22C55E).copy(alpha = 0.12f)
+                        ) {
+                            Text(
+                                text = "● LIVE",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = Color(0xFF22C55E),
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Favorite button
             IconButton(
                 onClick = onToggleFavorite,
                 modifier = Modifier.size(40.dp)
@@ -727,6 +908,23 @@ private fun StationListItem(
                     contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
                     tint = if (isFavorite) WatermelonRed else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier.size(22.dp)
+                )
+            }
+
+            // Play button
+            FilledIconButton(
+                onClick = onPlay,
+                modifier = Modifier.size(44.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = WatermelonRed,
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = "Play",
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }

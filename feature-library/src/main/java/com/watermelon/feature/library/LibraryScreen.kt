@@ -1,10 +1,12 @@
 package com.watermelon.feature.library
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -26,6 +28,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
@@ -52,9 +56,11 @@ fun LibraryScreen(
     onNavigateToPremium: () -> Unit = {},
     viewModel: LibraryViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
     val recentlyPlayed by viewModel.recentlyPlayed.collectAsStateWithLifecycle()
+    val downloadedSongs by viewModel.downloadedSongs.collectAsStateWithLifecycle()
     val canCreate by viewModel.canCreatePlaylist.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val createMessage by viewModel.createMessage.collectAsStateWithLifecycle()
@@ -109,16 +115,18 @@ fun LibraryScreen(
                 }
             }
         }
-    ) { padding ->
+    ) { paddingValues ->
         LibraryScreenContent(
-            paddingValues = padding,
+            paddingValues = paddingValues,
             selectedTab = selectedTab,
             isLoading = isLoading,
             playlists = playlists,
             favorites = favorites,
             recentlyPlayed = recentlyPlayed,
+            downloadedSongs = downloadedSongs,
             onPlaylistClick = onPlaylistClick,
             onSongClick = onSongClick,
+            onDeleteDownload = { viewModel.deleteDownload(it.id) },
             onPlayPlaylist = { playlist -> 
                 // Just map it and trigger the click on the first song to queue the whole playlist
                 val songs = playlist.songs.map { 
@@ -234,8 +242,6 @@ fun LibraryScreen(
         )
     }
 
-    val context = LocalContext.current
-
     shareMessage?.let { msg ->
         LaunchedEffect(msg) {
             kotlinx.coroutines.delay(3000)
@@ -302,6 +308,7 @@ fun LibraryScreenContent(
     playlists: List<Playlist>,
     favorites: List<Song>,
     recentlyPlayed: List<Song>,
+    downloadedSongs: List<Song>,
     onPlaylistClick: (Playlist) -> Unit,
     onSongClick: (Song, List<Song>) -> Unit,
     onPlayPlaylist: (Playlist) -> Unit,
@@ -310,6 +317,7 @@ fun LibraryScreenContent(
     onEditPlaylist: (Playlist) -> Unit,
     onShowQr: (Playlist) -> Unit,
     onDeletePlaylist: (Playlist) -> Unit,
+    onDeleteDownload: (Song) -> Unit,
     onTabSelected: (Int) -> Unit,
     tabs: List<String>,
     tabIcons: List<androidx.compose.ui.graphics.vector.ImageVector>
@@ -365,139 +373,12 @@ fun LibraryScreenContent(
                 onSongClick = { onSongClick(it, recentlyPlayed) },
                 modifier = Modifier.fillMaxSize()
             )
-            3 -> DownloadsPlaceholder(onSongClick = { song, downloadsList -> onSongClick(song, downloadsList) })
+            3 -> DownloadsPlaceholder(
+                downloadedSongs = downloadedSongs,
+                onPlaySong = { song -> onSongClick(song, downloadedSongs) },
+                onDeleteDownload = onDeleteDownload
+            )
         }
-    }
-
-    if (showDeleteDialog != null) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = null },
-            title = { Text("Delete Playlist") },
-            text = { Text("Delete \"${showDeleteDialog?.name}\"? This cannot be undone.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDeleteDialog?.let { viewModel.deletePlaylist(it.id) }
-                    showDeleteDialog = null
-                }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = null }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    if (showPaywall) {
-        AlertDialog(
-            onDismissRequest = { showPaywall = false },
-            title = { Text("Playlist Limit Reached") },
-            text = {
-                Text("Free users can create up to 2 playlists. Upgrade to Premium to create up to 5 playlists.")
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showPaywall = false
-                    onNavigateToPremium()
-                }) {
-                    Text("Go Premium")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPaywall = false }) {
-                    Text("Maybe Later")
-                }
-            }
-        )
-    }
-
-    if (showEditDialog != null) {
-        var editName by rememberSaveable { mutableStateOf(showEditDialog?.name ?: "") }
-        var editDesc by rememberSaveable { mutableStateOf(showEditDialog?.description ?: "") }
-        AlertDialog(
-            onDismissRequest = { showEditDialog = null },
-            title = { Text("Edit Playlist") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = editName, onValueChange = { editName = it }, label = { Text("Name") })
-                    OutlinedTextField(value = editDesc, onValueChange = { editDesc = it }, label = { Text("Description") })
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showEditDialog?.let { viewModel.editPlaylist(it.id, editName, editDesc.takeIf { it.isNotBlank() }) }
-                    showEditDialog = null
-                }) {
-                    Text("Save")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEditDialog = null }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    val context = LocalContext.current
-
-    shareMessage?.let { msg ->
-        LaunchedEffect(msg) {
-            kotlinx.coroutines.delay(3000)
-            shareMessage = null
-        }
-        Snackbar(
-            modifier = Modifier.padding(16.dp),
-            action = {
-                TextButton(onClick = { shareMessage = null }) {
-                    Text("Dismiss")
-                }
-            }
-        ) { Text(msg) }
-    }
-
-    showQrDialog?.let { playlist ->
-        val deepLink = "https://watermelon.app/playlist/${playlist.id}"
-        AlertDialog(
-            onDismissRequest = { showQrDialog = null },
-            title = { Text("${playlist.name} — QR Code") },
-            text = {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val bitmap = remember(deepLink) { generateQrBitmap(deepLink, 512) }
-                    bitmap?.let {
-                        androidx.compose.foundation.Image(
-                            bitmap = it.asImageBitmap(),
-                            contentDescription = "QR Code",
-                            modifier = Modifier.size(200.dp)
-                        )
-                    } ?: Text("Failed to generate QR")
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(deepLink, style = MaterialTheme.typography.bodySmall)
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                        type = "image/png"
-                        val path = android.provider.MediaStore.Images.Media.insertImage(
-                            context.contentResolver, generateQrBitmap(deepLink, 512), "qr_${playlist.id}", null
-                        )
-                        putExtra(Intent.EXTRA_STREAM, android.net.Uri.parse(path))
-                        putExtra(Intent.EXTRA_TEXT, "Scan this QR to open ${playlist.name} on Watermelon\n$deepLink")
-                    }
-                    context.startActivity(Intent.createChooser(sendIntent, "Share QR"))
-                }) {
-                    Text("Share")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showQrDialog = null }) {
-                    Text("Close")
-                }
-            }
-        )
     }
 }
 
@@ -541,73 +422,103 @@ private fun PlaylistList(
             modifier = modifier.padding(WatermelonSpacing.md),
             verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
         ) {
-            items(playlists, key = { it.id }) { playlist ->
+            itemsIndexed(playlists, key = { _, pl -> pl.id }) { index, playlist ->
                 var menuExpanded by remember { mutableStateOf(false) }
+
+                // Alternating watermelon gradient backgrounds
+                // Even index: dark (black + red), Odd index: light (white + red)
+                val isDark = index % 2 == 0
+                val cardGradient = if (isDark) {
+                    Brush.horizontalGradient(listOf(Color(0xFF1A0000), Color(0xFF3D0000), Color(0xFF8B0000)))
+                } else {
+                    Brush.horizontalGradient(listOf(Color(0xFFFFFFFF), Color(0xFFFFE4E4), Color(0xFFFFCCCC)))
+                }
+                val onCardColor = if (isDark) Color.White else Color(0xFF1A0000)
+                val subtitleColor = if (isDark) Color.White.copy(alpha = 0.65f) else Color(0xFF8B0000).copy(alpha = 0.75f)
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onPlaylistClick(playlist) },
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(3.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(WatermelonSpacing.md),
-                        verticalAlignment = Alignment.CenterVertically
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(cardGradient)
                     ) {
-                        PlaylistCoverGrid(
-                            songs = playlist.songs,
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Spacer(modifier = Modifier.width(WatermelonSpacing.md))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = playlist.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                        Row(
+                            modifier = Modifier.padding(WatermelonSpacing.md),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            PlaylistCoverGrid(
+                                songs = playlist.songs,
+                                modifier = Modifier.size(64.dp)
                             )
-                            Text(
-                                text = playlist.description ?: "",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        Box {
-                            IconButton(onClick = { menuExpanded = true }) {
-                                Icon(
-                                    imageVector = Icons.Filled.MoreVert,
-                                    contentDescription = "More"
+                            Spacer(modifier = Modifier.width(WatermelonSpacing.md))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = playlist.name,
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                    ),
+                                    color = onCardColor,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (!playlist.description.isNullOrBlank()) {
+                                    Text(
+                                        text = playlist.description ?: "",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = subtitleColor,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Text(
+                                    text = "${playlist.songs.size} songs",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = subtitleColor
                                 )
                             }
-                            DropdownMenu(
-                                expanded = menuExpanded,
-                                onDismissRequest = { menuExpanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Play") },
-                                    onClick = { menuExpanded = false; onPlayPlaylist(playlist) }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Shuffle") },
-                                    onClick = { menuExpanded = false; onShufflePlaylist(playlist) }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Share") },
-                                    onClick = { menuExpanded = false; onSharePlaylist(playlist) }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Edit") },
-                                    onClick = { menuExpanded = false; onEditPlaylist(playlist) }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Show QR") },
-                                    onClick = { menuExpanded = false; onShowQr(playlist) }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                                    onClick = { menuExpanded = false; onDeletePlaylist(playlist) }
-                                )
+                            Box {
+                                IconButton(onClick = { menuExpanded = true }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.MoreVert,
+                                        contentDescription = "More",
+                                        tint = onCardColor
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = menuExpanded,
+                                    onDismissRequest = { menuExpanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Play") },
+                                        onClick = { menuExpanded = false; onPlayPlaylist(playlist) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Shuffle") },
+                                        onClick = { menuExpanded = false; onShufflePlaylist(playlist) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Share") },
+                                        onClick = { menuExpanded = false; onSharePlaylist(playlist) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Edit") },
+                                        onClick = { menuExpanded = false; onEditPlaylist(playlist) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Show QR") },
+                                        onClick = { menuExpanded = false; onShowQr(playlist) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                                        onClick = { menuExpanded = false; onDeletePlaylist(playlist) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -800,55 +711,15 @@ private fun FeedContent(
     }
 }
 
-data class DownloadMeta(val title: String, val artistName: String, val coverUrl: String)
-
 @Composable
-private fun DownloadsPlaceholder(onSongClick: (Song, List<Song>) -> Unit) {
-    val context = LocalContext.current
-    var refreshKey by remember { mutableIntStateOf(0) }
-    var fileToDelete by rememberSaveable { mutableStateOf<java.io.File?>(null) }
+private fun DownloadsPlaceholder(
+    downloadedSongs: List<Song>,
+    onPlaySong: (Song) -> Unit,
+    onDeleteDownload: (Song) -> Unit
+) {
+    var songToDelete by remember { mutableStateOf<Song?>(null) }
 
-    val downloads = remember(refreshKey) {
-        val dir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
-        val audioFiles = dir?.listFiles()
-            ?.filter { it.extension.equals("mp3", ignoreCase = true) || it.extension.equals("m4a", ignoreCase = true) }
-            ?.sortedByDescending { it.lastModified() }
-            ?: emptyList()
-        audioFiles.mapNotNull { file ->
-            val metaFile = java.io.File(file.parent, file.nameWithoutExtension + ".json")
-            val meta = if (metaFile.exists()) {
-                try {
-                    val json = org.json.JSONObject(metaFile.readText())
-                    DownloadMeta(
-                        title = json.optString("title", file.nameWithoutExtension),
-                        artistName = json.optString("artistName", ""),
-                        coverUrl = json.optString("coverUrl", "")
-                    )
-                } catch (_: Exception) { null }
-            } else null
-            file to meta
-        }
-    }
-
-    val downloadedSongs = remember(downloads) {
-        downloads.map { (file, meta) ->
-            Song(
-                id = file.nameWithoutExtension,
-                title = meta?.title?.takeIf { it.isNotBlank() } ?: file.nameWithoutExtension,
-                artistId = meta?.artistName ?: "",
-                artistName = meta?.artistName?.takeIf { it.isNotBlank() } ?: "Unknown Artist",
-                albumId = null,
-                albumName = null,
-                durationMs = 0,
-                coverUrl = meta?.coverUrl?.takeIf { it.isNotBlank() },
-                audioUrl = file.toURI().toString(),
-                genre = null,
-                releaseDate = null
-            )
-        }
-    }
-
-    if (downloads.isEmpty()) {
+    if (downloadedSongs.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -874,21 +745,12 @@ private fun DownloadsPlaceholder(onSongClick: (Song, List<Song>) -> Unit) {
                 .padding(WatermelonSpacing.md),
             verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
         ) {
-            items(downloads.size, key = { downloads[it].first.absolutePath }) { index ->
-                val (file, meta) = downloads[index]
-                val sizeText = remember(file) {
-                    val len = file.length()
-                    when {
-                        len > 1024 * 1024 -> "%.1f MB".format(len / (1024.0 * 1024.0))
-                        len > 1024 -> "%.1f KB".format(len / 1024.0)
-                        else -> "${len} B"
-                    }
-                }
+            items(downloadedSongs.size, key = { downloadedSongs[it].id }) { index ->
                 val song = downloadedSongs[index]
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onSongClick(song, downloadedSongs) },
+                        .clickable { onPlaySong(song) },
                     shape = RoundedCornerShape(12.dp),
                     elevation = CardDefaults.cardElevation(2.dp)
                 ) {
@@ -896,9 +758,9 @@ private fun DownloadsPlaceholder(onSongClick: (Song, List<Song>) -> Unit) {
                         modifier = Modifier.padding(WatermelonSpacing.md),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (!meta?.coverUrl.isNullOrBlank()) {
+                        if (!song.coverUrl.isNullOrBlank()) {
                             AsyncImage(
-                                model = meta!!.coverUrl,
+                                model = song.coverUrl,
                                 contentDescription = null,
                                 modifier = Modifier
                                     .size(48.dp)
@@ -927,20 +789,16 @@ private fun DownloadsPlaceholder(onSongClick: (Song, List<Song>) -> Unit) {
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            Text(
-                                text = buildString {
-                                    if (!song.artistName.isNullOrBlank() && song.artistName != "Unknown Artist") {
-                                        append(song.artistName)
-                                        append(" · ")
-                                    }
-                                    append(sizeText)
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            if (!song.artistName.isNullOrBlank() && song.artistName != "Unknown Artist") {
+                                Text(
+                                    text = song.artistName,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                         IconButton(
-                            onClick = { fileToDelete = file },
+                            onClick = { songToDelete = song },
                             modifier = Modifier.size(36.dp)
                         ) {
                             Icon(
@@ -956,27 +814,25 @@ private fun DownloadsPlaceholder(onSongClick: (Song, List<Song>) -> Unit) {
         }
     }
 
-    if (fileToDelete != null) {
+    if (songToDelete != null) {
         AlertDialog(
-            onDismissRequest = { fileToDelete = null },
+            onDismissRequest = { songToDelete = null },
             title = { Text("Delete Download") },
-            text = { Text("Remove \"${fileToDelete?.nameWithoutExtension}\" from downloads? This cannot be undone.") },
+            text = { Text("Remove \"${songToDelete?.title}\" from downloads? This cannot be undone.") },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        fileToDelete?.let { f ->
-                            f.delete()
-                            java.io.File(f.parent, f.nameWithoutExtension + ".json").delete()
-                            refreshKey++
+                        songToDelete?.let { s ->
+                            onDeleteDownload(s)
                         }
-                        fileToDelete = null
+                        songToDelete = null
                     }
                 ) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { fileToDelete = null }) {
+                TextButton(onClick = { songToDelete = null }) {
                     Text("Cancel")
                 }
             }

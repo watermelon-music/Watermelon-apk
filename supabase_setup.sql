@@ -46,6 +46,11 @@ create table public.playlists (
   name text not null,
   description text,
   cover_url text,
+  share_code text,
+  is_public boolean default false,
+  share_count bigint default 0,
+  save_count bigint default 0,
+  copy_count bigint default 0,
   created_at timestamp with time zone default timezone('utc'::text, now()),
   updated_at timestamp with time zone default timezone('utc'::text, now()),
   primary key (id)

@@ -4,14 +4,17 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Share
@@ -27,7 +30,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,6 +60,8 @@ fun PlaylistDetailScreen(
     LaunchedEffect(playlistId) { viewModel.loadPlaylist(playlistId) }
     val context = LocalContext.current
     var songToDelete by remember { mutableStateOf<PlaylistSong?>(null) }
+
+    val songs = playlist?.songs ?: emptyList()
 
     Scaffold(
         topBar = {
@@ -80,193 +89,104 @@ fun PlaylistDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        val link = playlistId
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        clipboard.setPrimaryClip(ClipData.newPlainText("Playlist ID", link))
-                        Toast.makeText(context, "Playlist ID copied to clipboard!", Toast.LENGTH_SHORT).show()
+                        clipboard.setPrimaryClip(ClipData.newPlainText("Playlist ID", playlistId))
+                        Toast.makeText(context, "Playlist ID copied!", Toast.LENGTH_SHORT).show()
                     }) {
                         Icon(Icons.Filled.Share, contentDescription = "Share")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         }
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(WatermelonSpacing.md)
+                .padding(padding),
+            contentPadding = PaddingValues(bottom = 32.dp)
         ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = WatermelonSpacing.md),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    val covers = playlist?.songs?.mapNotNull { it.coverUrl }?.take(4) ?: emptyList()
-                    when {
-                        covers.isEmpty() -> {
-                            AsyncImage(
-                                model = "https://picsum.photos/seed/$playlistId/400/400",
-                                contentDescription = "Playlist cover",
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                        covers.size == 1 -> {
-                            AsyncImage(model = covers[0], contentDescription = null, modifier = Modifier.fillMaxSize())
-                        }
-                        covers.size == 2 -> {
-                            Row(modifier = Modifier.fillMaxSize()) {
-                                AsyncImage(model = covers[0], contentDescription = null, modifier = Modifier.weight(1f).fillMaxHeight())
-                                AsyncImage(model = covers[1], contentDescription = null, modifier = Modifier.weight(1f).fillMaxHeight())
-                            }
-                        }
-                        covers.size == 3 -> {
-                            Row(modifier = Modifier.fillMaxSize()) {
-                                AsyncImage(model = covers[0], contentDescription = null, modifier = Modifier.weight(1f).fillMaxHeight())
-                                Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                                    AsyncImage(model = covers[1], contentDescription = null, modifier = Modifier.weight(1f).fillMaxWidth())
-                                    AsyncImage(model = covers[2], contentDescription = null, modifier = Modifier.weight(1f).fillMaxWidth())
-                                }
-                            }
-                        }
-                        else -> {
-                            Column(modifier = Modifier.fillMaxSize()) {
-                                Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                                    AsyncImage(model = covers[0], contentDescription = null, modifier = Modifier.weight(1f).fillMaxHeight())
-                                    AsyncImage(model = covers[1], contentDescription = null, modifier = Modifier.weight(1f).fillMaxHeight())
-                                }
-                                Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                                    AsyncImage(model = covers[2], contentDescription = null, modifier = Modifier.weight(1f).fillMaxHeight())
-                                    AsyncImage(model = covers[3], contentDescription = null, modifier = Modifier.weight(1f).fillMaxHeight())
-                                }
-                            }
-                        }
-                    }
-                    Column(
+            // ── Cover Mosaic Header ──────────────────────────────
+            item {
+                PlaylistCoverHeader(
+                    playlist = playlist,
+                    playlistId = playlistId,
+                    songs = songs,
+                    onPlayAllClick = onPlayAllClick,
+                    onShuffleClick = onShuffleClick
+                )
+            }
+
+            // ── Songs list label ──────────────────────────────────
+            if (songs.isNotEmpty()) {
+                item {
+                    Row(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.Bottom
+                            .fillMaxWidth()
+                            .padding(horizontal = WatermelonSpacing.md, vertical = WatermelonSpacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = playlist?.name ?: "Playlist",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onPrimary
+                            text = "Songs",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.weight(1f)
                         )
                         Text(
-                            text = "${playlist?.songs?.size ?: 0} songs",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                            text = "${songs.size} tracks",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        playlist?.id?.let { pid ->
-                            Spacer(modifier = Modifier.height(8.dp))
-                            val blocks = listOf('▁', '▂', '▃', '▄', '▅', '▆', '▇', '█')
-                            val code = remember(pid) {
-                                val random = kotlin.random.Random(pid.hashCode())
-                                buildString {
-                                    for (i in 0 until 16) {
-                                        append(blocks[random.nextInt(blocks.size)])
-                                    }
-                                }
-                            }
+                    }
+                }
+            }
+
+            // ── Empty state ──────────────────────────────────────
+            if (songs.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                                contentDescription = null,
+                                modifier = Modifier.size(72.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = code,
+                                text = "No songs yet",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                letterSpacing = 2.sp
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Add songs from Search or Home",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                             )
                         }
                     }
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
-            ) {
-                FilledIconButton(
+            // ── Song rows with index ─────────────────────────────
+            itemsIndexed(songs, key = { _, song -> song.songId }) { index, song ->
+                PlaylistSongItem(
+                    index = index + 1,
+                    song = song,
                     onClick = {
-                        val songs = playlist?.songs?.map { it.toSong() } ?: emptyList()
-                        if (songs.isNotEmpty()) {
-                            onPlayAllClick(songs)
-                        }
+                        val allSongs = songs.map { it.toSong() }
+                        onSongClick(song.toSong(), allSongs)
                     },
-                    modifier = Modifier.size(48.dp),
-                    enabled = !playlist?.songs.isNullOrEmpty(),
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = WatermelonRed
-                    )
-                ) {
-                    Icon(Icons.Filled.PlayArrow, contentDescription = "Play All", modifier = Modifier.size(24.dp))
-                }
-                OutlinedIconButton(
-                    onClick = {
-                        val songs = playlist?.songs?.map { it.toSong() } ?: emptyList()
-                        if (songs.isNotEmpty()) {
-                            onShuffleClick(songs)
-                        }
-                    },
-                    modifier = Modifier.size(48.dp),
-                    enabled = !playlist?.songs.isNullOrEmpty()
-                ) {
-                    Icon(Icons.Filled.Shuffle, contentDescription = "Shuffle", modifier = Modifier.size(24.dp))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(WatermelonSpacing.md))
-
-            Text(
-                text = "Songs",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = WatermelonSpacing.md)
-            )
-
-            val songs = playlist?.songs ?: emptyList()
-            if (songs.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.QueueMusic,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "No songs yet",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Add songs from search or home",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
-                ) {
-                    items(songs, key = { it.songId }) { song ->
-                        PlaylistSongItem(
-                            song = song,
-                            onClick = { 
-                                val allSongs = songs.map { it.toSong() }
-                                onSongClick(song.toSong(), allSongs) 
-                            },
-                            onDelete = { songToDelete = song }
-                        )
-                    }
-                }
+                    onDelete = { songToDelete = song }
+                )
             }
         }
     }
@@ -278,9 +198,7 @@ fun PlaylistDetailScreen(
             text = { Text("Remove \"${songToDelete?.title}\" from this playlist?") },
             confirmButton = {
                 TextButton(onClick = {
-                    songToDelete?.let {
-                        viewModel.removeSong(playlistId, it.songId)
-                    }
+                    songToDelete?.let { viewModel.removeSong(playlistId, it.songId) }
                     songToDelete = null
                 }) {
                     Text("Remove", color = MaterialTheme.colorScheme.error)
@@ -295,70 +213,257 @@ fun PlaylistDetailScreen(
     }
 }
 
-private fun PlaylistSong.toSong(): Song {
-    return Song(
-        id = songId,
-        title = title,
-        artistId = "",
-        artistName = artist,
-        albumId = null,
-        albumName = null,
-        durationMs = 0L,
-        coverUrl = coverUrl,
-        audioUrl = audioUrl,
-        genre = "",
-        releaseDate = ""
-    )
+@Composable
+private fun PlaylistCoverHeader(
+    playlist: com.watermelon.domain.model.Playlist?,
+    playlistId: String,
+    songs: List<PlaylistSong>,
+    onPlayAllClick: (List<Song>) -> Unit,
+    onShuffleClick: (List<Song>) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(260.dp)
+    ) {
+        // Cover mosaic background
+        val covers = songs.mapNotNull { it.coverUrl }.take(4)
+        when {
+            covers.isEmpty() -> {
+                AsyncImage(
+                    model = "https://picsum.photos/seed/$playlistId/600/600",
+                    contentDescription = "Playlist cover",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            covers.size == 1 -> {
+                AsyncImage(
+                    model = covers[0],
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            covers.size == 2 -> {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    AsyncImage(model = covers[0], contentDescription = null, modifier = Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop)
+                    AsyncImage(model = covers[1], contentDescription = null, modifier = Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop)
+                }
+            }
+            covers.size == 3 -> {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    AsyncImage(model = covers[0], contentDescription = null, modifier = Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop)
+                    Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        AsyncImage(model = covers[1], contentDescription = null, modifier = Modifier.weight(1f).fillMaxWidth(), contentScale = ContentScale.Crop)
+                        AsyncImage(model = covers[2], contentDescription = null, modifier = Modifier.weight(1f).fillMaxWidth(), contentScale = ContentScale.Crop)
+                    }
+                }
+            }
+            else -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        AsyncImage(model = covers[0], contentDescription = null, modifier = Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop)
+                        AsyncImage(model = covers[1], contentDescription = null, modifier = Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop)
+                    }
+                    Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        AsyncImage(model = covers[2], contentDescription = null, modifier = Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop)
+                        AsyncImage(model = covers[3], contentDescription = null, modifier = Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop)
+                    }
+                }
+            }
+        }
+
+        // Gradient overlay for readability
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.15f),
+                            Color.Black.copy(alpha = 0.85f)
+                        ),
+                        startY = 80f
+                    )
+                )
+        )
+
+        // Playlist info overlay
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(20.dp)
+        ) {
+            // Waveform code
+            playlist?.id?.let { pid ->
+                val blocks = listOf('▁', '▂', '▃', '▄', '▅', '▆', '▇', '█')
+                val code = remember(pid) {
+                    val random = kotlin.random.Random(pid.hashCode())
+                    buildString { for (i in 0 until 10) append(blocks[random.nextInt(blocks.size)]) }
+                }
+                Text(
+                    text = code,
+                    style = MaterialTheme.typography.bodySmall.copy(color = Color.White.copy(alpha = 0.6f)),
+                    letterSpacing = 2.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+            Text(
+                text = playlist?.name ?: "Playlist",
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White
+                ),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "${songs.size} songs",
+                style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.75f))
+            )
+        }
+
+        // Play + Shuffle buttons (bottom right)
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Shuffle
+            OutlinedIconButton(
+                onClick = {
+                    val songsList = songs.map { it.toSong() }
+                    if (songsList.isNotEmpty()) onShuffleClick(songsList)
+                },
+                modifier = Modifier.size(48.dp),
+                enabled = songs.isNotEmpty(),
+                border = ButtonDefaults.outlinedButtonBorder.copy(
+                    brush = androidx.compose.ui.graphics.SolidColor(Color.White.copy(alpha = 0.6f))
+                )
+            ) {
+                Icon(
+                    Icons.Filled.Shuffle,
+                    contentDescription = "Shuffle",
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            // Play all
+            FilledIconButton(
+                onClick = {
+                    val songsList = songs.map { it.toSong() }
+                    if (songsList.isNotEmpty()) onPlayAllClick(songsList)
+                },
+                modifier = Modifier.size(56.dp),
+                enabled = songs.isNotEmpty(),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = WatermelonRed,
+                    contentColor = Color.White
+                ),
+                shape = CircleShape
+            ) {
+                Icon(Icons.Filled.PlayArrow, contentDescription = "Play All", modifier = Modifier.size(28.dp))
+            }
+        }
+    }
 }
+
+private fun PlaylistSong.toSong(): Song = Song(
+    id = songId,
+    title = title,
+    artistId = "",
+    artistName = artist,
+    albumId = null,
+    albumName = null,
+    durationMs = 0L,
+    coverUrl = coverUrl,
+    audioUrl = audioUrl,
+    genre = "",
+    releaseDate = ""
+)
 
 @Composable
 private fun PlaylistSongItem(
+    index: Int,
     song: PlaylistSong,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(2.dp)
+            .clickable(onClick = onClick)
+            .padding(horizontal = WatermelonSpacing.md, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        // Index number
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp, horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
         ) {
-            AsyncImage(
-                model = song.coverUrl
-                    ?: com.watermelon.core.designsystem.R.drawable.app_logo,
-                contentDescription = song.title,
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
+            Text(
+                text = "$index",
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = if (index % 2 == 0)
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    else WatermelonRed
+                )
             )
-            Spacer(modifier = Modifier.width(WatermelonSpacing.md))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = song.title.takeIf { it.isNotBlank() } ?: "Unknown",
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = song.artist.takeIf { it.isNotBlank() } ?: "Unknown Artist",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Remove",
-                    tint = MaterialTheme.colorScheme.error
-                )
-            }
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Cover art
+        AsyncImage(
+            model = song.coverUrl ?: com.watermelon.core.designsystem.R.drawable.app_logo,
+            contentDescription = song.title,
+            modifier = Modifier
+                .size(52.dp)
+                .clip(RoundedCornerShape(10.dp)),
+            contentScale = ContentScale.Crop
+        )
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Title + artist
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = song.title.takeIf { it.isNotBlank() } ?: "Unknown",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = song.artist.takeIf { it.isNotBlank() } ?: "Unknown Artist",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        // Delete button
+        IconButton(onClick = onDelete) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Remove",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
+
+    HorizontalDivider(
+        modifier = Modifier.padding(start = (36 + 12 + 52 + 12 + 8).dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    )
 }

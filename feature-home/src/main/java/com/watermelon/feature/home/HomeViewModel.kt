@@ -10,6 +10,7 @@ import com.watermelon.domain.repository.PlaylistRepository
 import com.watermelon.domain.repository.UserActionsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +20,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Calendar
+import java.util.TimeZone
 import javax.inject.Inject
 
 @HiltViewModel
@@ -50,6 +53,7 @@ class HomeViewModel @Inject constructor(
         observeFavorites()
         loadHomeData()
         loadPlaylists()
+        scheduleDailyTrendingRefresh()
     }
 
     private fun observeRecentlyPlayed() {
@@ -104,6 +108,32 @@ class HomeViewModel @Inject constructor(
     private fun warmUpBackend() {
         viewModelScope.launch {
             runCatching { watermelonRepository.ping() }
+        }
+    }
+
+    /**
+     * Schedules a refresh of the trending section every day at 5:30 AM IST.
+     * IST = UTC+5:30, so 5:30 IST = 00:00 UTC.
+     */
+    private fun scheduleDailyTrendingRefresh() {
+        viewModelScope.launch {
+            val ist = TimeZone.getTimeZone("Asia/Kolkata")
+            while (true) {
+                val now = Calendar.getInstance(ist)
+                val next = Calendar.getInstance(ist).apply {
+                    set(Calendar.HOUR_OF_DAY, 5)
+                    set(Calendar.MINUTE, 30)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                    // If 5:30 AM today has passed, target tomorrow
+                    if (before(now)) add(Calendar.DAY_OF_YEAR, 1)
+                }
+                val delayMs = next.timeInMillis - now.timeInMillis
+                delay(delayMs)
+                loadHomeData()
+                // Wait 24 h before next iteration (loop repeats)
+                delay(24 * 60 * 60 * 1000L)
+            }
         }
     }
 

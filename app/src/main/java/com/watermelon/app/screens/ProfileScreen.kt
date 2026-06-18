@@ -77,7 +77,7 @@ fun ProfileScreenContent(
     paddingValues: PaddingValues,
     user: User?,
     isPremium: Boolean,
-    editState: ProfileEditState,
+    editState: EditState,
     viewModel: ProfileViewModel,
     onLogout: () -> Unit
 ) {

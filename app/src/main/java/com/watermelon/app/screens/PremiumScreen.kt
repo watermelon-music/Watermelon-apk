@@ -1,5 +1,6 @@
 package com.watermelon.app.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -21,6 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.watermelon.core.designsystem.theme.WatermelonRed
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -267,26 +269,46 @@ private fun PlanCardGradient(
     period: String,
     subtitle: String,
     features: List<String>,
-    gradient: Brush,
-    primaryColor: Color,
+    gradient: Brush,               // kept for API compat but unused
+    primaryColor: Color,           // kept for API compat but unused
     badge: String? = null,
     isStudent: Boolean = false,
     studentStatus: StudentVerificationStatus = StudentVerificationStatus.IDLE,
     onClick: () -> Unit,
     onStudentVerify: (String) -> Unit = {}
 ) {
+    // Watermelon theme: white/black/red only
+    val isBlackCard = title.contains("Best Value", ignoreCase = true)
+    val isFamilyCard = title.contains("Family", ignoreCase = true)
+    val isStudentCard = isStudent
+
+    val cardBg = when {
+        isBlackCard -> Color.Black
+        else -> Color.White
+    }
+    val contentColor = when {
+        isBlackCard -> Color.White
+        else -> Color.Black
+    }
+    val accentColor = WatermelonRed
+
     Card(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp),
         shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(6.dp)
+        elevation = CardDefaults.cardElevation(8.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        border = when {
+            isFamilyCard -> BorderStroke(2.dp, accentColor)
+            isStudentCard -> BorderStroke(1.dp, accentColor.copy(alpha = 0.5f))
+            else -> null
+        }
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(gradient)
                 .padding(20.dp)
         ) {
             Column {
@@ -299,25 +321,26 @@ private fun PlanCardGradient(
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            color = Color.White
+                            color = contentColor
                         )
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.85f)
+                            color = contentColor.copy(alpha = 0.65f)
                         )
                     }
                     if (badge != null) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color.White.copy(alpha = 0.2f))
+                                .background(accentColor)
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = badge,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.White
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
@@ -329,31 +352,34 @@ private fun PlanCardGradient(
                     Text(
                         text = price,
                         style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
-                        color = Color.White
+                        color = accentColor
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = period,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White.copy(alpha = 0.85f)
+                        color = contentColor.copy(alpha = 0.65f)
                     )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 features.forEach { feature ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.9f),
+                            tint = accentColor,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = feature,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.9f)
+                            color = contentColor
                         )
                     }
                 }
@@ -364,35 +390,37 @@ private fun PlanCardGradient(
                         StudentVerificationStatus.IDLE -> {
                             Button(
                                 onClick = onClick,
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f)),
+                                colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                                modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Icon(Icons.Default.School, contentDescription = null, tint = Color.White)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Verify Student Status", color = Color.White)
+                                Text("Verify Student Status", color = Color.White, fontWeight = FontWeight.Bold)
                             }
                         }
                         StudentVerificationStatus.PENDING -> {
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(Color.White.copy(alpha = 0.15f))
+                                    .background(accentColor.copy(alpha = 0.08f))
                                     .padding(horizontal = 16.dp, vertical = 10.dp)
                             ) {
                                 Text(
-                                    "Verification Pending • 24h review",
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.bodyMedium
+                                    "Verification Pending  •  24h review",
+                                    color = accentColor,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
                                 )
                             }
                         }
                         StudentVerificationStatus.APPROVED -> {
                             Button(
                                 onClick = onClick,
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                                colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                                modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text("Get Student Plan", color = primaryColor)
+                                Text("Get Student Plan", color = Color.White, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -401,16 +429,17 @@ private fun PlanCardGradient(
                     Button(
                         onClick = onClick,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        colors = ButtonDefaults.buttonColors(containerColor = accentColor),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Choose $title", color = primaryColor, fontWeight = FontWeight.Bold)
+                        Text("Choose $title", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
     }
 }
+
 
 @Composable
 private fun StudentVerificationDialog(

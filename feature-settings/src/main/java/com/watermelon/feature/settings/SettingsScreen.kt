@@ -226,7 +226,7 @@ fun SettingsScreen(
                             Intent.EXTRA_TEXT,
                             "Check out Watermelon - the best free music app! 🍉\n\n" +
                             "Download directly to your phone with one click:\n" +
-                            "https://github.com/SatyamPote/Watermelon-apk/releases/latest/download/app-release-unsigned.apk"
+                            "https://github.com/SatyamPote/Watermelon-apk/releases/latest/download/app-release.apk"
                         )
                     }
                     context.startActivity(Intent.createChooser(sendIntent, null))

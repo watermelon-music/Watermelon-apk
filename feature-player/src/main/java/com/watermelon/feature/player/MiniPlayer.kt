@@ -43,9 +43,9 @@ fun MiniPlayer(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(62.dp)
-            .padding(horizontal = 12.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(20.dp))
+            .height(58.dp)
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(16.dp))
             .clickable(
                 onClick = onClick,
                 indication = null,
@@ -81,8 +81,8 @@ fun MiniPlayer(
                         ?: com.watermelon.core.designsystem.R.drawable.app_logo,
                     contentDescription = null,
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(8.dp))
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(
@@ -91,14 +91,14 @@ fun MiniPlayer(
                 ) {
                     Text(
                         text = state.currentTitle,
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.labelMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = state.currentArtist,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -108,35 +108,35 @@ fun MiniPlayer(
                 IconButton(
                     onClick = { viewModel.playPrevious() },
                     enabled = state.hasPrevious,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.SkipPrevious,
+                        imageVector = Icons.Default.SkipPrevious,
                         contentDescription = "Previous",
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(20.dp),
                         tint = if (state.hasPrevious) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                     )
                 }
                 IconButton(
                     onClick = { viewModel.togglePlayPause() },
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                         contentDescription = if (state.isPlaying) "Pause" else "Play",
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(22.dp),
                         tint = WatermelonRed
                     )
                 }
                 IconButton(
                     onClick = { viewModel.playNext() },
                     enabled = state.hasNext,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Filled.SkipNext,
                         contentDescription = "Next",
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(22.dp),
                         tint = if (state.hasNext) WatermelonRed else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                     )
                 }

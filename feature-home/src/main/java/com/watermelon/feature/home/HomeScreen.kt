@@ -148,15 +148,6 @@ private fun HomeScreenContent(
 ) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            val playerState by playerViewModel.uiState.collectAsStateWithLifecycle()
-            if (playerState.currentTitle.isNotBlank()) {
-                MiniPlayer(
-                    onClick = onPlayerClick,
-                    viewModel = playerViewModel
-                )
-            }
-        },
         topBar = {
             TopAppBar(
                 title = {

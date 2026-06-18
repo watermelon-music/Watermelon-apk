@@ -30,12 +30,7 @@ fun MiniPlayer(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(state.isPlaying) {
-        while (state.isPlaying) {
-            delay(500)
-            viewModel.updatePosition()
-        }
-    }
+
 
     if (state.currentTitle.isBlank() && state.currentArtist.isBlank()) return
 

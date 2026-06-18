@@ -255,7 +255,7 @@ private fun PlanCardGradient(
         title.contains("Individual", ignoreCase = true) -> true
         title.contains("Best Value", ignoreCase = true) -> false
         title.contains("Family", ignoreCase = true) -> true
-        isStudent -> true
+        isStudent -> false
         else -> true
     }
 

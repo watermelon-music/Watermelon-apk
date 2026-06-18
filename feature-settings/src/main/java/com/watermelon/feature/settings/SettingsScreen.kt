@@ -219,17 +219,39 @@ fun SettingsScreen(
                 title = "Share App",
                 subtitle = "Invite friends",
                 onClick = {
-                    val sendIntent = Intent().apply {
-                        action = Intent.ACTION_SEND
-                        type = "text/plain"
-                        putExtra(
-                            Intent.EXTRA_TEXT,
-                            "Check out Watermelon - the best free music app! 🍉\n\n" +
-                            "Download directly to your phone with one click:\n" +
-                            "https://github.com/SatyamPote/Watermelon-apk/releases/latest/download/app-release.apk"
+                    val shareText = "Check out Watermelon - the best free music app! 🍉\n\nDownload directly to your phone with one click:\nhttps://watermelon-api-oxx2.onrender.com/share"
+                    val cacheFile = java.io.File(context.cacheDir, "watermelon_share.jpg")
+                    try {
+                        if (!cacheFile.exists()) {
+                            context.resources.openRawResource(com.watermelon.core.designsystem.R.drawable.watermelon_field).use { input ->
+                                java.io.FileOutputStream(cacheFile).use { output ->
+                                    input.copyTo(output)
+                                }
+                            }
+                        }
+                        
+                        val contentUri = androidx.core.content.FileProvider.getUriForFile(
+                            context,
+                            "com.watermelon.app.fileprovider",
+                            cacheFile
                         )
+                        
+                        val sendIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            type = "image/jpeg"
+                            putExtra(Intent.EXTRA_STREAM, contentUri)
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(Intent.createChooser(sendIntent, "Share App"))
+                    } catch (e: Exception) {
+                        val sendIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                        }
+                        context.startActivity(Intent.createChooser(sendIntent, null))
                     }
-                    context.startActivity(Intent.createChooser(sendIntent, null))
                 }
             )
             SettingsItem(

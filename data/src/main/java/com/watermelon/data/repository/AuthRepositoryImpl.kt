@@ -36,7 +36,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     override suspend fun signUp(username: String, email: String, password: String): Result<Unit> = runCatching {
-        client.auth.signUpWith(Email) {
+        client.auth.signUpWith(Email, redirectUrl = "https://watermelon-api-oxx2.onrender.com/confirm") {
             this.email = email
             this.password = password
             this.data = buildJsonObject {

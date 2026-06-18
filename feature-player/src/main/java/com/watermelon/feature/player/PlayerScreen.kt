@@ -66,12 +66,7 @@ fun PlayerScreen(
     var localProgress by remember { mutableStateOf<Float?>(null) }
     val isInteracting = localProgress != null
 
-    LaunchedEffect(isPlaying, isInteracting) {
-        while (isPlaying && !isInteracting) {
-            delay(1000)
-            viewModel.updatePosition()
-        }
-    }
+
 
     // Artwork pulse animation when playing
     val pulseAnim by rememberInfiniteTransition(label = "pulse").animateFloat(

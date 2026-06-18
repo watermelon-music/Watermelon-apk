@@ -6,15 +6,20 @@ A modern Android music streaming app that lets you search and play millions of s
 
 - **Search & Play** — Search any song on YouTube and stream it instantly with a beautiful player UI.
 - **Categories** — Browse curated collections like Trending, Bollywood, Hollywood, Pop, Rock, Jazz, Classical, Electronic, Hip Hop.
+- **720p HD Cover Images** — Streams YouTube thumbnails at high-resolution `maxresdefault.jpg` (720p) with a custom Coil client-side interceptor that automatically falls back to `hqdefault.jpg` on load errors (404).
 - **Global Radio** — Listen to 30,000+ radio stations from Radio Browser API. Browse by country, language, favorites, and recent.
-- **Playlists** — Create your own playlists, add songs on the go, and manage your music library.
-- **Favorites** — Like songs across the app. Your favorites sync via local database and cloud integration.
-- **Downloads** — Download songs to private local storage and listen offline. Downloaded tracks automatically play from local cache.
-- **Autoplay** — Smart autoplay recommendation engine analyzes your listening history, skips, transitions, and song metadata to suggest the next song after your queue ends. Powered by Room analytics and YT-DLP metadata extraction.
+- **Playlists** — Create playlists, add songs on the go, and manage your library.
+- **Social Sharing & Previews** — Share playlists via WhatsApp/Telegram with rich visual previews (artwork banner, track counts, description) using custom web preview pages.
+- **Playlist Cloning** — Seamlessly import/clone shared playlists owned by other users directly into your personal library with one click.
+- **In-App Auto-Updater** — Seamlessly checks for new releases on app start, downloads APKs in the background, handles install permissions on Android 8.0+, and triggers in-place updates.
+- **Personalized Daily Notifications** — Daily music engagement alerts (Swiggy/Zomato style) scheduled at randomized intervals (6, 8, 12, 24h) with a custom ringtone (`watermelon_tone.mp3`) and dynamically personalized with the user's name.
+- **Favorites** — Like songs across the app to sync them with local cache and database storage.
+- **Downloads** — Securely download songs to app-private storage for offline playback (resolved YouTube HTTP 403 Forbidden errors).
+- **Autoplay** — Smart autoplay recommendation engine analyzes history, skips, and transitions to suggest similar songs after your queue ends.
 - **Lyrics** — Fetch and display lyrics inside the player with a clean, readable UI.
 - **Sleep Timer** — Set a timer to stop playback after a chosen duration.
-- **Queue Management** — Full queue with play, pause, skip, shuffle, and repeat modes.
-- **Premium Plans** — Upgrade to Watermelon Premium (Individual, Family, Student) for expanded limits.
+- **Premium Plans** — RED/WHITE/BLACK plan card designs with red borders (Individual: Black, Best Value: White, Family: Black, Student: White) and verification flows.
+
 
 ## User Limits
 

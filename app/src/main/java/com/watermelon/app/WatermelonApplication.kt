@@ -117,16 +117,30 @@ class YoutubeThumbnailInterceptor : Interceptor {
     override suspend fun intercept(chain: Interceptor.Chain): ImageResult {
         val request = chain.request
         val data = request.data
-        if (data is String && data.contains("i.ytimg.com") && data.contains("maxresdefault.jpg")) {
-            val result = chain.proceed(request)
-            if (result !is SuccessResult) {
-                val fallbackUrl = data.replace("maxresdefault.jpg", "hqdefault.jpg")
-                val fallbackRequest = request.newBuilder()
-                    .data(fallbackUrl)
-                    .build()
-                return chain.proceed(fallbackRequest)
+        if (data is String && data.contains("i.ytimg.com/vi/")) {
+            val viIndex = data.indexOf("/vi/")
+            if (viIndex != -1) {
+                val afterVi = data.substring(viIndex + 4)
+                val firstSlash = afterVi.indexOf('/')
+                if (firstSlash != -1) {
+                    val videoId = afterVi.substring(0, firstSlash)
+                    val maxResUrl = "https://i.ytimg.com/vi/$videoId/maxresdefault.jpg"
+                    
+                    val maxResRequest = request.newBuilder()
+                        .data(maxResUrl)
+                        .build()
+                    val result = chain.proceed(maxResRequest)
+                    if (result is SuccessResult) {
+                        return result
+                    }
+                    
+                    val fallbackUrl = "https://i.ytimg.com/vi/$videoId/hqdefault.jpg"
+                    val fallbackRequest = request.newBuilder()
+                        .data(fallbackUrl)
+                        .build()
+                    return chain.proceed(fallbackRequest)
+                }
             }
-            return result
         }
         return chain.proceed(request)
     }

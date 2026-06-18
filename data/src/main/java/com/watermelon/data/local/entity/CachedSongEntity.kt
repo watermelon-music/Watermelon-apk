@@ -24,19 +24,40 @@ data class CachedSongEntity(
     val cachedAt: Long = System.currentTimeMillis()
 )
 
-fun CachedSongEntity.toSong(): Song = Song(
-    id = id,
-    title = title,
-    artistId = artistId,
-    artistName = artistName,
-    albumId = albumId,
-    albumName = albumName,
-    durationMs = durationMs,
-    coverUrl = coverUrl,
-    audioUrl = audioUrl,
-    genre = genre,
-    releaseDate = releaseDate
-)
+fun CachedSongEntity.toSong(): Song {
+    val mappedCoverUrl = coverUrl?.let { url ->
+        if (url.contains("i.ytimg.com/vi/")) {
+            val viIndex = url.indexOf("/vi/")
+            if (viIndex != -1) {
+                val afterVi = url.substring(viIndex + 4)
+                val firstSlash = afterVi.indexOf('/')
+                if (firstSlash != -1) {
+                    val videoId = afterVi.substring(0, firstSlash)
+                    "https://i.ytimg.com/vi/$videoId/maxresdefault.jpg"
+                } else {
+                    url
+                }
+            } else {
+                url
+            }
+        } else {
+            url
+        }
+    }
+    return Song(
+        id = id,
+        title = title,
+        artistId = artistId,
+        artistName = artistName,
+        albumId = albumId,
+        albumName = albumName,
+        durationMs = durationMs,
+        coverUrl = mappedCoverUrl,
+        audioUrl = audioUrl,
+        genre = genre,
+        releaseDate = releaseDate
+    )
+}
 
 fun Song.toCachedEntity(cacheType: String, searchQuery: String? = null): CachedSongEntity = CachedSongEntity(
     id = id,

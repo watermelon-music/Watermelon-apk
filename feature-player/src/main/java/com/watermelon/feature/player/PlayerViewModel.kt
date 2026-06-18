@@ -105,6 +105,23 @@ class PlayerViewModel @Inject constructor(
     private var currentExtractionJob: Job? = null
     private val MAX_CONSECUTIVE_ERRORS = 3
 
+    private var positionUpdateJob: Job? = null
+
+    private fun startPositionUpdates() {
+        positionUpdateJob?.cancel()
+        positionUpdateJob = viewModelScope.launch {
+            while (true) {
+                updatePosition()
+                delay(500)
+            }
+        }
+    }
+
+    private fun stopPositionUpdates() {
+        positionUpdateJob?.cancel()
+        positionUpdateJob = null
+    }
+
     private val listener = object : StreamingRepository.Callback {
         override fun onPlaybackStateChanged(isBuffering: Boolean) {
             _uiState.update { it.copy(isBuffering = isBuffering) }
@@ -113,6 +130,9 @@ class PlayerViewModel @Inject constructor(
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             if (isPlaying) {
                 consecutiveErrors = 0
+                startPositionUpdates()
+            } else {
+                stopPositionUpdates()
             }
             _uiState.update { it.copy(isPlaying = isPlaying) }
         }
@@ -197,6 +217,9 @@ class PlayerViewModel @Inject constructor(
         streamingRepository.addListener(listener)
         loadPlaylists()
         updatePosition()
+        if (streamingRepository.isPlaying()) {
+            startPositionUpdates()
+        }
     }
 
     private fun loadPlaylists() {
@@ -247,11 +270,27 @@ class PlayerViewModel @Inject constructor(
         playCurrent()
     }
 
-    fun loadAndPlay(sourceUrl: String, title: String, artist: String, artwork: String, songId: String = "", isRadioStream: Boolean = false) {
+    fun loadAndPlay(
+        sourceUrl: String, 
+        title: String, 
+        artist: String, 
+        artwork: String, 
+        songId: String = "", 
+        isRadioStream: Boolean = false,
+        durationMs: Long = 0L
+    ) {
         currentExtractionJob?.cancel()
         consecutiveErrors = 0
         currentExtractionJob = viewModelScope.launch {
-            _uiState.update { it.copy(isBuffering = true, errorMessage = null, isRadioStream = isRadioStream) }
+            _uiState.update { 
+                it.copy(
+                    isBuffering = true, 
+                    errorMessage = null, 
+                    isRadioStream = isRadioStream,
+                    positionMs = 0L,
+                    durationMs = if (durationMs > 0) durationMs else 0L
+                ) 
+            }
             if (sourceUrl.startsWith("file:") || sourceUrl.startsWith("/")) {
                 val playUrl = if (sourceUrl.startsWith("/")) {
                     android.net.Uri.fromFile(File(sourceUrl)).toString()
@@ -280,7 +319,9 @@ class PlayerViewModel @Inject constructor(
                         currentArtist = artist,
                         artworkUrl = artwork,
                         currentSongId = songId,
-                        isBuffering = false
+                        isBuffering = false,
+                        positionMs = 0L,
+                        durationMs = if (durationMs > 0) durationMs else 0L
                     )
                 }
                 return@launch
@@ -298,7 +339,9 @@ class PlayerViewModel @Inject constructor(
                                 currentArtist = artist,
                                 artworkUrl = artwork,
                                 currentSongId = songId,
-                                isBuffering = false
+                                isBuffering = false,
+                                positionMs = 0L,
+                                durationMs = if (durationMs > 0) durationMs else 0L
                             )
                         }
                     }
@@ -321,7 +364,13 @@ class PlayerViewModel @Inject constructor(
             runCatching { userActionsRepository.recordRecentlyPlayed(song) }
             runCatching { transitionTracker.recordPlayStart(song) }
             val favorites = runCatching { userActionsRepository.getFavorites().first() }.getOrDefault(emptyList())
-            _uiState.update { it.copy(isFavorite = favorites.any { f -> f.id == song.id }) }
+            _uiState.update { 
+                it.copy(
+                    isFavorite = favorites.any { f -> f.id == song.id },
+                    positionMs = 0L,
+                    durationMs = if (song.durationMs > 0) song.durationMs else 0L
+                ) 
+            }
 
             val localPath = runCatching { downloadRepository.getDownloadPath(song.id) }.getOrNull()
             val audioUrl = when {
@@ -339,7 +388,15 @@ class PlayerViewModel @Inject constructor(
                         ?: "https://www.youtube.com/watch?v=${song.id}"
                 }
             }
-            loadAndPlay(audioUrl, song.title, song.artistName, song.coverUrl ?: "", song.id, isRadioStream = false)
+            loadAndPlay(
+                sourceUrl = audioUrl, 
+                title = song.title, 
+                artist = song.artistName, 
+                artwork = song.coverUrl ?: "", 
+                songId = song.id, 
+                isRadioStream = false,
+                durationMs = song.durationMs
+            )
             updateQueueState()
             fetchLyrics(song)
         }
@@ -665,6 +722,7 @@ class PlayerViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        stopPositionUpdates()
         streamingRepository.removeListener(listener)
     }
 }

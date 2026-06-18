@@ -194,12 +194,12 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    val activity = LocalContext.current as ComponentActivity
+                    val activity = LocalContext.current as MainActivity
                     val playerViewModel = hiltViewModel<PlayerViewModel>(activity)
 
                     LaunchedEffect(pendingDeepLink) {
                         pendingDeepLink?.let { uri ->
-                            handleDeepLink(navController, uri)
+                            handleDeepLink(navController, uri, activity.authRepository, this)
                             pendingDeepLink = null
                         }
                     }
@@ -533,9 +533,20 @@ class MainActivity : ComponentActivity() {
 
 private fun handleDeepLink(
     navController: androidx.navigation.NavHostController,
-    uri: android.net.Uri
+    uri: android.net.Uri,
+    authRepository: com.watermelon.domain.repository.AuthRepository,
+    scope: kotlinx.coroutines.CoroutineScope
 ) {
     when {
+        uri.scheme == "watermelon" && uri.host == "confirm" -> {
+            scope.launch {
+                val verified = runCatching { authRepository.isEmailVerified() }.getOrDefault(false)
+                val target = if (verified) Routes.HOME else Routes.LOGIN
+                navController.navigate(target) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        }
         uri.scheme == "watermelon" && uri.host == "playlist" -> {
             val id = uri.lastPathSegment ?: return
             navController.navigate("playlist_detail/$id")

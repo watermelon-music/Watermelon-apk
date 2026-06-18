@@ -21,7 +21,8 @@ const MAIN_KEYBOARD = Markup.keyboard([
   ['📊 Stats', '📅 Daily'],
   ['⏳ Pending', '🏆 Top Users'],
   ['🆕 Recent', '⚙️ Remote Config'],
-  ['📢 Broadcast', '💎 Subs']
+  ['📢 Broadcast', '🔄 Refresh Home'],
+  ['💎 Subs']
 ]).resize();
 
 function b(text) { return `<b>${text}</b>`; }
@@ -281,6 +282,27 @@ async function handleConfig(ctx) {
   }
 }
 
+async function handleRefresh(ctx) {
+  if (!isAdmin(ctx)) return;
+  try {
+    const { error } = await supabase.from('broadcasts').insert({
+      message: '[REFRESH] Clear Room cache and reload home catalog',
+      sender: 'Admin',
+      active: true,
+      created_at: new Date().toISOString()
+    });
+    if (error) throw error;
+    ctx.reply(
+      `🔄 ${b('Home Refresh Signal Sent!')}\n` +
+      hr() +
+      `All active apps will clear their database cache and fetch fresh trending songs.`,
+      { parse_mode: 'HTML', ...MAIN_KEYBOARD }
+    );
+  } catch (e) {
+    ctx.reply(`❌ Error: ${e.message}`, MAIN_KEYBOARD);
+  }
+}
+
 // ========== REGISTER COMMANDS AND TEXT TRIGGERS ==========
 
 bot.start((ctx) => {
@@ -341,6 +363,7 @@ bot.command('commands', (ctx) => {
     '• /set_playlists &lt;number&gt; — Set max playlists for free tier\n\n' +
     '🚨 ' + b('User & Communication Actions') + '\n' +
     '• /broadcast &lt;message&gt; — Send notification overlay to all users\n' +
+    '• /refresh — Clear Room cache and reload home catalog\n' +
     '• /verify &lt;email&gt; — Manually grant premium subscription\n' +
     '• /revoke &lt;email&gt; — Revoke premium subscription\n' +
     '• /ban &lt;email&gt; — Ban a user from the application\n' +
@@ -374,6 +397,9 @@ bot.hears('🆕 Recent', handleRecent);
 
 bot.command('config', handleConfig);
 bot.hears('⚙️ Remote Config', handleConfig);
+
+bot.command('refresh', handleRefresh);
+bot.hears('🔄 Refresh Home', handleRefresh);
 
 bot.hears('📢 Broadcast', (ctx) => {
   if (!isAdmin(ctx)) return;

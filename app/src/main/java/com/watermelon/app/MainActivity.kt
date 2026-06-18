@@ -75,6 +75,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var authRepository: com.watermelon.domain.repository.AuthRepository
 
+    @Inject
+    lateinit var cachedSongDao: com.watermelon.data.local.dao.CachedSongDao
+
     private val premiumViewModel: PremiumViewModel by viewModels()
     private var pendingDeepLink by mutableStateOf<android.net.Uri?>(null)
 
@@ -427,8 +430,15 @@ class MainActivity : ComponentActivity() {
                     val prefs = getSharedPreferences("watermelon_prefs", MODE_PRIVATE)
                     val lastBroadcastId = prefs.getLong("last_broadcast_id", -1)
                     if (latest.id > lastBroadcastId) {
-                        withContext(Dispatchers.Main) {
-                            showBroadcastNotification(applicationContext, latest.message)
+                        if (latest.message.startsWith("[REFRESH]")) {
+                            cachedSongDao.clearAll()
+                            withContext(Dispatchers.Main) {
+                                recreate()
+                            }
+                        } else {
+                            withContext(Dispatchers.Main) {
+                                showBroadcastNotification(applicationContext, latest.message)
+                            }
                         }
                         prefs.edit().putLong("last_broadcast_id", latest.id).apply()
                     }

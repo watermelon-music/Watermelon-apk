@@ -14,24 +14,17 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
-/** Converts a raw Supabase/network exception into a user-friendly message. */
+/** Short user-facing error messages. */
 private fun Throwable.toUserMessage(): String {
     val msg = message?.lowercase() ?: ""
     return when {
-        msg.contains("invalid login") || msg.contains("invalid credentials") ||
-            msg.contains("email not confirmed").not() && msg.contains("invalid") ->
-            "Invalid email or password. Please check your credentials."
-        msg.contains("email not confirmed") ->
-            "Please verify your email before signing in."
-        msg.contains("user already registered") || msg.contains("already registered") ->
-            "An account with this email already exists. Try signing in instead."
-        msg.contains("password") && msg.contains("short") ->
-            "Password must be at least 6 characters."
-        msg.contains("network") || msg.contains("unable to resolve") || msg.contains("timeout") ->
-            "Network error. Please check your connection and try again."
-        msg.contains("rate limit") || msg.contains("too many") ->
-            "Too many attempts. Please wait a moment and try again."
-        else -> message?.takeIf { it.isNotBlank() } ?: "Something went wrong. Please try again."
+        msg.contains("invalid login") || msg.contains("invalid credentials") -> "Wrong email or password"
+        msg.contains("email not confirmed") -> "Verify your email first"
+        msg.contains("already registered") -> "Account already exists"
+        msg.contains("password") && msg.contains("short") -> "Password too short (min 6)"
+        msg.contains("network") || msg.contains("unable to resolve") || msg.contains("timeout") -> "No internet connection"
+        msg.contains("rate limit") || msg.contains("too many") -> "Too many attempts, wait a bit"
+        else -> "Something went wrong"
     }
 }
 
@@ -46,7 +39,7 @@ class AuthViewModel @Inject constructor(
     fun signIn(email: String, password: String) {
         // Input validation
         if (email.isBlank() || password.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Please enter your email and password.") }
+            _uiState.update { it.copy(errorMessage = "Enter email and password") }
             return
         }
         viewModelScope.launch {
@@ -59,7 +52,7 @@ class AuthViewModel @Inject constructor(
                         isLoading = false,
                         isSuccess = verified,
                         needsEmailVerification = !verified,
-                        errorMessage = if (!verified) "Please verify your email before signing in." else null
+                        errorMessage = if (!verified) "Verify your email first" else null
                     )
                 }
             } else {
@@ -69,7 +62,7 @@ class AuthViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         isSuccess = false,
-                        errorMessage = ex?.toUserMessage() ?: "Sign in failed. Please try again."
+                        errorMessage = ex?.toUserMessage() ?: "Sign in failed"
                     )
                 }
             }
@@ -79,11 +72,11 @@ class AuthViewModel @Inject constructor(
     fun signUp(username: String, email: String, password: String) {
         // Input validation
         if (username.isBlank() || email.isBlank() || password.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Please fill in all fields.") }
+            _uiState.update { it.copy(errorMessage = "Fill in all fields") }
             return
         }
         if (password.length < 6) {
-            _uiState.update { it.copy(errorMessage = "Password must be at least 6 characters.") }
+            _uiState.update { it.copy(errorMessage = "Password too short (min 6)") }
             return
         }
         viewModelScope.launch {
@@ -106,7 +99,7 @@ class AuthViewModel @Inject constructor(
                         isLoading = false,
                         isSuccess = false,
                         needsEmailVerification = false,
-                        errorMessage = ex?.toUserMessage() ?: "Sign up failed. Please try again."
+                        errorMessage = ex?.toUserMessage() ?: "Sign up failed"
                     )
                 }
             }
@@ -115,7 +108,7 @@ class AuthViewModel @Inject constructor(
 
     fun resetPassword(email: String) {
         if (email.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Please enter your email address.") }
+            _uiState.update { it.copy(errorMessage = "Enter your email") }
             return
         }
         viewModelScope.launch {
@@ -130,7 +123,7 @@ class AuthViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         resetSent = false,
-                        errorMessage = ex?.toUserMessage() ?: "Failed to send reset email. Please try again."
+                        errorMessage = ex?.toUserMessage() ?: "Reset failed"
                     )
                 }
             }
@@ -150,7 +143,7 @@ class AuthViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         resetSent = false,
-                        errorMessage = ex?.toUserMessage() ?: "Failed to resend email. Please try again."
+                        errorMessage = ex?.toUserMessage() ?: "Resend failed"
                     )
                 }
             }

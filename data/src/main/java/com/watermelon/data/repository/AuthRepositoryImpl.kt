@@ -37,7 +37,11 @@ class AuthRepositoryImpl @Inject constructor(
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     override suspend fun signUp(username: String, email: String, password: String): Result<Unit> = runCatching {
-        client.auth.signUpWith(Email, redirectUrl = "https://watermelon-api-oxx2.onrender.com/confirm") {
+        // Intentionally omit redirectUrl — Supabase falls back to the project's
+        // Site URL for the confirmation email link, which doesn't require the
+        // value to be present in the Redirect URLs allowlist. This sidesteps
+        // the "invalid redirect URL" error caused by allowlist mismatches.
+        client.auth.signUpWith(Email) {
             this.email = email
             this.password = password
             this.data = buildJsonObject {
@@ -79,7 +83,9 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun resetPassword(email: String): Result<Unit> = runCatching {
-        client.auth.resetPasswordForEmail(email, redirectUrl = "watermelon://reset-password")
+        // Omit redirectUrl — same reasoning as signUp: avoid the Redirect URLs
+        // allowlist gate. Supabase will use the project Site URL by default.
+        client.auth.resetPasswordForEmail(email)
     }
 
     override suspend fun resendVerificationEmail(email: String): Result<Unit> = runCatching {

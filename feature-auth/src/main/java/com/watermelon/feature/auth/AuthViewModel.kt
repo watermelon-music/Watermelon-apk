@@ -36,7 +36,9 @@ private fun Throwable.toUserMessage(): String {
         msg.contains("401") || msg.contains("unauthorized") -> "Wrong email or password"
         msg.contains("403") || msg.contains("forbidden") -> "Access denied"
         msg.contains("invalid_email") || msg.contains("invalid email") -> "Invalid email format"
-        msg.contains("invalid redirect") || msg.contains("redirect_to") ->
+        // Only match the explicit allowlist-rejection phrasing; "redirect_to"
+        // alone was matching unrelated responses.
+        msg.contains("invalid redirect") || msg.contains("not allowed") && msg.contains("redirect") ->
             "App not allowlisted in Supabase redirect URLs"
         // Surface the actual Supabase signup-trigger error so the operator can fix the SQL trigger
         msg.contains("database error saving new user") ->

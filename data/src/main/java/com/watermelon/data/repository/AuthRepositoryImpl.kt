@@ -102,15 +102,20 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun isEmailVerified(): Boolean {
-        // Trust the live Supabase user when we have one. If there is no live
-        // session, fall back to the cached flag so an offline open of the app
-        // doesn't bounce the user back to the verification screen.
+        // Force a server round-trip so we see the *current* email_confirmed_at
+        // value — the SDK-cached user object is stale right after a signup or
+        // after the user clicks the email link in another app.
+        runCatching {
+            client.auth.refreshCurrentSession()
+        }
         val user = client.auth.currentUserOrNull()
         if (user != null) {
             val verified = user.emailConfirmedAt != null
             prefs.edit().putBoolean(KEY_EMAIL_VERIFIED, verified).apply()
             return verified
         }
+        // No live session — fall back to the cached flag so an offline open
+        // doesn't kick a previously-verified user back to the verify screen.
         return prefs.getBoolean(KEY_EMAIL_VERIFIED, false)
     }
 

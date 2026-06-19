@@ -39,6 +39,7 @@ fun EmailVerificationScreen(
     var email by remember { mutableStateOf("") }
     var isVisible by remember { mutableStateOf(false) }
     var checking by remember { mutableStateOf(false) }
+    var localStatus by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         delay(100)
@@ -149,23 +150,32 @@ fun EmailVerificationScreen(
                             )
                         }
 
+                        // Local status message — stays on this screen until the
+                        // server confirms email is verified.
+                        localStatus?.let {
+                            Text(
+                                text = it,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
                         Button(
                             onClick = {
                                 scope.launch {
                                     checking = true
+                                    localStatus = null
                                     val verified = viewModel.isEmailVerified()
                                     checking = false
                                     if (verified) {
                                         viewModel.clearMessage()
                                         onVerified()
                                     } else {
-                                        viewModel.clearMessage()
-                                        android.widget.Toast.makeText(
-                                            context,
-                                            "Verification checked. Please log in with your verified account.",
-                                            android.widget.Toast.LENGTH_LONG
-                                        ).show()
-                                        onBackToLogin()
+                                        // Don't bounce to Login or Home — stay here
+                                        // and prompt the user to open the inbox.
+                                        localStatus = "Please confirm your email in the inbox, then tap Continue again."
                                     }
                                 }
                             },

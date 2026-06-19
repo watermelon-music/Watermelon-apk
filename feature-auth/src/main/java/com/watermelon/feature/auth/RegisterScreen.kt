@@ -46,6 +46,7 @@ fun RegisterScreen(
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var confirmPassword by rememberSaveable { mutableStateOf("") }
+    var localError by rememberSaveable { mutableStateOf<String?>("") }
     var isVisible by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -53,10 +54,11 @@ fun RegisterScreen(
         isVisible = true
     }
 
-    LaunchedEffect(uiState.isSuccess) {
-        if (uiState.isSuccess) {
+    // Navigate to email verification screen after successful signup
+    LaunchedEffect(uiState.needsEmailVerification) {
+        if (uiState.needsEmailVerification) {
             viewModel.clearMessage()
-            onAuthSuccess()
+            onAuthSuccess() // AuthSuccess after signup = show email verification screen
         }
     }
 
@@ -209,9 +211,11 @@ fun RegisterScreen(
                             )
                         )
 
-                        if (uiState.errorMessage != null) {
+                        // Show local password mismatch error OR server error
+                        val displayError = localError?.takeIf { it.isNotBlank() } ?: uiState.errorMessage
+                        if (displayError != null) {
                             Text(
-                                text = uiState.errorMessage!!,
+                                text = displayError,
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.fillMaxWidth()
@@ -220,7 +224,16 @@ fun RegisterScreen(
 
                         Button(
                             onClick = {
-                                if (password == confirmPassword) {
+                                localError = when {
+                                    username.isBlank() || email.isBlank() || password.isBlank() ->
+                                        "Please fill in all fields."
+                                    password != confirmPassword ->
+                                        "Passwords do not match."
+                                    password.length < 6 ->
+                                        "Password must be at least 6 characters."
+                                    else -> null
+                                }
+                                if (localError == null) {
                                     viewModel.signUp(username, email, password)
                                 }
                             },

@@ -11,7 +11,29 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
+
+/** Converts a raw Supabase/network exception into a user-friendly message. */
+private fun Throwable.toUserMessage(): String {
+    val msg = message?.lowercase() ?: ""
+    return when {
+        msg.contains("invalid login") || msg.contains("invalid credentials") ||
+            msg.contains("email not confirmed").not() && msg.contains("invalid") ->
+            "Invalid email or password. Please check your credentials."
+        msg.contains("email not confirmed") ->
+            "Please verify your email before signing in."
+        msg.contains("user already registered") || msg.contains("already registered") ->
+            "An account with this email already exists. Try signing in instead."
+        msg.contains("password") && msg.contains("short") ->
+            "Password must be at least 6 characters."
+        msg.contains("network") || msg.contains("unable to resolve") || msg.contains("timeout") ->
+            "Network error. Please check your connection and try again."
+        msg.contains("rate limit") || msg.contains("too many") ->
+            "Too many attempts. Please wait a moment and try again."
+        else -> message?.takeIf { it.isNotBlank() } ?: "Something went wrong. Please try again."
+    }
+}
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
@@ -22,9 +44,14 @@ class AuthViewModel @Inject constructor(
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     fun signIn(email: String, password: String) {
+        // Input validation
+        if (email.isBlank() || password.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Please enter your email and password.") }
+            return
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, isSuccess = false, needsEmailVerification = false) }
-            val result = authRepository.signIn(email, password)
+            val result = authRepository.signIn(email.trim(), password)
             if (result.isSuccess) {
                 val verified = authRepository.isEmailVerified()
                 _uiState.update {
@@ -32,15 +59,17 @@ class AuthViewModel @Inject constructor(
                         isLoading = false,
                         isSuccess = verified,
                         needsEmailVerification = !verified,
-                        errorMessage = null
+                        errorMessage = if (!verified) "Please verify your email before signing in." else null
                     )
                 }
             } else {
+                val ex = result.exceptionOrNull()
+                Timber.e(ex, "signIn failed")
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         isSuccess = false,
-                        errorMessage = "Something went wrong. Please try again."
+                        errorMessage = ex?.toUserMessage() ?: "Sign in failed. Please try again."
                     )
                 }
             }
@@ -48,30 +77,62 @@ class AuthViewModel @Inject constructor(
     }
 
     fun signUp(username: String, email: String, password: String) {
+        // Input validation
+        if (username.isBlank() || email.isBlank() || password.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Please fill in all fields.") }
+            return
+        }
+        if (password.length < 6) {
+            _uiState.update { it.copy(errorMessage = "Password must be at least 6 characters.") }
+            return
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, isSuccess = false, needsEmailVerification = false) }
-            val result = authRepository.signUp(username, email, password)
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    isSuccess = false,
-                    needsEmailVerification = result.isSuccess,
-                    errorMessage = if (result.isSuccess) null else "Something went wrong. Please try again."
-                )
+            val result = authRepository.signUp(username.trim(), email.trim(), password)
+            if (result.isSuccess) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isSuccess = false,
+                        needsEmailVerification = true,
+                        errorMessage = null
+                    )
+                }
+            } else {
+                val ex = result.exceptionOrNull()
+                Timber.e(ex, "signUp failed")
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isSuccess = false,
+                        needsEmailVerification = false,
+                        errorMessage = ex?.toUserMessage() ?: "Sign up failed. Please try again."
+                    )
+                }
             }
         }
     }
 
     fun resetPassword(email: String) {
+        if (email.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Please enter your email address.") }
+            return
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, resetSent = false) }
-            val result = authRepository.resetPassword(email)
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    resetSent = result.isSuccess,
-                    errorMessage = if (result.isSuccess) null else "Something went wrong. Please try again."
-                )
+            val result = authRepository.resetPassword(email.trim())
+            if (result.isSuccess) {
+                _uiState.update { it.copy(isLoading = false, resetSent = true, errorMessage = null) }
+            } else {
+                val ex = result.exceptionOrNull()
+                Timber.e(ex, "resetPassword failed")
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        resetSent = false,
+                        errorMessage = ex?.toUserMessage() ?: "Failed to send reset email. Please try again."
+                    )
+                }
             }
         }
     }
@@ -79,13 +140,19 @@ class AuthViewModel @Inject constructor(
     fun resendVerificationEmail(email: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, resetSent = false) }
-            val result = authRepository.resendVerificationEmail(email)
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    resetSent = result.isSuccess,
-                    errorMessage = if (result.isSuccess) null else "Something went wrong. Please try again."
-                )
+            val result = authRepository.resendVerificationEmail(email.trim())
+            if (result.isSuccess) {
+                _uiState.update { it.copy(isLoading = false, resetSent = true, errorMessage = null) }
+            } else {
+                val ex = result.exceptionOrNull()
+                Timber.e(ex, "resendVerification failed")
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        resetSent = false,
+                        errorMessage = ex?.toUserMessage() ?: "Failed to resend email. Please try again."
+                    )
+                }
             }
         }
     }

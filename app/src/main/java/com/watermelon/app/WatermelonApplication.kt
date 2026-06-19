@@ -66,7 +66,8 @@ class WatermelonApplication : Application() {
         Thread {
             runCatching {
                 YoutubeDL.getInstance().init(this@WatermelonApplication)
-                YoutubeDL.getInstance().updateYoutubeDL(this@WatermelonApplication)
+                // Note: updateYoutubeDL() is NOT called at startup to avoid slow network calls.
+                // It is triggered lazily only when a stream extraction fails.
                 ytDlpReady = true
                 Timber.i("YoutubeDL initialized in background")
             }.onFailure { Timber.e(it, "YoutubeDL init failed") }

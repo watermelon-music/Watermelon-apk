@@ -167,6 +167,11 @@ class HomeViewModel @Inject constructor(
                 .launchIn(viewModelScope)
         }
     }
+
+    /** Manually refresh all home data (trending + genres + favorites + recently played). */
+    fun refresh() {
+        loadHomeData()
+    }
 }
 
 data class HomeUiState(

@@ -33,6 +33,7 @@ fun EmailVerificationScreen(
     onBackToLogin: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var email by remember { mutableStateOf("") }
@@ -159,6 +160,12 @@ fun EmailVerificationScreen(
                                         onVerified()
                                     } else {
                                         viewModel.clearMessage()
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "Verification checked. Please log in with your verified account.",
+                                            android.widget.Toast.LENGTH_LONG
+                                        ).show()
+                                        onBackToLogin()
                                     }
                                 }
                             },

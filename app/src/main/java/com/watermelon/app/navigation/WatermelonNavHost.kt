@@ -151,26 +151,19 @@ fun WatermelonNavHost(
             )
         }
         composable(Routes.REGISTER) {
-            val authViewModel: AuthViewModel = hiltViewModel()
-            val uiState by authViewModel.uiState.collectAsState()
-
-            LaunchedEffect(uiState.needsEmailVerification) {
-                if (uiState.needsEmailVerification) {
-                    authViewModel.clearMessage()
-                    val current = navController.currentDestination?.route
-                    if (current != Routes.VERIFY_EMAIL) {
-                        navController.navigate(Routes.VERIFY_EMAIL) {
-                            current?.let { popUpTo(it) { inclusive = true } }
-                        }
-                    }
-                }
-            }
-
             RegisterScreen(
                 onNavigateToLogin = { navController.popBackStack() },
                 onAuthSuccess = {
                     navController.navigate(Routes.HOME) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
+                    }
+                },
+                onNavigateToVerifyEmail = {
+                    val current = navController.currentDestination?.route
+                    if (current != Routes.VERIFY_EMAIL) {
+                        navController.navigate(Routes.VERIFY_EMAIL) {
+                            current?.let { popUpTo(it) { inclusive = true } }
+                        }
                     }
                 }
             )

@@ -39,6 +39,7 @@ import kotlinx.coroutines.delay
 fun RegisterScreen(
     onNavigateToLogin: () -> Unit,
     onAuthSuccess: () -> Unit,
+    onNavigateToVerifyEmail: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -54,11 +55,18 @@ fun RegisterScreen(
         isVisible = true
     }
 
+    LaunchedEffect(uiState.isSuccess) {
+        if (uiState.isSuccess) {
+            viewModel.clearMessage()
+            onAuthSuccess()
+        }
+    }
+
     // Navigate to email verification screen after successful signup
     LaunchedEffect(uiState.needsEmailVerification) {
         if (uiState.needsEmailVerification) {
             viewModel.clearMessage()
-            onAuthSuccess() // AuthSuccess after signup = show email verification screen
+            onNavigateToVerifyEmail()
         }
     }
 

@@ -44,8 +44,12 @@ class AuthRepositoryImpl @Inject constructor(
                 put("display_name", username)
             }
         }
+        val session = client.auth.currentSessionOrNull()
+        val hasSession = session != null
+        val verified = session?.user?.emailConfirmedAt != null
         prefs.edit()
-            .putBoolean(KEY_LOGGED_IN, true)
+            .putBoolean(KEY_LOGGED_IN, hasSession)
+            .putBoolean(KEY_EMAIL_VERIFIED, verified)
             .putString(KEY_EMAIL, email)
             .apply()
         Unit
@@ -56,8 +60,12 @@ class AuthRepositoryImpl @Inject constructor(
             this.email = email
             this.password = password
         }
+        val session = client.auth.currentSessionOrNull()
+        val hasSession = session != null
+        val verified = session?.user?.emailConfirmedAt != null
         prefs.edit()
-            .putBoolean(KEY_LOGGED_IN, true)
+            .putBoolean(KEY_LOGGED_IN, hasSession)
+            .putBoolean(KEY_EMAIL_VERIFIED, verified)
             .putString(KEY_EMAIL, email)
             .apply()
         Unit
@@ -93,7 +101,12 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun isEmailVerified(): Boolean {
-        return client.auth.currentUserOrNull()?.emailConfirmedAt != null
+        val verifiedOnline = client.auth.currentUserOrNull()?.emailConfirmedAt != null
+        if (verifiedOnline) {
+            prefs.edit().putBoolean(KEY_EMAIL_VERIFIED, true).apply()
+            return true
+        }
+        return prefs.getBoolean(KEY_EMAIL_VERIFIED, false)
     }
 
     override suspend fun updateDisplayName(name: String): Result<Unit> = runCatching {
@@ -275,6 +288,7 @@ class AuthRepositoryImpl @Inject constructor(
     companion object {
         private const val PREFS_NAME = "watermelon_auth"
         private const val KEY_LOGGED_IN = "is_logged_in"
+        private const val KEY_EMAIL_VERIFIED = "auth_email_verified"
         private const val KEY_EMAIL = "auth_email"
         private const val KEY_PLAN = "auth_plan"
         private const val KEY_DISPLAY_NAME = "auth_display_name"

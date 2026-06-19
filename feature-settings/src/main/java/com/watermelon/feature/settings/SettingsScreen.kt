@@ -353,6 +353,13 @@ private fun themePreviewColor(theme: AppTheme): Color {
     return when (theme) {
         AppTheme.Light -> Color(0xFFDC2626)
         AppTheme.Dark -> Color(0xFFE53935)
+        AppTheme.Amoled -> Color(0xFFE53935)
+        AppTheme.Student -> Color(0xFF20B2AA)
+        AppTheme.ObsidianGold -> Color(0xFFD4AF37)
+        AppTheme.EmeraldDynasty -> Color(0xFF50C878)
+        AppTheme.SapphireElite -> Color(0xFF3B82F6)
+        AppTheme.AmethystDreams -> Color(0xFFA78BFA)
+        AppTheme.CrimsonRoyale -> Color(0xFFFF3333)
         else -> Color(0xFFDC2626)
     }
 }
@@ -384,6 +391,13 @@ private fun ThemeSelectorDialog(
                     val (bgColor, topColor, textColor) = when (theme) {
                         AppTheme.Light -> Triple(Color(0xFFF8F8F8), Color(0xFFDC2626), Color.Black)
                         AppTheme.Dark -> Triple(Color(0xFF1A1A1A), Color(0xFFDC2626), Color.White)
+                        AppTheme.Amoled -> Triple(Color.Black, Color(0xFFE53935), Color.White)
+                        AppTheme.Student -> Triple(Color(0xFF1A1A2E), Color(0xFF20B2AA), Color(0xFFD1D1E0))
+                        AppTheme.ObsidianGold -> Triple(Color(0xFF0D0D0D), Color(0xFFD4AF37), Color(0xFFF5F5F5))
+                        AppTheme.EmeraldDynasty -> Triple(Color(0xFF0A1A0A), Color(0xFF50C878), Color(0xFFE8F5E8))
+                        AppTheme.SapphireElite -> Triple(Color(0xFF0A0E1A), Color(0xFF3B82F6), Color(0xFFE8ECF5))
+                        AppTheme.AmethystDreams -> Triple(Color(0xFF140A1E), Color(0xFFA78BFA), Color(0xFFF0E8F5))
+                        AppTheme.CrimsonRoyale -> Triple(Color(0xFF0D0000), Color(0xFFFF3333), Color(0xFFF5E8E8))
                         else -> Triple(MaterialTheme.colorScheme.surface, WatermelonRed, MaterialTheme.colorScheme.onSurface)
                     }
 
@@ -457,7 +471,14 @@ private fun ThemeSelectorDialog(
                                     text = when (theme) {
                                         AppTheme.Light -> "Bright white background"
                                         AppTheme.Dark -> "Deep dark background"
-                                        else -> "System default"
+                                        AppTheme.Amoled -> "Pure black, saves battery"
+                                        AppTheme.Student -> "Cool teal accents"
+                                        AppTheme.ObsidianGold -> "Luxurious gold & black"
+                                        AppTheme.EmeraldDynasty -> "Rich emerald greens"
+                                        AppTheme.SapphireElite -> "Deep sapphire blues"
+                                        AppTheme.AmethystDreams -> "Dreamy purple hues"
+                                        AppTheme.CrimsonRoyale -> "Bold crimson reds"
+                                        else -> ""
                                     },
                                     style = MaterialTheme.typography.bodySmall.copy(
                                         color = textColor.copy(alpha = 0.6f)

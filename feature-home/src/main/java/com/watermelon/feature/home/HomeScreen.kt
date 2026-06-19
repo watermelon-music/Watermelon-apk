@@ -195,85 +195,45 @@ fun HomeScreenContent(
 
                 if (uiState.bollywood.isNotEmpty()) {
                     item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = WatermelonSpacing.md, vertical = WatermelonSpacing.sm)
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(Color.White)
-                                .padding(bottom = WatermelonSpacing.md)
-                        ) {
-                            SectionHeader(title = "Bollywood", isDarkText = true)
-                            BigSongRow(
-                                songs = uiState.bollywood,
-                                isDarkText = true,
-                                onSongClick = onSongClick,
-                                onAddToPlaylist = onAddToPlaylist
-                            )
-                        }
+                        SectionHeader(title = "Bollywood")
+                        BigSongRow(
+                            songs = uiState.bollywood,
+                            onSongClick = onSongClick,
+                            onAddToPlaylist = onAddToPlaylist
+                        )
                     }
                 }
 
                 if (uiState.hollywood.isNotEmpty()) {
                     item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = WatermelonSpacing.md, vertical = WatermelonSpacing.sm)
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(Color.White)
-                                .padding(bottom = WatermelonSpacing.md)
-                        ) {
-                            SectionHeader(title = "Hollywood", isDarkText = true)
-                            BigSongRow(
-                                songs = uiState.hollywood,
-                                isDarkText = true,
-                                onSongClick = onSongClick,
-                                onAddToPlaylist = onAddToPlaylist
-                            )
-                        }
+                        SectionHeader(title = "Hollywood")
+                        BigSongRow(
+                            songs = uiState.hollywood,
+                            onSongClick = onSongClick,
+                            onAddToPlaylist = onAddToPlaylist
+                        )
                     }
                 }
 
                 if (uiState.pop.isNotEmpty()) {
                     item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = WatermelonSpacing.md, vertical = WatermelonSpacing.sm)
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(Color.White)
-                                .padding(bottom = WatermelonSpacing.md)
-                        ) {
-                            SectionHeader(title = "Pop", isDarkText = true)
-                            BigSongRow(
-                                songs = uiState.pop,
-                                isDarkText = true,
-                                onSongClick = onSongClick,
-                                onAddToPlaylist = onAddToPlaylist
-                            )
-                        }
+                        SectionHeader(title = "Pop")
+                        BigSongRow(
+                            songs = uiState.pop,
+                            onSongClick = onSongClick,
+                            onAddToPlaylist = onAddToPlaylist
+                        )
                     }
                 }
 
                 if (uiState.rock.isNotEmpty()) {
                     item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = WatermelonSpacing.md, vertical = WatermelonSpacing.sm)
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(Color.White)
-                                .padding(bottom = WatermelonSpacing.md)
-                        ) {
-                            SectionHeader(title = "Rock", isDarkText = true)
-                            BigSongRow(
-                                songs = uiState.rock,
-                                isDarkText = true,
-                                onSongClick = onSongClick,
-                                onAddToPlaylist = onAddToPlaylist
-                            )
-                        }
+                        SectionHeader(title = "Rock")
+                        BigSongRow(
+                            songs = uiState.rock,
+                            onSongClick = onSongClick,
+                            onAddToPlaylist = onAddToPlaylist
+                        )
                     }
                 }
 
@@ -290,22 +250,12 @@ fun HomeScreenContent(
 
                 if (uiState.classical.isNotEmpty()) {
                     item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = WatermelonSpacing.md, vertical = WatermelonSpacing.sm)
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(Color.White)
-                                .padding(bottom = WatermelonSpacing.md)
-                        ) {
-                            SectionHeader(title = "Classical", isDarkText = true)
-                            BigSongRow(
-                                songs = uiState.classical,
-                                isDarkText = true,
-                                onSongClick = onSongClick,
-                                onAddToPlaylist = onAddToPlaylist
-                            )
-                        }
+                        SectionHeader(title = "Classical")
+                        BigSongRow(
+                            songs = uiState.classical,
+                            onSongClick = onSongClick,
+                            onAddToPlaylist = onAddToPlaylist
+                        )
                     }
                 }
 

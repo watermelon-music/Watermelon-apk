@@ -310,19 +310,9 @@ private val CrimsonRoyaleColorScheme = darkColorScheme(
 sealed class AppTheme(val key: String, val label: String) {
     data object Light : AppTheme("light", "Light Watermelon")
     data object Dark : AppTheme("dark", "Dark Watermelon")
-    data object Amoled : AppTheme("amoled", "AMOLED Black")
-    data object Student : AppTheme("student", "Student Teal")
-    data object ObsidianGold : AppTheme("obsidian_gold", "Obsidian Gold")
-    data object EmeraldDynasty : AppTheme("emerald", "Emerald Dynasty")
-    data object SapphireElite : AppTheme("sapphire", "Sapphire Elite")
-    data object AmethystDreams : AppTheme("amethyst", "Amethyst Dreams")
-    data object CrimsonRoyale : AppTheme("crimson", "Crimson Royale")
 
     companion object {
-        val all: List<AppTheme> = listOf(
-            Light, Dark, Amoled, Student, ObsidianGold,
-            EmeraldDynasty, SapphireElite, AmethystDreams, CrimsonRoyale
-        )
+        val all: List<AppTheme> = listOf(Light, Dark)
         fun fromKey(key: String): AppTheme = all.find { it.key == key } ?: Dark
     }
 }
@@ -336,16 +326,9 @@ fun WatermelonTheme(
     val context = LocalContext.current
     val theme = AppTheme.fromKey(themeMode)
 
-    val colorScheme = when (theme) {
-        AppTheme.Light -> LightColorScheme
-        AppTheme.Dark -> DarkColorScheme
-        AppTheme.Amoled -> AmoledColorScheme
-        AppTheme.Student -> StudentColorScheme
-        AppTheme.ObsidianGold -> ObsidianGoldColorScheme
-        AppTheme.EmeraldDynasty -> EmeraldDynastyColorScheme
-        AppTheme.SapphireElite -> SapphireEliteColorScheme
-        AppTheme.AmethystDreams -> AmethystDreamsColorScheme
-        AppTheme.CrimsonRoyale -> CrimsonRoyaleColorScheme
+    val colorScheme = when {
+        theme == AppTheme.Dark -> DarkColorScheme
+        theme == AppTheme.Light -> LightColorScheme
         else -> if (isSystemDark) DarkColorScheme else LightColorScheme
     }
 

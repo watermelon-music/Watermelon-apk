@@ -19,7 +19,7 @@ import java.net.URL
 import kotlin.coroutines.coroutineContext
 
 object AppUpdater {
-    private const val RELEASES_API = "https://api.github.com/repos/SatyamPote/Watermelon-apk/releases/latest"
+    private const val RELEASES_API = "https://api.github.com/repos/watermelon-music/Watermelon-apk/releases/latest"
 
     data class UpdateInfo(
         val version: String,

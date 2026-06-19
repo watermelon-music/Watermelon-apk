@@ -1,3 +1,4 @@
+# Workflow to build and publish Watermelon Android Release APKs
 name: Auto Release Build
 
 on:

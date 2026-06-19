@@ -22,16 +22,16 @@ jobs:
 
       - name: Create local.properties from secrets
         run: |
-          cat > local.properties << EOF
-          sdk.dir=$ANDROID_HOME
-          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}
-          SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}
-          PODCAST_INDEX_API_KEY=${{ secrets.PODCAST_INDEX_API_KEY }}
-          PODCAST_INDEX_SECRET=${{ secrets.PODCAST_INDEX_SECRET }}
-          JAMENDO_CLIENT_ID=${{ secrets.JAMENDO_CLIENT_ID }}
-          WATERMELON_API_URL=${{ secrets.WATERMELON_API_URL }}
-          EOF
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> local.properties
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> local.properties
+          echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" >> local.properties
+          echo "PODCAST_INDEX_API_KEY=${{ secrets.PODCAST_INDEX_API_KEY }}" >> local.properties
+          echo "PODCAST_INDEX_SECRET=${{ secrets.PODCAST_INDEX_SECRET }}" >> local.properties
+          echo "JAMENDO_CLIENT_ID=${{ secrets.JAMENDO_CLIENT_ID }}" >> local.properties
+          echo "WATERMELON_API_URL=${{ secrets.WATERMELON_API_URL }}" >> local.properties
+          echo "--- local.properties created ---"
+          cat local.properties | head -c 200
 
       - name: Set up Python
         uses: actions/setup-python@v5

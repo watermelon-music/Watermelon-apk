@@ -13,7 +13,7 @@ val supabaseProperties = Properties().apply {
 }
 
 fun getSupabaseProperty(name: String, defaultValue: String = ""): String {
-    return supabaseProperties.getProperty(name, defaultValue)
+    return supabaseProperties.getProperty(name, defaultValue).trim()
 }
 
 android {

@@ -47,6 +47,9 @@ dependencies {
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.play.services.auth)
 
+    // Logging
+    implementation(libs.timber)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

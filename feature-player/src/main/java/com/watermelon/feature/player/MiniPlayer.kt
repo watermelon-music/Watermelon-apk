@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.watermelon.core.designsystem.layout.adaptiveMaxContentWidth
 import com.watermelon.core.designsystem.theme.WatermelonRed
 import kotlinx.coroutines.delay
 
@@ -56,9 +57,14 @@ fun MiniPlayerContent(
     onTogglePlayPause: () -> Unit,
     onNext: () -> Unit
 ) {
+    val maxWidth = adaptiveMaxContentWidth()
+    val widthModifier = if (maxWidth == androidx.compose.ui.unit.Dp.Unspecified)
+        Modifier.fillMaxWidth()
+    else
+        Modifier.fillMaxWidth().widthIn(max = maxWidth)
     Card(
         modifier = modifier
-            .fillMaxWidth()
+            .then(widthModifier)
             .height(58.dp)
             .padding(horizontal = 8.dp, vertical = 2.dp)
             .clip(RoundedCornerShape(16.dp))

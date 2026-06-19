@@ -2,8 +2,9 @@ package com.watermelon.feature.downloads
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -28,6 +29,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.watermelon.core.designsystem.layout.adaptiveHorizontalPadding
+import com.watermelon.core.designsystem.layout.adaptiveListMinSize
 import com.watermelon.domain.model.Song
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -129,12 +132,14 @@ fun DownloadsScreen(
                         }
                 }
             } else {
-                LazyColumn(
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = adaptiveListMinSize()),
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding(), vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(tracks) { track ->
+                    items(tracks, key = { it.id }) { track ->
                         DownloadTrackItem(
                             track = track,
                             onPlay = {

@@ -5,6 +5,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.lazy.grid.itemsIndexed as gridItemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,6 +45,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import android.os.Environment
 import com.watermelon.core.designsystem.animation.ShimmerCard
+import com.watermelon.core.designsystem.layout.adaptiveHorizontalPadding
+import com.watermelon.core.designsystem.layout.adaptiveListMinSize
+import com.watermelon.core.designsystem.layout.adaptiveMaxContentWidth
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.Playlist
 import com.watermelon.domain.model.Song
@@ -418,11 +425,13 @@ private fun PlaylistList(
             }
         }
     } else {
-        LazyColumn(
-            modifier = modifier.padding(WatermelonSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = adaptiveListMinSize()),
+            modifier = modifier.padding(horizontal = adaptiveHorizontalPadding(), vertical = WatermelonSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
         ) {
-            itemsIndexed(playlists, key = { _, pl -> pl.id }) { index, playlist ->
+            gridItemsIndexed(playlists, key = { _, pl -> pl.id }) { index, playlist ->
                 var menuExpanded by remember { mutableStateOf(false) }
 
                 // Alternating watermelon gradient backgrounds
@@ -598,11 +607,13 @@ private fun SongList(
             )
         }
     } else {
-        LazyColumn(
-            modifier = modifier.padding(WatermelonSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = adaptiveListMinSize()),
+            modifier = modifier.padding(horizontal = adaptiveHorizontalPadding(), vertical = WatermelonSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
         ) {
-            items(songs, key = { it.id }) { song ->
+            gridItems(songs, key = { it.id }) { song ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -647,11 +658,13 @@ private fun FeedContent(
     onSongClick: (Song) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        modifier = modifier.padding(WatermelonSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = adaptiveListMinSize()),
+        modifier = modifier.padding(horizontal = adaptiveHorizontalPadding(), vertical = WatermelonSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
     ) {
-        item {
+        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
             Text(
                 text = "Recently Played",
                 style = MaterialTheme.typography.titleMedium,
@@ -659,7 +672,7 @@ private fun FeedContent(
             )
         }
         if (recentlyPlayed.isEmpty()) {
-            item {
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
@@ -672,7 +685,7 @@ private fun FeedContent(
                 }
             }
         } else {
-            items(recentlyPlayed, key = { it.id }) { song ->
+            gridItems(recentlyPlayed, key = { it.id }) { song ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -739,14 +752,18 @@ private fun DownloadsPlaceholder(
             }
         }
     } else {
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = adaptiveListMinSize()),
             modifier = Modifier
                 .fillMaxSize()
-                .padding(WatermelonSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+                .padding(horizontal = adaptiveHorizontalPadding(), vertical = WatermelonSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
         ) {
-            items(downloadedSongs.size, key = { downloadedSongs[it].id }) { index ->
-                val song = downloadedSongs[index]
+            gridItems(
+                items = downloadedSongs,
+                key = { it.id }
+            ) { song ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()

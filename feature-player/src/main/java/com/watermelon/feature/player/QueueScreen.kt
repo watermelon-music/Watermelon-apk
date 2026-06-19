@@ -2,8 +2,9 @@ package com.watermelon.feature.player
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -20,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.watermelon.core.designsystem.layout.adaptiveHorizontalPadding
+import com.watermelon.core.designsystem.layout.adaptiveListMinSize
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,12 +61,14 @@ fun QueueScreen(
                 )
             }
         } else {
-            LazyColumn(
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = adaptiveListMinSize()),
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentPadding = PaddingValues(WatermelonSpacing.md),
-                verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+                contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding(), vertical = WatermelonSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
+                horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
             ) {
                 itemsIndexed(queue, key = { _, song -> song.id }) { index, song ->
                     val isCurrent = song.id == currentId

@@ -73,12 +73,15 @@ fun LoginScreen(
                         WatermelonRed.copy(alpha = 0.15f)
                     )
                 )
-            )
+            ),
+        contentAlignment = Alignment.TopCenter
     ) {
         Column(
             modifier = Modifier
+                .widthIn(max = 480.dp)
                 .fillMaxSize()
                 .padding(24.dp)
+                .imePadding()
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center

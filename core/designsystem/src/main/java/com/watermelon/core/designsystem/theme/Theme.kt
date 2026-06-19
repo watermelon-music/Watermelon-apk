@@ -338,7 +338,10 @@ fun WatermelonTheme(
             val activity = view.context.findActivity()
             val window = activity?.window ?: return@SideEffect
             window.statusBarColor = colorScheme.background.toArgb()
-            window.navigationBarColor = colorScheme.background.toArgb()
+            // Transparent so the bottom NavigationBar's container color paints
+            // continuously into the system gesture/3-button area instead of
+            // showing a different `background` strip below it.
+            window.navigationBarColor = android.graphics.Color.TRANSPARENT
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
                 colorScheme.background.luminance() > 0.5f
             WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars =

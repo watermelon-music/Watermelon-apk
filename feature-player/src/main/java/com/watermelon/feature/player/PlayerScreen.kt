@@ -48,6 +48,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.coroutines.delay
+import com.watermelon.core.designsystem.layout.adaptiveAlbumArtFraction
+import com.watermelon.core.designsystem.layout.adaptiveHorizontalPadding
+import com.watermelon.core.designsystem.layout.adaptiveMaxContentWidth
+import com.watermelon.core.designsystem.layout.isLandscape
 import com.watermelon.core.designsystem.theme.WatermelonRed
 import com.watermelon.core.designsystem.theme.WatermelonRedDark
 
@@ -227,20 +231,34 @@ fun PlayerScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        Column(
+        val landscape = isLandscape()
+        val maxWidth = adaptiveMaxContentWidth()
+        val artFraction = adaptiveAlbumArtFraction()
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 24.dp)
+                .padding(padding),
+            contentAlignment = Alignment.TopCenter
+        ) {
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .then(
+                    if (maxWidth == androidx.compose.ui.unit.Dp.Unspecified)
+                        Modifier.fillMaxWidth()
+                    else
+                        Modifier.widthIn(max = maxWidth).fillMaxWidth()
+                )
+                .padding(horizontal = adaptiveHorizontalPadding())
                 .verticalScroll(state = scrollState, enabled = !isInteracting),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(if (landscape) 8.dp else 16.dp))
 
             // Animated artwork with shadow/glow
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.75f)
+                    .fillMaxWidth(artFraction)
                     .aspectRatio(1f),
                 contentAlignment = Alignment.Center
             ) {
@@ -278,7 +296,7 @@ fun PlayerScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(if (landscape) 16.dp else 32.dp))
 
             // Title & Artist
             Text(
@@ -549,6 +567,7 @@ fun PlayerScreen(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
+        }
         }
     }
 

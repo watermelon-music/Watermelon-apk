@@ -35,6 +35,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.watermelon.core.designsystem.animation.ShimmerCard
+import com.watermelon.core.designsystem.layout.adaptiveBigCardWidth
+import com.watermelon.core.designsystem.layout.adaptiveHorizontalPadding
+import com.watermelon.core.designsystem.layout.adaptiveMaxContentWidth
+import com.watermelon.core.designsystem.layout.adaptiveSmallCardWidth
 import com.watermelon.core.designsystem.theme.WatermelonRed
 import com.watermelon.feature.player.PlayerViewModel
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
@@ -174,10 +178,22 @@ fun HomeScreenContent(
         if (uiState.isLoading) {
             HomeShimmerContent(paddingValues = paddingValues)
         } else {
-            LazyColumn(
+            val maxWidth = adaptiveMaxContentWidth()
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
+                contentAlignment = Alignment.TopCenter
+            ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .then(
+                        if (maxWidth == androidx.compose.ui.unit.Dp.Unspecified)
+                            Modifier.fillMaxWidth()
+                        else
+                            Modifier.widthIn(max = maxWidth).fillMaxWidth()
+                    ),
                 contentPadding = PaddingValues(vertical = WatermelonSpacing.md)
             ) {
                 item { SearchBarShortcut(onClick = onSearchClick) }
@@ -303,6 +319,7 @@ fun HomeScreenContent(
                     }
                 }
             }
+            }
         }
     }
 }
@@ -313,7 +330,7 @@ private fun HomeShimmerContent(paddingValues: PaddingValues) {
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
-            .padding(horizontal = WatermelonSpacing.md),
+            .padding(horizontal = adaptiveHorizontalPadding()),
         verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.lg)
     ) {
         ShimmerCard(height = 56.dp)
@@ -332,7 +349,7 @@ private fun SearchBarShortcut(onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = WatermelonSpacing.md)
+            .padding(horizontal = adaptiveHorizontalPadding())
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -386,13 +403,15 @@ private fun BigSongRow(
     onSongClick: (Song, List<Song>) -> Unit,
     onAddToPlaylist: (Song) -> Unit
 ) {
+    val cardWidth = adaptiveBigCardWidth()
     LazyRow(
-        contentPadding = PaddingValues(horizontal = WatermelonSpacing.md),
+        contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding()),
         horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
     ) {
         items(songs, key = { it.id }) { song ->
             BigSongItem(
                 song = song,
+                cardWidth = cardWidth,
                 isDarkText = isDarkText,
                 onClick = { onSongClick(song, songs) },
                 onAddToPlaylist = { onAddToPlaylist(song) }
@@ -404,6 +423,7 @@ private fun BigSongRow(
 @Composable
 private fun BigSongItem(
     song: Song,
+    cardWidth: androidx.compose.ui.unit.Dp = 170.dp,
     isDarkText: Boolean = false,
     onClick: () -> Unit,
     onAddToPlaylist: () -> Unit
@@ -416,12 +436,12 @@ private fun BigSongItem(
         enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 4 }
     ) {
         Column(
-            modifier = Modifier.width(170.dp),
+            modifier = Modifier.width(cardWidth),
             horizontalAlignment = Alignment.Start
         ) {
             Card(
                 modifier = Modifier
-                    .size(170.dp)
+                    .size(cardWidth)
                     .clickable(onClick = onClick),
                 shape = RoundedCornerShape(20.dp),
                 elevation = CardDefaults.cardElevation(6.dp),
@@ -512,13 +532,15 @@ private fun SongRow(
     onSongClick: (Song, List<Song>) -> Unit,
     onAddToPlaylist: (Song) -> Unit
 ) {
+    val cardWidth = adaptiveSmallCardWidth()
     LazyRow(
-        contentPadding = PaddingValues(horizontal = WatermelonSpacing.md),
+        contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding()),
         horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
     ) {
         items(songs, key = { it.id }) { song ->
             SongItem(
                 song = song,
+                cardWidth = cardWidth,
                 onClick = { onSongClick(song, songs) },
                 onAddToPlaylist = { onAddToPlaylist(song) }
             )
@@ -527,7 +549,12 @@ private fun SongRow(
 }
 
 @Composable
-private fun SongItem(song: Song, onClick: () -> Unit, onAddToPlaylist: () -> Unit) {
+private fun SongItem(
+    song: Song,
+    cardWidth: androidx.compose.ui.unit.Dp = 130.dp,
+    onClick: () -> Unit,
+    onAddToPlaylist: () -> Unit
+) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
@@ -536,12 +563,12 @@ private fun SongItem(song: Song, onClick: () -> Unit, onAddToPlaylist: () -> Uni
         enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 4 }
     ) {
         Column(
-            modifier = Modifier.width(130.dp),
+            modifier = Modifier.width(cardWidth),
             horizontalAlignment = Alignment.Start
         ) {
             Card(
                 modifier = Modifier
-                    .size(130.dp)
+                    .size(cardWidth)
                     .clickable(onClick = onClick),
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(4.dp),

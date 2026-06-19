@@ -58,12 +58,15 @@ fun EmailVerificationScreen(
                         Color(0xFF1A0505)
                     )
                 )
-            )
+            ),
+        contentAlignment = Alignment.TopCenter
     ) {
         Column(
             modifier = Modifier
+                .widthIn(max = 480.dp)
                 .fillMaxSize()
                 .padding(24.dp)
+                .imePadding()
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center

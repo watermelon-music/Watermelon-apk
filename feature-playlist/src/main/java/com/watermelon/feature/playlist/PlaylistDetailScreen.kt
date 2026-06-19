@@ -42,6 +42,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.watermelon.core.designsystem.layout.adaptiveHorizontalPadding
+import com.watermelon.core.designsystem.layout.adaptiveMaxContentWidth
+import com.watermelon.core.designsystem.layout.isLandscape
 import com.watermelon.core.designsystem.theme.WatermelonRed
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.PlaylistSong
@@ -110,10 +113,22 @@ fun PlaylistDetailScreen(
             )
         }
     ) { padding ->
-        LazyColumn(
+        val maxWidth = adaptiveMaxContentWidth()
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
+            contentAlignment = Alignment.TopCenter
+        ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxHeight()
+                .then(
+                    if (maxWidth == androidx.compose.ui.unit.Dp.Unspecified)
+                        Modifier.fillMaxWidth()
+                    else
+                        Modifier.widthIn(max = maxWidth).fillMaxWidth()
+                ),
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             // ── Cover Mosaic Header ──────────────────────────────
@@ -138,7 +153,7 @@ fun PlaylistDetailScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = WatermelonSpacing.md, vertical = WatermelonSpacing.sm),
+                            .padding(horizontal = adaptiveHorizontalPadding(), vertical = WatermelonSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
@@ -202,6 +217,7 @@ fun PlaylistDetailScreen(
                 )
             }
         }
+        }
     }
 
     if (songToDelete != null) {
@@ -236,10 +252,11 @@ private fun PlaylistCoverHeader(
     onPlayAllClick: (List<Song>) -> Unit,
     onShuffleClick: (List<Song>) -> Unit
 ) {
+    val headerHeight = if (isLandscape()) 180.dp else 260.dp
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
+            .height(headerHeight)
     ) {
         // Cover mosaic background
         val covers = songs.mapNotNull { it.coverUrl }.take(4)
@@ -429,7 +446,7 @@ private fun PlaylistSongItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = WatermelonSpacing.md, vertical = 8.dp),
+            .padding(horizontal = adaptiveHorizontalPadding(), vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Index number

@@ -6,8 +6,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -26,6 +27,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.watermelon.core.designsystem.animation.ShimmerCard
+import com.watermelon.core.designsystem.layout.adaptiveHorizontalPadding
+import com.watermelon.core.designsystem.layout.adaptiveListMinSize
+import com.watermelon.core.designsystem.layout.adaptiveMaxContentWidth
 import com.watermelon.core.designsystem.theme.WatermelonRed
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.Song
@@ -151,11 +155,21 @@ fun SearchScreenContent(
     onSongClick: (Song, Int, List<Song>) -> Unit,
     onAddToPlaylist: (Song) -> Unit
 ) {
-    Column(
+    val maxWidth = adaptiveMaxContentWidth()
+    val widthModifier = if (maxWidth == androidx.compose.ui.unit.Dp.Unspecified)
+        Modifier.fillMaxWidth()
+    else
+        Modifier.widthIn(max = maxWidth).fillMaxWidth()
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(padding)
-            .padding(horizontal = WatermelonSpacing.md)
+            .padding(padding),
+        contentAlignment = Alignment.TopCenter
+    ) {
+    Column(
+        modifier = widthModifier
+            .fillMaxHeight()
+            .padding(horizontal = adaptiveHorizontalPadding())
     ) {
         OutlinedTextField(
             value = query,
@@ -235,8 +249,10 @@ fun SearchScreenContent(
                 }
             }
         } else {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = adaptiveListMinSize()),
+                verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
+                horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
             ) {
                 items(results, key = { it.id }) { song ->
                     val index = results.indexOf(song)
@@ -248,6 +264,7 @@ fun SearchScreenContent(
                 }
             }
         }
+    }
     }
 }
 

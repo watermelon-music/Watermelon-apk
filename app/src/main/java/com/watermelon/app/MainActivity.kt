@@ -61,7 +61,11 @@ import android.media.AudioAttributes
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.*
 import androidx.compose.foundation.layout.*
 import android.provider.Settings
@@ -281,77 +285,185 @@ class MainActivity : ComponentActivity() {
 
                         // Render updater dialogs
                         updateInfo?.let { info ->
-                            AlertDialog(
+                            androidx.compose.ui.window.Dialog(
                                 onDismissRequest = {
-                                    if (!isDownloading) {
-                                        updateInfo = null
-                                    }
-                                },
-                                title = {
-                                    Text("Update Available 🍉", style = MaterialTheme.typography.titleLarge)
-                                },
-                                text = {
+                                    if (!isDownloading) updateInfo = null
+                                }
+                            ) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surface
+                                    ),
+                                    elevation = CardDefaults.cardElevation(8.dp)
+                                ) {
                                     Column {
-                                        Text("Version ${info.version} is now available. You are currently on version ${BuildConfig.VERSION_NAME}.", style = MaterialTheme.typography.bodyLarge)
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        if (info.changelog.isNotBlank()) {
-                                            Text("What's New:", style = MaterialTheme.typography.titleSmall)
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(120.dp)
-                                                    .background(MaterialTheme.colorScheme.surfaceVariant, shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
-                                                    .padding(8.dp)
+                                        // Gradient header
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(
+                                                    Brush.horizontalGradient(
+                                                        listOf(
+                                                            Color(0xFFDC2626),
+                                                            Color(0xFFEF4444),
+                                                            Color(0xFFF87171)
+                                                        )
+                                                    )
+                                                )
+                                                .padding(24.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Text(
+                                                    text = "🍉",
+                                                    fontSize = 40.sp
+                                                )
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                Text(
+                                                    text = "New Update Available!",
+                                                    style = MaterialTheme.typography.titleLarge.copy(
+                                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                                        color = Color.White
+                                                    )
+                                                )
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Surface(
+                                                    color = Color.White.copy(alpha = 0.2f),
+                                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "${BuildConfig.VERSION_NAME} → ${info.version}",
+                                                        style = MaterialTheme.typography.labelLarge.copy(
+                                                            color = Color.White,
+                                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                                                        ),
+                                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        // Content
+                                        Column(
+                                            modifier = Modifier.padding(20.dp)
+                                        ) {
+                                            if (info.changelog.isNotBlank()) {
+                                                Text(
+                                                    text = "What's New",
+                                                    style = MaterialTheme.typography.titleSmall.copy(
+                                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                                    ),
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .heightIn(max = 140.dp)
+                                                        .background(
+                                                            MaterialTheme.colorScheme.surfaceVariant,
+                                                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                                                        )
+                                                        .padding(14.dp)
+                                                ) {
+                                                    androidx.compose.foundation.lazy.LazyColumn {
+                                                        item {
+                                                            Text(
+                                                                text = info.changelog,
+                                                                style = MaterialTheme.typography.bodyMedium,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                                Spacer(modifier = Modifier.height(16.dp))
+                                            }
+
+                                            // Download progress
+                                            if (isDownloading) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = "Downloading...",
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                    Text(
+                                                        text = "${downloadProgress ?: 0}%",
+                                                        style = MaterialTheme.typography.titleMedium.copy(
+                                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                                            color = Color(0xFFDC2626)
+                                                        )
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                LinearProgressIndicator(
+                                                    progress = { (downloadProgress ?: 0) / 100f },
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(8.dp)
+                                                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp)),
+                                                    color = Color(0xFFDC2626),
+                                                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                                )
+                                                Spacer(modifier = Modifier.height(16.dp))
+                                            }
+
+                                            // Action buttons
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                                             ) {
-                                                androidx.compose.foundation.lazy.LazyColumn {
-                                                    item {
-                                                        Text(info.changelog, style = MaterialTheme.typography.bodyMedium)
+                                                if (isDownloading) {
+                                                    OutlinedButton(
+                                                        onClick = {
+                                                            downloadJob?.cancel()
+                                                            isDownloading = false
+                                                            downloadProgress = null
+                                                        },
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .height(48.dp),
+                                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                                                        border = androidx.compose.foundation.BorderStroke(
+                                                            1.dp, MaterialTheme.colorScheme.error
+                                                        )
+                                                    ) {
+                                                        Text("Cancel", color = MaterialTheme.colorScheme.error)
+                                                    }
+                                                } else {
+                                                    OutlinedButton(
+                                                        onClick = { updateInfo = null },
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .height(48.dp),
+                                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+                                                    ) {
+                                                        Text("Later")
+                                                    }
+                                                    Button(
+                                                        onClick = { startDownloadFlow(info) },
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .height(48.dp),
+                                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                                                        colors = ButtonDefaults.buttonColors(
+                                                            containerColor = Color(0xFFDC2626)
+                                                        )
+                                                    ) {
+                                                        Text("Update Now")
                                                     }
                                                 }
                                             }
                                         }
-                                        if (isDownloading) {
-                                            Spacer(modifier = Modifier.height(16.dp))
-                                            Text("Downloading: ${downloadProgress ?: 0}%", style = MaterialTheme.typography.bodyMedium)
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            LinearProgressIndicator(
-                                                progress = { (downloadProgress ?: 0) / 100f },
-                                                modifier = Modifier.fillMaxWidth(),
-                                                color = Color(0xDC, 0x26, 0x26)
-                                            )
-                                        }
-                                    }
-                                },
-                                confirmButton = {
-                                    if (isDownloading) {
-                                        Button(
-                                            onClick = {
-                                                downloadJob?.cancel()
-                                                isDownloading = false
-                                                downloadProgress = null
-                                            },
-                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                                        ) {
-                                            Text("Cancel")
-                                        }
-                                    } else {
-                                        Button(
-                                            onClick = { startDownloadFlow(info) },
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xDC, 0x26, 0x26))
-                                        ) {
-                                            Text("Update Now")
-                                        }
-                                    }
-                                },
-                                dismissButton = {
-                                    if (!isDownloading) {
-                                        TextButton(onClick = { updateInfo = null }) {
-                                            Text("Later")
-                                        }
                                     }
                                 }
-                            )
+                            }
                         }
 
                         if (showPermissionDialog) {

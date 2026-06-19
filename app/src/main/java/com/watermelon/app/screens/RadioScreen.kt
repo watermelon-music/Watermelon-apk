@@ -333,14 +333,20 @@ private fun CountryDetailContent(
     isFavorite: (RadioStation) -> Boolean
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text(country.name) },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
-        )
+            Text(
+                text = country.name,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            )
+        }
         Box(modifier = Modifier.fillMaxSize()) {
             if (isLoading) {
                 ShimmerList()
@@ -506,14 +512,20 @@ private fun LanguageDetailContent(
     isFavorite: (RadioStation) -> Boolean
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text(language.replaceFirstChar { it.uppercase() }) },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
-        )
+            Text(
+                text = language.replaceFirstChar { it.uppercase() },
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            )
+        }
         Box(modifier = Modifier.fillMaxSize()) {
             if (isLoading) {
                 ShimmerList()

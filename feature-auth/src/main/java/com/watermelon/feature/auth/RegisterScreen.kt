@@ -46,7 +46,7 @@ fun RegisterScreen(
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var confirmPassword by rememberSaveable { mutableStateOf("") }
-    var localError by rememberSaveable { mutableStateOf<String?>("") }
+    var localError by rememberSaveable { mutableStateOf<String?>(null) }
     var isVisible by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -226,11 +226,11 @@ fun RegisterScreen(
                             onClick = {
                                 localError = when {
                                     username.isBlank() || email.isBlank() || password.isBlank() ->
-                                        "Please fill in all fields."
+                                        "Fill in all fields"
                                     password != confirmPassword ->
-                                        "Passwords do not match."
+                                        "Passwords don't match"
                                     password.length < 6 ->
-                                        "Password must be at least 6 characters."
+                                        "Password too short (min 6)"
                                     else -> null
                                 }
                                 if (localError == null) {

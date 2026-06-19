@@ -16,15 +16,25 @@ import javax.inject.Inject
 
 /** Short user-facing error messages. */
 private fun Throwable.toUserMessage(): String {
+    Timber.e(this, "Auth error [${this::class.simpleName}]: $message")
     val msg = message?.lowercase() ?: ""
     return when {
         msg.contains("invalid login") || msg.contains("invalid credentials") -> "Wrong email or password"
         msg.contains("email not confirmed") -> "Verify your email first"
-        msg.contains("already registered") -> "Account already exists"
-        msg.contains("password") && msg.contains("short") -> "Password too short (min 6)"
-        msg.contains("network") || msg.contains("unable to resolve") || msg.contains("timeout") -> "No internet connection"
-        msg.contains("rate limit") || msg.contains("too many") -> "Too many attempts, wait a bit"
-        else -> "Something went wrong"
+        msg.contains("already registered") || msg.contains("already been registered") -> "Account already exists"
+        msg.contains("password") && (msg.contains("short") || msg.contains("least")) -> "Password too short (min 6)"
+        msg.contains("network") || msg.contains("unable to resolve") || msg.contains("timeout") || 
+            msg.contains("failed to connect") || msg.contains("connection refused") ||
+            msg.contains("no address") || msg.contains("unreachable") -> "No internet connection"
+        msg.contains("rate limit") || msg.contains("too many") || msg.contains("429") -> "Too many attempts, wait a bit"
+        msg.contains("empty") && msg.contains("url") -> "Server not configured"
+        msg.contains("json") || msg.contains("parse") || msg.contains("serializ") -> "Server error, try again"
+        msg.contains("ssl") || msg.contains("certificate") || msg.contains("handshake") -> "Connection error"
+        msg.contains("401") || msg.contains("unauthorized") -> "Wrong email or password"
+        msg.contains("403") || msg.contains("forbidden") -> "Access denied"
+        msg.contains("500") || msg.contains("internal server") -> "Server error, try again"
+        msg.contains("signup") && msg.contains("disabled") -> "Registration is disabled"
+        else -> "Try again later"
     }
 }
 

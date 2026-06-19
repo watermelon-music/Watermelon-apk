@@ -96,14 +96,20 @@ class StreamingRepositoryImpl @Inject constructor(
     override fun pause() = player.pause()
     override fun resume() = player.play()
     override fun stop() = player.stop()
-    override fun seekTo(positionMs: Long) = player.seekTo(positionMs)
+
+    override fun seekTo(positionMs: Long) {
+        // ExoPlayer accepts seekTo before STATE_READY only if there is a media item;
+        // guard against IDLE timeline (where duration == TIME_UNSET) by clamping.
+        val target = if (player.duration > 0) positionMs.coerceIn(0L, player.duration) else positionMs.coerceAtLeast(0L)
+        player.seekTo(target)
+    }
 
     override fun setVolume(volume: Float) {
         player.volume = volume
     }
 
     override fun isPlaying(): Boolean = player.isPlaying
-    override fun currentPosition(): Long = player.currentPosition
+    override fun currentPosition(): Long = player.currentPosition.coerceAtLeast(0L)
     override fun duration(): Long = if (player.duration > 0) player.duration else 0L
 
     override fun addListener(callback: StreamingRepository.Callback) {

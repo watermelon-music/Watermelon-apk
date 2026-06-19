@@ -14,6 +14,7 @@ import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -101,10 +102,14 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun isEmailVerified(): Boolean {
-        val verifiedOnline = client.auth.currentUserOrNull()?.emailConfirmedAt != null
-        if (verifiedOnline) {
-            prefs.edit().putBoolean(KEY_EMAIL_VERIFIED, true).apply()
-            return true
+        // Trust the live Supabase user when we have one. If there is no live
+        // session, fall back to the cached flag so an offline open of the app
+        // doesn't bounce the user back to the verification screen.
+        val user = client.auth.currentUserOrNull()
+        if (user != null) {
+            val verified = user.emailConfirmedAt != null
+            prefs.edit().putBoolean(KEY_EMAIL_VERIFIED, verified).apply()
+            return verified
         }
         return prefs.getBoolean(KEY_EMAIL_VERIFIED, false)
     }
@@ -176,9 +181,19 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override fun isAuthenticated(): Flow<Boolean> {
-        return client.auth.sessionStatus.map { status ->
-            status is SessionStatus.Authenticated || prefs.getBoolean(KEY_LOGGED_IN, false)
-        }
+        // Only trust Supabase's actual session status. Drop intermediate states
+        // (LoadingFromStorage / NetworkError) so the splash screen waits until
+        // we know for sure rather than racing on a stale local pref.
+        return client.auth.sessionStatus
+            .filter { status ->
+                status is SessionStatus.Authenticated || status is SessionStatus.NotAuthenticated
+            }
+            .map { status ->
+                val authed = status is SessionStatus.Authenticated
+                // Keep the local pref mirror in sync for legacy callers.
+                prefs.edit().putBoolean(KEY_LOGGED_IN, authed).apply()
+                authed
+            }
     }
 
     override fun getCurrentUser(): Flow<User?> {

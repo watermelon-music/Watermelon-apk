@@ -6,8 +6,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
@@ -241,11 +243,15 @@ class MainActivity : ComponentActivity() {
                                 Column(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    val isSongActive = playerState.currentTitle.isNotBlank() || playerState.currentArtist.isNotBlank()
+                                    // A real track is loaded only when the player has a song id —
+                                    // checking title/artist alone keeps stale strings around and was
+                                    // the source of the blank overlay above the bottom nav.
+                                    val isSongActive = playerState.currentSongId.isNotBlank() ||
+                                        (playerState.isRadioStream && playerState.currentTitle.isNotBlank())
                                     AnimatedVisibility(
                                         visible = isSongActive && currentRoute != Routes.PLAYER,
-                                        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                                        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+                                        enter = slideInVertically(initialOffsetY = { it }) + expandVertically() + fadeIn(),
+                                        exit = slideOutVertically(targetOffsetY = { it }) + shrinkVertically() + fadeOut()
                                     ) {
                                         MiniPlayer(
                                             onClick = { navController.navigate(Routes.PLAYER) },

@@ -108,11 +108,12 @@ class PlayerViewModel @Inject constructor(
     private var positionUpdateJob: Job? = null
 
     private fun startPositionUpdates() {
-        positionUpdateJob?.cancel()
+        if (positionUpdateJob?.isActive == true) return
         positionUpdateJob = viewModelScope.launch {
             while (true) {
                 updatePosition()
-                delay(500)
+                // Higher frequency while actively playing to keep the slider smooth.
+                delay(if (streamingRepository.isPlaying()) 250L else 750L)
             }
         }
     }
@@ -130,10 +131,9 @@ class PlayerViewModel @Inject constructor(
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             if (isPlaying) {
                 consecutiveErrors = 0
-                startPositionUpdates()
-            } else {
-                stopPositionUpdates()
             }
+            // Keep updating even when paused so the slider stays in sync after a seek.
+            startPositionUpdates()
             _uiState.update { it.copy(isPlaying = isPlaying) }
         }
 
@@ -217,9 +217,9 @@ class PlayerViewModel @Inject constructor(
         streamingRepository.addListener(listener)
         loadPlaylists()
         updatePosition()
-        if (streamingRepository.isPlaying()) {
-            startPositionUpdates()
-        }
+        // Always run the position updater while the ViewModel is alive; the loop
+        // throttles itself when nothing is playing.
+        startPositionUpdates()
     }
 
     private fun loadPlaylists() {
@@ -291,27 +291,21 @@ class PlayerViewModel @Inject constructor(
                     durationMs = if (durationMs > 0) durationMs else 0L
                 ) 
             }
-            if (sourceUrl.startsWith("file:") || sourceUrl.startsWith("/")) {
-                val playUrl = if (sourceUrl.startsWith("/")) {
-                    android.net.Uri.fromFile(File(sourceUrl)).toString()
-                } else if (sourceUrl.startsWith("file:/") && !sourceUrl.startsWith("file:///")) {
-                    sourceUrl.replace("file:/", "file:///")
-                } else {
-                    sourceUrl
+            if (sourceUrl.startsWith("content://") ||
+                sourceUrl.startsWith("file:") ||
+                sourceUrl.startsWith("/")) {
+                // Normalize local-file inputs to a canonical URI that ExoPlayer's
+                // DefaultDataSource can read for seeking. content:// URIs are passed
+                // through as-is so the system content resolver handles them.
+                val playUrl = when {
+                    sourceUrl.startsWith("content://") -> sourceUrl
+                    sourceUrl.startsWith("/") -> android.net.Uri.fromFile(File(sourceUrl)).toString()
+                    sourceUrl.startsWith("file:///") -> sourceUrl
+                    sourceUrl.startsWith("file://") -> sourceUrl
+                    sourceUrl.startsWith("file:/") -> "file:///" + sourceUrl.substringAfter("file:/")
+                    else -> sourceUrl
                 }
                 Timber.d("Local playback requested. playUrl: $playUrl")
-                try {
-                    val uri = android.net.Uri.parse(playUrl)
-                    val path = uri.path
-                    if (path != null) {
-                        val file = File(path)
-                        Timber.d("Local file check - exists: ${file.exists()}, canRead: ${file.canRead()}, length: ${file.length()} bytes")
-                    } else {
-                        Timber.w("Local file URI path is null")
-                    }
-                } catch (e: Exception) {
-                    Timber.e(e, "Error checking local file state")
-                }
                 streamingRepository.play(playUrl, title, artist, artwork)
                 _uiState.update {
                     it.copy(
@@ -321,6 +315,7 @@ class PlayerViewModel @Inject constructor(
                         currentSongId = songId,
                         isBuffering = false,
                         positionMs = 0L,
+                        // Keep any known duration from metadata until the player reports the actual one.
                         durationMs = if (durationMs > 0) durationMs else 0L
                     )
                 }
@@ -454,15 +449,26 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun seekTo(positionMs: Long) {
-        streamingRepository.seekTo(positionMs)
-        _uiState.update { it.copy(positionMs = positionMs) }
+        val duration = _uiState.value.durationMs
+        val clamped = if (duration > 0) positionMs.coerceIn(0L, duration) else positionMs.coerceAtLeast(0L)
+        // Optimistically reflect the seek target so the slider doesn't snap back
+        // before the player's discontinuity callback arrives.
+        _uiState.update { it.copy(positionMs = clamped) }
+        streamingRepository.seekTo(clamped)
+        // Re-sync from the player once it acknowledges the seek (covers paused state too).
+        viewModelScope.launch {
+            delay(50)
+            updatePosition()
+        }
     }
 
     fun updatePosition() {
+        val pos = streamingRepository.currentPosition().coerceAtLeast(0L)
+        val dur = streamingRepository.duration()
         _uiState.update {
             it.copy(
-                positionMs = streamingRepository.currentPosition(),
-                durationMs = if (streamingRepository.duration() > 0) streamingRepository.duration() else it.durationMs
+                positionMs = pos,
+                durationMs = if (dur > 0) dur else it.durationMs
             )
         }
     }
@@ -708,6 +714,23 @@ class PlayerViewModel @Inject constructor(
     fun cancelSleepTimer() {
         sleepTimerJob?.cancel()
         _sleepTimerRemainingSeconds.value = null
+    }
+
+    /**
+     * Stop playback and wipe player state. Intended for sign-out so the mini-player
+     * doesn't keep showing the previous user's last track.
+     */
+    fun clearPlayer() {
+        currentExtractionJob?.cancel()
+        sleepTimerJob?.cancel()
+        runCatching { streamingRepository.stop() }
+        internalQueue.clear()
+        originalQueue = emptyList()
+        currentIndex = -1
+        consecutiveErrors = 0
+        _queue.value = emptyList()
+        _sleepTimerRemainingSeconds.value = null
+        _uiState.value = PlayerUiState()
     }
 
     fun clearError() {

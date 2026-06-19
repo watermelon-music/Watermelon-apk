@@ -77,30 +77,23 @@ fun WatermelonNavHost(
             val isAuthenticated by authViewModel.isAuthenticated.collectAsState()
             val hasNavigated = remember { mutableStateOf(false) }
 
+            // Resolve the destination once Supabase has reported a definitive
+            // session state (Authenticated or NotAuthenticated). The minimum
+            // splash dwell is enforced in parallel so branding is preserved
+            // without coupling it to the session timing.
             LaunchedEffect(isAuthenticated) {
                 if (hasNavigated.value) return@LaunchedEffect
-                if (isAuthenticated == null) {
-                    delay(1500)
-                    // Still null after wait — assume not authenticated
-                    hasNavigated.value = true
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.SPLASH) { inclusive = true }
-                    }
-                    return@LaunchedEffect
-                }
-                delay(800) // minimum splash branding
+                val auth = isAuthenticated ?: return@LaunchedEffect
+                // Minimum splash dwell for branding.
+                delay(600)
                 hasNavigated.value = true
-                val auth = isAuthenticated
-                if (auth == true) {
-                    val verified = authViewModel.isEmailVerified()
-                    val target = if (verified) Routes.HOME else Routes.VERIFY_EMAIL
-                    navController.navigate(target) {
-                        popUpTo(Routes.SPLASH) { inclusive = true }
-                    }
-                } else {
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.SPLASH) { inclusive = true }
-                    }
+                val target = when {
+                    !auth -> Routes.LOGIN
+                    authViewModel.isEmailVerified() -> Routes.HOME
+                    else -> Routes.VERIFY_EMAIL
+                }
+                navController.navigate(target) {
+                    popUpTo(Routes.SPLASH) { inclusive = true }
                 }
             }
             Box(
@@ -286,10 +279,14 @@ fun WatermelonNavHost(
             )
         }
         composable(Routes.PROFILE) {
+            val profileViewModel: com.watermelon.app.screens.ProfileViewModel = hiltViewModel()
             ProfileScreen(
+                viewModel = profileViewModel,
                 onLogout = {
+                    profileViewModel.signOut()
+                    playerViewModel.clearPlayer()
                     navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.HOME) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                     }
                 }
             )
@@ -298,8 +295,9 @@ fun WatermelonNavHost(
             SettingsScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onLogoutComplete = {
+                    playerViewModel.clearPlayer()
                     navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.HOME) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                     }
                 },
                 onNavigateToProfile = { navController.navigate(Routes.PROFILE) },

@@ -319,14 +319,15 @@ fun PlayerScreen(
                     localProgress = it.coerceIn(0f, 1f)
                 },
                 onValueChangeFinished = {
-                    localProgress?.let { progress ->
-                        if (state.durationMs > 0) {
-                            val target = (progress * state.durationMs).toLong()
-                            viewModel.seekTo(target)
-                        }
+                    val progress = localProgress
+                    if (progress != null && state.durationMs > 0) {
+                        val target = (progress * state.durationMs).toLong()
+                        viewModel.seekTo(target)
                     }
+                    // Release the slider back to following the player state.
                     localProgress = null
                 },
+                enabled = state.durationMs > 0 && !state.isRadioStream,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp),

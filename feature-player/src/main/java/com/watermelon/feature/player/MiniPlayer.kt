@@ -30,9 +30,12 @@ fun MiniPlayer(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-
-
-    if (state.currentTitle.isBlank() && state.currentArtist.isBlank()) return
+    // Only render when there is a real loaded track. Title/artist alone can stick
+    // around from a previously played song after stop/sign-out and would otherwise
+    // leave a blank card hovering above the bottom nav.
+    val hasTrack = state.currentSongId.isNotBlank() ||
+        (state.isRadioStream && state.currentTitle.isNotBlank())
+    if (!hasTrack) return
 
     MiniPlayerContent(
         modifier = modifier,

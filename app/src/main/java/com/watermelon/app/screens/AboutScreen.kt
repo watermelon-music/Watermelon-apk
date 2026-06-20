@@ -150,6 +150,13 @@ fun AboutScreenContent(paddingValues: PaddingValues) {
                 subtitle = "satyampote9999@gmail.com",
                 onClick = { sendEmail(context, "satyampote9999@gmail.com") }
             )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            AboutLinkItem(
+                icon = Icons.Default.Language,
+                label = "Watermelon",
+                subtitle = "visit watermelon-music : https://watermelon-web.onrender.com/",
+                onClick = { openUrl(context, "https://watermelon-web.onrender.com/") }
+            )
         }
 
         Spacer(modifier = Modifier.height(20.dp))

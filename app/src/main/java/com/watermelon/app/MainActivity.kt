@@ -36,6 +36,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.watermelon.app.navigation.BottomNavBar
 import com.watermelon.app.navigation.WatermelonNavHost
+import com.watermelon.app.config.KillSwitchConfig
 import com.watermelon.core.designsystem.theme.ThemeManager
 import com.watermelon.core.designsystem.theme.WatermelonTheme
 import com.watermelon.core.navigation.Routes
@@ -127,6 +128,7 @@ class MainActivity : ComponentActivity() {
 
         requestStoragePermission()
         checkBroadcasts()
+        checkRemoteConfig()
 
         // Schedule first alarm if not already scheduled
         val alarmIntent = Intent(this, NotificationReceiver::class.java).apply {
@@ -540,6 +542,25 @@ class MainActivity : ComponentActivity() {
         pendingDeepLink = intent?.data
     }
 
+    private fun checkRemoteConfig() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            runCatching {
+                val cfg = authRepository.checkRemoteConfig()
+                if (cfg != null) {
+                    withContext(Dispatchers.Main) {
+                        KillSwitchConfig.update(
+                            disableYouTube = cfg.disableYouTube,
+                            disableAudius = cfg.disableAudius,
+                            disableJamendo = cfg.disableJamendo,
+                            freeMaxPlaylists = cfg.freeMaxPlaylists,
+                            maintenanceMode = cfg.maintenanceMode
+                        )
+                    }
+                }
+            }.onFailure { Timber.e(it, "Failed to check remote config") }
+        }
+    }
+
     private fun checkBroadcasts() {
         lifecycleScope.launch(Dispatchers.IO) {
             runCatching {
@@ -555,7 +576,7 @@ class MainActivity : ComponentActivity() {
                             }
                         } else {
                             withContext(Dispatchers.Main) {
-                                showBroadcastNotification(applicationContext, latest.message)
+                                showBroadcastNotification(applicationContext, latest.message, latest.sender)
                             }
                         }
                         prefs.edit().putLong("last_broadcast_id", latest.id).apply()
@@ -565,7 +586,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun showBroadcastNotification(context: Context, message: String) {
+    private fun showBroadcastNotification(context: Context, message: String, sender: String = "Watermelon") {
         val channelId = "watermelon_broadcasts_v2"
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val soundUri = Uri.parse("android.resource://${context.packageName}/${R.raw.watermelon_tone}")
@@ -599,7 +620,7 @@ class MainActivity : ComponentActivity() {
 
         val builder = androidx.core.app.NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Announcement 🍉")
+            .setContentTitle("${sender.takeIf { it.isNotBlank() } ?: "Watermelon"} 🍉")
             .setContentText(message)
             .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)

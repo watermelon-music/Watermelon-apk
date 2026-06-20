@@ -9,5 +9,6 @@ data class ProfileRow(
     val username: String? = null,
     val display_name: String? = null,
     val plan: String? = "FREE",
-    val avatar_url: String? = null
+    val avatar_url: String? = null,
+    val is_banned: Boolean? = false
 )

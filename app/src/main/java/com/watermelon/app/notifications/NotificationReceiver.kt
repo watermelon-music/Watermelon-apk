@@ -115,7 +115,7 @@ class NotificationReceiver : BroadcastReceiver() {
                     val prefs = context.getSharedPreferences("watermelon_prefs", Context.MODE_PRIVATE)
                     val lastBroadcastId = prefs.getLong("last_broadcast_id", -1)
                     if (latest.id > lastBroadcastId) {
-                        showBroadcastNotification(context, latest.message)
+                        showBroadcastNotification(context, latest.message, latest.sender)
                         prefs.edit().putLong("last_broadcast_id", latest.id).apply()
                     }
                 }
@@ -123,7 +123,7 @@ class NotificationReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun showBroadcastNotification(context: Context, message: String) {
+    private fun showBroadcastNotification(context: Context, message: String, sender: String = "Watermelon") {
         val channelId = "watermelon_broadcasts_v2"
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val soundUri = Uri.parse("android.resource://${context.packageName}/${R.raw.watermelon_tone}")
@@ -157,7 +157,7 @@ class NotificationReceiver : BroadcastReceiver() {
 
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Announcement 🍉")
+            .setContentTitle("${sender.takeIf { it.isNotBlank() } ?: "Watermelon"} 🍉")
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_HIGH)

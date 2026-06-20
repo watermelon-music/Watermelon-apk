@@ -21,4 +21,5 @@ interface AuthRepository {
     suspend fun getCurrentUserEmail(): String?
     suspend fun getCurrentAccessToken(): String?
     suspend fun fetchLatestActiveBroadcast(): com.watermelon.domain.model.Broadcast?
+    suspend fun checkRemoteConfig(): com.watermelon.domain.model.RemoteConfig?
 }

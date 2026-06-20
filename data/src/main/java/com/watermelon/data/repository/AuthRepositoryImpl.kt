@@ -3,6 +3,7 @@ package com.watermelon.data.repository
 import android.content.Context
 import com.watermelon.data.BuildConfig
 import com.watermelon.data.remote.supabase.model.ProfileRow
+import com.watermelon.domain.model.RemoteConfig
 import com.watermelon.domain.model.SubscriptionPlan
 import com.watermelon.domain.model.User
 import com.watermelon.domain.repository.AuthRepository
@@ -70,6 +71,14 @@ class AuthRepositoryImpl @Inject constructor(
         val session = client.auth.currentSessionOrNull()
         val hasSession = session != null
         val verified = session?.user?.emailConfirmedAt != null
+
+        val userId = session?.user?.id
+        if (userId != null && isProfileBanned(userId)) {
+            client.auth.signOut()
+            prefs.edit().clear().apply()
+            throw IllegalStateException("Account has been banned.")
+        }
+
         prefs.edit()
             .putBoolean(KEY_LOGGED_IN, hasSession)
             .putBoolean(KEY_EMAIL_VERIFIED, verified)
@@ -252,6 +261,12 @@ class AuthRepositoryImpl @Inject constructor(
                             .decodeSingleOrNull<ProfileRow>()
                     }.getOrNull()
 
+                    if (profile?.is_banned == true) {
+                        client.auth.signOut()
+                        prefs.edit().clear().apply()
+                        return@map null
+                    }
+
                     User(
                         id = supaUser.id,
                         email = supaUser.email ?: "",
@@ -273,6 +288,15 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    private fun isProfileBanned(userId: String): Boolean {
+        val profile = runCatching {
+            client.postgrest.from("profiles")
+                .select { filter { eq("id", userId) } }
+                .decodeSingleOrNull<ProfileRow>()
+        }.getOrNull()
+        return profile?.is_banned == true
+    }
+
     override suspend fun getCurrentUserId(): String? {
         return client.auth.currentUserOrNull()?.id
     }
@@ -289,6 +313,11 @@ class AuthRepositoryImpl @Inject constructor(
                 .select { filter { eq("id", supaUser.id) } }
                 .decodeSingleOrNull<ProfileRow>()
         }.getOrNull()
+        if (profile?.is_banned == true) {
+            client.auth.signOut()
+            prefs.edit().clear().apply()
+            return null
+        }
         return User(
             id = supaUser.id,
             email = supaUser.email ?: "",
@@ -329,6 +358,21 @@ class AuthRepositoryImpl @Inject constructor(
         )
     }.onFailure { timber.log.Timber.e(it, "fetchLatestActiveBroadcast failed") }.getOrNull()
 
+    override suspend fun checkRemoteConfig(): RemoteConfig? = runCatching {
+        val row = client.postgrest.from("remote_config")
+            .select()
+            .limit(1)
+            .decodeSingleOrNull<RemoteConfigRow>()
+        if (row == null) return@runCatching null
+        RemoteConfig(
+            maintenanceMode = row.maintenance_mode,
+            disableYouTube = row.disable_youtube,
+            disableAudius = row.disable_audius,
+            disableJamendo = row.disable_jamendo,
+            freeMaxPlaylists = row.free_max_playlists
+        )
+    }.onFailure { timber.log.Timber.e(it, "checkRemoteConfig failed") }.getOrNull()
+
     companion object {
         private const val PREFS_NAME = "watermelon_auth"
         private const val KEY_LOGGED_IN = "is_logged_in"
@@ -349,4 +393,14 @@ private data class BroadcastRow(
     val sender: String,
     val active: Boolean,
     val created_at: String
+)
+
+@Serializable
+private data class RemoteConfigRow(
+    val id: Int,
+    val maintenance_mode: Boolean = false,
+    val disable_youtube: Boolean = false,
+    val disable_audius: Boolean = false,
+    val disable_jamendo: Boolean = false,
+    val free_max_playlists: Int = 3
 )

@@ -37,10 +37,6 @@ class AuthRepositoryImpl @Inject constructor(
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     override suspend fun signUp(username: String, email: String, password: String): Result<Unit> = runCatching {
-        // Intentionally omit redirectUrl — Supabase falls back to the project's
-        // Site URL for the confirmation email link, which doesn't require the
-        // value to be present in the Redirect URLs allowlist. This sidesteps
-        // the "invalid redirect URL" error caused by allowlist mismatches.
         client.auth.signUpWith(Email) {
             this.email = email
             this.password = password
@@ -52,10 +48,16 @@ class AuthRepositoryImpl @Inject constructor(
         val session = client.auth.currentSessionOrNull()
         val hasSession = session != null
         val verified = session?.user?.emailConfirmedAt != null
+        // If the user re-created an account in the same process after a
+        // previous delete, the old deleted session may still be cached.
+        if (!hasSession) {
+            kotlin.runCatching { client.auth.signOut() }
+        }
         prefs.edit()
             .putBoolean(KEY_LOGGED_IN, hasSession)
             .putBoolean(KEY_EMAIL_VERIFIED, verified)
             .putString(KEY_EMAIL, email)
+            .putString(KEY_PASSWORD, password)
             .apply()
         Unit
     }
@@ -72,6 +74,7 @@ class AuthRepositoryImpl @Inject constructor(
             .putBoolean(KEY_LOGGED_IN, hasSession)
             .putBoolean(KEY_EMAIL_VERIFIED, verified)
             .putString(KEY_EMAIL, email)
+            .putString(KEY_PASSWORD, password)
             .apply()
         Unit
     }
@@ -83,20 +86,16 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun resetPassword(email: String): Result<Unit> = runCatching {
-        // Omit redirectUrl — same reasoning as signUp: avoid the Redirect URLs
-        // allowlist gate. Supabase will use the project Site URL by default.
         client.auth.resetPasswordForEmail(email)
     }
 
     override suspend fun resendVerificationEmail(email: String): Result<Unit> = runCatching {
-        val body = okhttp3.FormBody.Builder()
-            .add("type", "signup")
-            .add("email", email)
-            .build()
+        val json = "{\"type\":\"signup\",\"email\":\"$email\"}"
+        val jsonBody = json.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
         val request = Request.Builder()
             .url("${BuildConfig.SUPABASE_URL}/auth/v1/resend")
             .addHeader("apikey", BuildConfig.SUPABASE_KEY)
-            .post(body)
+            .post(jsonBody)
             .build()
         val response = withContext(Dispatchers.IO) {
             httpClient.newCall(request).execute()
@@ -108,76 +107,95 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun isEmailVerified(): Boolean {
-        // Force a server round-trip so we see the *current* email_confirmed_at
-        // value — the SDK-cached user object is stale right after a signup or
-        // after the user clicks the email link in another app.
-        runCatching {
-            client.auth.refreshCurrentSession()
-        }
+        val fresh = runCatching { client.auth.refreshCurrentSession() }
         val user = client.auth.currentUserOrNull()
         if (user != null) {
+            // Session exists. Make sure it isn't a ghost from a deleted account.
+            if (fresh.isFailure) {
+                val ex = fresh.exceptionOrNull()
+                val msg = ex?.message?.lowercase() ?: ""
+                val isNetworkError = ex is java.io.IOException ||
+                    msg.contains("unable to resolve") ||
+                    msg.contains("timeout") ||
+                    msg.contains("connection") ||
+                    msg.contains("unreachable") ||
+                    msg.contains("ssl") ||
+                    msg.contains("handshake") ||
+                    msg.contains("network")
+                if (!isNetworkError) {
+                    // Auth-level failure (user deleted, token revoked) — purge
+                    kotlin.runCatching { client.auth.signOut() }
+                    prefs.edit().clear().apply()
+                    return false
+                }
+            }
             val verified = user.emailConfirmedAt != null
             prefs.edit().putBoolean(KEY_EMAIL_VERIFIED, verified).apply()
             return verified
         }
-        // No live session — fall back to the cached flag so an offline open
-        // doesn't kick a previously-verified user back to the verify screen.
-        return prefs.getBoolean(KEY_EMAIL_VERIFIED, false)
+        // No live session — most likely the signup didn't create one because
+        // email confirmation is required. Auto-sign in with stored credentials
+        // so the user actually has a real session before we let them into Home.
+        return runCatching {
+            val email = prefs.getString(KEY_EMAIL, null) ?: return false
+            val password = prefs.getString(KEY_PASSWORD, null) ?: return false
+            client.auth.signInWith(Email) {
+                this.email = email
+                this.password = password
+            }
+            val newSession = client.auth.currentSessionOrNull()
+            val hasSession = newSession != null
+            val verified = newSession?.user?.emailConfirmedAt != null
+            prefs.edit()
+                .putBoolean(KEY_LOGGED_IN, hasSession)
+                .putBoolean(KEY_EMAIL_VERIFIED, verified)
+                .apply()
+            if (verified) {
+                prefs.edit().remove(KEY_PASSWORD).apply()
+            }
+            verified
+        }.onFailure { timber.log.Timber.e(it, "Auto sign-in after verification failed") }
+            .getOrDefault(false)
     }
 
     override suspend fun updateDisplayName(name: String): Result<Unit> = runCatching {
         val uid = getCurrentUserId() ?: throw IllegalStateException("Not logged in")
-        if (uid == "local_user") {
-            prefs.edit().putString(KEY_DISPLAY_NAME, name).apply()
-        } else {
-            client.postgrest.from("profiles").update({
-                set("display_name", name)
-            }) {
-                filter { eq("id", uid) }
-            }
+        client.postgrest.from("profiles").update({
+            set("display_name", name)
+        }) {
+            filter { eq("id", uid) }
         }
         Unit
     }
 
     override suspend fun updateUsername(name: String): Result<Unit> = runCatching {
         val uid = getCurrentUserId() ?: throw IllegalStateException("Not logged in")
-        if (uid == "local_user") {
-            prefs.edit().putString(KEY_USERNAME, name).apply()
-        } else {
-            client.postgrest.from("profiles").update({
-                set("username", name)
-            }) {
-                filter { eq("id", uid) }
-            }
+        client.postgrest.from("profiles").update({
+            set("username", name)
+        }) {
+            filter { eq("id", uid) }
         }
         Unit
     }
 
     override suspend fun updateAvatar(url: String): Result<Unit> = runCatching {
         val uid = getCurrentUserId() ?: throw IllegalStateException("Not logged in")
-        if (uid == "local_user") {
-            prefs.edit().putString(KEY_AVATAR_URL, url).apply()
-        } else {
-            client.postgrest.from("profiles").update({
-                set("avatar_url", url)
-            }) {
-                filter { eq("id", uid) }
-            }
+        client.postgrest.from("profiles").update({
+            set("avatar_url", url)
+        }) {
+            filter { eq("id", uid) }
         }
         Unit
     }
 
     override suspend fun deleteAccount(): Result<Unit> = runCatching {
         val token = getCurrentAccessToken() ?: throw IllegalStateException("No session")
-        val base = BuildConfig.SUPABASE_URL.removeSuffix("/")
-        val url = "$base/auth/v1/user"
-        val body = "{}".toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
+        val base = BuildConfig.WATERMELON_API_URL.removeSuffix("/")
+        val url = "$base/auth/delete-user"
         val request = Request.Builder()
             .url(url)
             .addHeader("Authorization", "Bearer $token")
-            .addHeader("apikey", BuildConfig.SUPABASE_KEY)
-            .addHeader("Content-Type", "application/json")
-            .delete(body)
+            .delete()
             .build()
         val response = withContext(Dispatchers.IO) {
             httpClient.newCall(request).execute()
@@ -187,22 +205,38 @@ class AuthRepositoryImpl @Inject constructor(
             throw IllegalStateException("Delete failed: ${response.code} - $bodyString")
         }
         response.body?.close()
-        signOut()
         Unit
+    }.also {
+        // Wipe local state - the backend already deleted the user on Supabase.
+        // MUST sign out to clear the in-memory session, otherwise the old
+        // (now-deleted) user's session stays cached and corrupts all future
+        // auth calls (FK violations on playlists, duplicate-delete failures, etc.)
+        // .also runs unconditionally so the leak is fixed even when the
+        // server-side delete fails (e.g. stale token for already-deleted user).
+        kotlin.runCatching { client.auth.signOut() }
+        prefs.edit().clear().apply()
     }
 
     override fun isAuthenticated(): Flow<Boolean> {
-        // Only trust Supabase's actual session status. Drop intermediate states
-        // (LoadingFromStorage / NetworkError) so the splash screen waits until
-        // we know for sure rather than racing on a stale local pref.
         return client.auth.sessionStatus
             .filter { status ->
                 status is SessionStatus.Authenticated || status is SessionStatus.NotAuthenticated
             }
             .map { status ->
                 val authed = status is SessionStatus.Authenticated
-                // Keep the local pref mirror in sync for legacy callers.
-                prefs.edit().putBoolean(KEY_LOGGED_IN, authed).apply()
+                if (authed) {
+                    val verified = (status as SessionStatus.Authenticated)
+                        .session.user?.emailConfirmedAt != null
+                    prefs.edit()
+                        .putBoolean(KEY_LOGGED_IN, true)
+                        .putBoolean(KEY_EMAIL_VERIFIED, verified)
+                        .apply()
+                } else {
+                    prefs.edit()
+                        .putBoolean(KEY_LOGGED_IN, false)
+                        .putBoolean(KEY_EMAIL_VERIFIED, false)
+                        .apply()
+                }
                 authed
             }
     }
@@ -211,7 +245,7 @@ class AuthRepositoryImpl @Inject constructor(
         return client.auth.sessionStatus.map { status ->
             when (status) {
                 is SessionStatus.Authenticated -> {
-                    val supaUser = status.session.user ?: return@map fallbackLocalUser()
+                    val supaUser = status.session.user ?: return@map null
                     val profile = runCatching {
                         client.postgrest.from("profiles")
                             .select { filter { eq("id", supaUser.id) } }
@@ -234,21 +268,22 @@ class AuthRepositoryImpl @Inject constructor(
                         }.getOrDefault(SubscriptionPlan.FREE)
                     )
                 }
-                else -> fallbackLocalUser()
+                else -> null
             }
         }
     }
 
     override suspend fun getCurrentUserId(): String? {
-        return client.auth.currentUserOrNull()?.id ?: fallbackLocalUser()?.id
+        return client.auth.currentUserOrNull()?.id
     }
 
     override suspend fun getCurrentUserEmail(): String? {
-        return client.auth.currentUserOrNull()?.email ?: fallbackLocalUser()?.email
+        return client.auth.currentUserOrNull()?.email
+            ?: prefs.getString(KEY_EMAIL, null)
     }
 
     override suspend fun refreshUser(): User? {
-        val supaUser = client.auth.currentUserOrNull() ?: return fallbackLocalUser()
+        val supaUser = client.auth.currentUserOrNull() ?: return null
         val profile = runCatching {
             client.postgrest.from("profiles")
                 .select { filter { eq("id", supaUser.id) } }
@@ -275,23 +310,6 @@ class AuthRepositoryImpl @Inject constructor(
         return client.auth.currentSessionOrNull()?.accessToken
     }
 
-    private fun fallbackLocalUser(): User? {
-        if (!prefs.getBoolean(KEY_LOGGED_IN, false)) return null
-        val email = prefs.getString(KEY_EMAIL, "user@watermelon.app") ?: "user@watermelon.app"
-        val planName = prefs.getString(KEY_PLAN, SubscriptionPlan.FREE.name)
-        val defaultUsername = email.substringBefore("@")
-        return User(
-            id = "local_user",
-            email = email,
-            username = prefs.getString(KEY_USERNAME, defaultUsername) ?: defaultUsername,
-            displayName = prefs.getString(KEY_DISPLAY_NAME, "User") ?: "User",
-            avatarUrl = prefs.getString(KEY_AVATAR_URL, "https://api.dicebear.com/10.x/toon-head/svg?seed=$email") ?: "https://api.dicebear.com/10.x/toon-head/svg?seed=$email",
-            plan = runCatching {
-                SubscriptionPlan.valueOf(planName ?: SubscriptionPlan.FREE.name)
-            }.getOrDefault(SubscriptionPlan.FREE)
-        )
-    }
-
     override suspend fun fetchLatestActiveBroadcast(): com.watermelon.domain.model.Broadcast? = runCatching {
         val row = client.postgrest.from("broadcasts")
             .select {
@@ -316,6 +334,7 @@ class AuthRepositoryImpl @Inject constructor(
         private const val KEY_LOGGED_IN = "is_logged_in"
         private const val KEY_EMAIL_VERIFIED = "auth_email_verified"
         private const val KEY_EMAIL = "auth_email"
+        private const val KEY_PASSWORD = "auth_password_temp"
         private const val KEY_PLAN = "auth_plan"
         private const val KEY_DISPLAY_NAME = "auth_display_name"
         private const val KEY_USERNAME = "auth_username"

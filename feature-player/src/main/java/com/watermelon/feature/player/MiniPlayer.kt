@@ -5,6 +5,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
@@ -44,7 +46,8 @@ fun MiniPlayer(
         onClick = onClick,
         onPrevious = viewModel::playPrevious,
         onTogglePlayPause = viewModel::togglePlayPause,
-        onNext = viewModel::playNext
+        onNext = viewModel::playNext,
+        onToggleFavorite = viewModel::toggleFavorite
     )
 }
 
@@ -55,7 +58,8 @@ fun MiniPlayerContent(
     onClick: () -> Unit,
     onPrevious: () -> Unit,
     onTogglePlayPause: () -> Unit,
-    onNext: () -> Unit
+    onNext: () -> Unit,
+    onToggleFavorite: () -> Unit = {}
 ) {
     val maxWidth = adaptiveMaxContentWidth()
     val widthModifier = if (maxWidth == androidx.compose.ui.unit.Dp.Unspecified)
@@ -127,6 +131,19 @@ fun MiniPlayerContent(
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
+                if (state.isRadioStream || state.currentSongId.isNotBlank()) {
+                    IconButton(
+                        onClick = onToggleFavorite,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (state.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = if (state.isFavorite) "Remove from favorites" else "Add to favorites",
+                            modifier = Modifier.size(20.dp),
+                            tint = if (state.isFavorite) WatermelonRed else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                    }
+                }
                 IconButton(
                     onClick = onPrevious,
                     enabled = state.hasPrevious,

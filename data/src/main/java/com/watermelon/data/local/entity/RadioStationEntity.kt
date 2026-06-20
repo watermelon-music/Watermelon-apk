@@ -2,12 +2,17 @@ package com.watermelon.data.local.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.watermelon.domain.model.RadioStation
 
-@Entity(tableName = "radio_stations")
+@Entity(
+    tableName = "radio_stations",
+    indices = [Index(value = ["stationUuid", "actionType"], unique = true)]
+)
 data class RadioStationEntity(
-    @PrimaryKey val stationUuid: String,
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(index = true) val stationUuid: String,
     val name: String?,
     val url: String?,
     val favicon: String?,

@@ -73,7 +73,10 @@ class SettingsViewModel @Inject constructor(
                 _deleteState.update { DeleteAccountState(deleted = true) }
                 onComplete()
             } else {
-                _deleteState.update { it.copy(isDeleting = false, error = "Failed to delete account. Try again.") }
+                val ex = result.exceptionOrNull()
+                val msg = ex?.message?.takeIf { it.isNotBlank() }
+                    ?: "Failed to delete account. Try again."
+                _deleteState.update { it.copy(isDeleting = false, error = msg) }
             }
         }
     }

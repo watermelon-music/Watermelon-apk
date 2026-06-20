@@ -9,6 +9,7 @@ import com.watermelon.domain.autoplay.AutoplayEngine
 import com.watermelon.domain.autoplay.TransitionTracker
 import com.watermelon.domain.repository.DownloadRepository
 import com.watermelon.domain.repository.LyricsRepository
+import com.watermelon.domain.repository.RadioStationRepository
 import com.watermelon.domain.repository.StreamingRepository
 import com.watermelon.domain.repository.UrlExtractorRepository
 import com.watermelon.domain.repository.UserActionsRepository
@@ -70,6 +71,7 @@ class PlayerViewModel @Inject constructor(
     private val streamingRepository: StreamingRepository,
     private val urlExtractor: UrlExtractorRepository,
     private val userActionsRepository: UserActionsRepository,
+    private val radioStationRepository: RadioStationRepository,
     private val lyricsRepository: LyricsRepository,
     private val catalogRepository: com.watermelon.domain.repository.MusicCatalogRepository,
     private val playlistRepository: com.watermelon.domain.repository.PlaylistRepository,
@@ -106,6 +108,7 @@ class PlayerViewModel @Inject constructor(
     private val MAX_CONSECUTIVE_ERRORS = 3
 
     private var positionUpdateJob: Job? = null
+    private var currentRadioStation: com.watermelon.domain.model.RadioStation? = null
 
     private fun startPositionUpdates() {
         if (positionUpdateJob?.isActive == true) return
@@ -271,14 +274,24 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun loadAndPlay(
-        sourceUrl: String, 
-        title: String, 
-        artist: String, 
-        artwork: String, 
-        songId: String = "", 
+        sourceUrl: String,
+        title: String,
+        artist: String,
+        artwork: String,
+        songId: String = "",
         isRadioStream: Boolean = false,
-        durationMs: Long = 0L
+        durationMs: Long = 0L,
+        radioStation: com.watermelon.domain.model.RadioStation? = null
     ) {
+        currentRadioStation = if (isRadioStream) radioStation else null
+        if (isRadioStream && radioStation != null) {
+            viewModelScope.launch {
+                val favs = runCatching { radioStationRepository.getFavoriteStations().first() }.getOrDefault(emptyList())
+                val uuid = radioStation.stationuuid ?: "${radioStation.name}_${radioStation.url}"
+                val isFav = favs.any { (it.stationuuid ?: "${it.name}_${it.url}") == uuid }
+                _uiState.update { it.copy(isFavorite = isFav) }
+            }
+        }
         currentExtractionJob?.cancel()
         consecutiveErrors = 0
         currentExtractionJob = viewModelScope.launch {
@@ -384,13 +397,14 @@ class PlayerViewModel @Inject constructor(
                 }
             }
             loadAndPlay(
-                sourceUrl = audioUrl, 
-                title = song.title, 
-                artist = song.artistName, 
-                artwork = song.coverUrl ?: "", 
-                songId = song.id, 
+                sourceUrl = audioUrl,
+                title = song.title,
+                artist = song.artistName,
+                artwork = song.coverUrl ?: "",
+                songId = song.id,
                 isRadioStream = false,
-                durationMs = song.durationMs
+                durationMs = song.durationMs,
+                radioStation = null
             )
             updateQueueState()
             fetchLyrics(song)
@@ -500,6 +514,22 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun toggleFavorite() {
+        if (_uiState.value.isRadioStream) {
+            val station = currentRadioStation ?: return
+            viewModelScope.launch {
+                val uuid = station.stationuuid ?: "${station.name}_${station.url}"
+                runCatching {
+                    if (_uiState.value.isFavorite) {
+                        radioStationRepository.removeFavorite(uuid)
+                    } else {
+                        radioStationRepository.addFavorite(station)
+                    }
+                }
+                val favs = runCatching { radioStationRepository.getFavoriteStations().first() }.getOrDefault(emptyList())
+                _uiState.update { it.copy(isFavorite = favs.any { (it.stationuuid ?: "${it.name}_${it.url}") == uuid }) }
+            }
+            return
+        }
         val song = internalQueue.getOrNull(currentIndex) ?: return
         viewModelScope.launch {
             runCatching {
@@ -590,6 +620,15 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun checkFavoriteStatus() {
+        if (_uiState.value.isRadioStream) {
+            val station = currentRadioStation ?: return
+            viewModelScope.launch {
+                val favs = runCatching { radioStationRepository.getFavoriteStations().first() }.getOrDefault(emptyList())
+                val uuid = station.stationuuid ?: "${station.name}_${station.url}"
+                _uiState.update { it.copy(isFavorite = favs.any { (it.stationuuid ?: "${it.name}_${it.url}") == uuid }) }
+            }
+            return
+        }
         val song = internalQueue.getOrNull(currentIndex) ?: return
         viewModelScope.launch {
             val favorites = runCatching { userActionsRepository.getFavorites().first() }.getOrDefault(emptyList())

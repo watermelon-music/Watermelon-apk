@@ -201,7 +201,8 @@ fun WatermelonNavHost(
                         station.name ?: "Unknown Station",
                         station.country ?: "",
                         station.favicon ?: "",
-                        isRadioStream = true
+                        isRadioStream = true,
+                        radioStation = station
                     )
                 }
             )

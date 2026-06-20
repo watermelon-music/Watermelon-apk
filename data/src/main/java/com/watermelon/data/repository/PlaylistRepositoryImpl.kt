@@ -37,7 +37,8 @@ import javax.inject.Singleton
 class PlaylistRepositoryImpl @Inject constructor(
     private val client: SupabaseClient,
     @ApplicationContext private val context: Context,
-    private val playlistCacheDao: PlaylistCacheDao
+    private val playlistCacheDao: PlaylistCacheDao,
+    private val authRepository: com.watermelon.domain.repository.AuthRepository
 ) : PlaylistRepository {
 
     private val prefs = context.getSharedPreferences("watermelon_playlists", Context.MODE_PRIVATE)
@@ -240,9 +241,9 @@ class PlaylistRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun isLoggedIn(): Boolean = client.auth.currentUserOrNull() != null
+    private suspend fun isLoggedIn(): Boolean = authRepository.getCurrentUserId() != null
 
-    private fun getUserId(): String? = client.auth.currentUserOrNull()?.id
+    private suspend fun getUserId(): String? = authRepository.getCurrentUserId()
 
     private fun loadLocalCache(): List<Playlist> {
         val raw = prefs.getString("playlist_cache", null) ?: return emptyList()

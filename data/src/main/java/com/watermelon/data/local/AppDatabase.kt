@@ -20,7 +20,7 @@ import com.watermelon.data.local.entity.UserActionEntity
 
 @Database(
     entities = [CachedSongEntity::class, UserActionEntity::class, RadioStationEntity::class, DownloadedSongEntity::class, CachedPlaylistEntity::class, CachedPlaylistSongEntity::class, TransitionEntity::class, SongScoreEntity::class, PlayHistoryEntity::class, SkipEntity::class],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

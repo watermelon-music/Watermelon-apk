@@ -63,12 +63,10 @@ fun PlayerScreen(
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val scrollState = rememberScrollState()
     val haptic = LocalHapticFeedback.current
 
     val isPlaying = state.isPlaying
     var localProgress by remember { mutableStateOf<Float?>(null) }
-    val isInteracting = localProgress != null
 
 
 
@@ -249,8 +247,7 @@ fun PlayerScreen(
                     else
                         Modifier.widthIn(max = maxWidth).fillMaxWidth()
                 )
-                .padding(horizontal = adaptiveHorizontalPadding())
-                .verticalScroll(state = scrollState, enabled = !isInteracting),
+                .padding(horizontal = adaptiveHorizontalPadding()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(if (landscape) 8.dp else 16.dp))
@@ -331,30 +328,36 @@ fun PlayerScreen(
             }
             val displayProgress = localProgress ?: currentProgress
 
-            Slider(
-                value = displayProgress.coerceIn(0f, 1f),
-                onValueChange = {
-                    localProgress = it.coerceIn(0f, 1f)
-                },
-                onValueChangeFinished = {
-                    val progress = localProgress
-                    if (progress != null && state.durationMs > 0) {
-                        val target = (progress * state.durationMs).toLong()
-                        viewModel.seekTo(target)
-                    }
-                    // Release the slider back to following the player state.
-                    localProgress = null
-                },
-                enabled = state.durationMs > 0 && !state.isRadioStream,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(min = 48.dp)
                     .padding(vertical = 4.dp),
-                colors = SliderDefaults.colors(
-                    thumbColor = WatermelonRed,
-                    activeTrackColor = WatermelonRed,
-                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                contentAlignment = Alignment.Center
+            ) {
+                Slider(
+                    value = displayProgress.coerceIn(0f, 1f),
+                    onValueChange = {
+                        localProgress = it.coerceIn(0f, 1f)
+                    },
+                    onValueChangeFinished = {
+                        val progress = localProgress
+                        if (progress != null && state.durationMs > 0) {
+                            val target = (progress * state.durationMs).toLong()
+                            viewModel.seekTo(target)
+                        }
+                        // Release the slider back to following the player state.
+                        localProgress = null
+                    },
+                    enabled = state.durationMs > 0 && !state.isRadioStream,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = SliderDefaults.colors(
+                        thumbColor = WatermelonRed,
+                        activeTrackColor = WatermelonRed,
+                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 )
-            )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween

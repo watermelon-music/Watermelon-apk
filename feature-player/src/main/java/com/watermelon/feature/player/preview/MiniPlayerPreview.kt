@@ -23,7 +23,8 @@ fun MiniPlayerPreview() {
             onClick = {},
             onPrevious = {},
             onTogglePlayPause = {},
-            onNext = {}
+            onNext = {},
+            onToggleFavorite = {}
         )
     }
 }

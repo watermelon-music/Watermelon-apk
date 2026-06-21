@@ -1,51 +1,115 @@
 <div align="center">
 
-# 🍉 Watermelon
+<h1>🍉 Watermelon</h1>
 
-**A modern, open-source Android music streaming app built with Kotlin & Jetpack Compose.**
+<p><strong>A modern, open-source Android music streaming app built with Kotlin & Jetpack Compose.</strong></p>
 
-Search millions of songs, stream global radio, and manage your library — without a subscription.
+<p>
+  Search millions of songs, stream global radio, and manage your library — without a subscription.
+</p>
 
-[![Version](https://img.shields.io/badge/version-v1.0.31-blue)](https://github.com/watermelon-music/Watermelon-apk/releases)
-[![Platform](https://img.shields.io/badge/platform-Android%208.0%2B-green)](https://developer.android.com/studio/releases/platforms)
-[![License](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/watermelon-music/Watermelon-apk?style=social)](https://github.com/watermelon-music/Watermelon-apk/stargazers)
-![Last Commit](https://img.shields.io/github/last-commit/watermelon-music/Watermelon-apk)
+<p>
+  <a href="https://github.com/watermelon-music/Watermelon-apk/releases">
+    <img src="https://img.shields.io/badge/version-v1.0.33-blue?style=for-the-badge" alt="Version">
+  </a>
+  <a href="https://developer.android.com/studio/releases/platforms">
+    <img src="https://img.shields.io/badge/platform-Android%208.0%2B-green?style=for-the-badge" alt="Platform">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-yellow?style=for-the-badge" alt="License">
+  </a>
+  <a href="https://github.com/watermelon-music/Watermelon-apk/stargazers">
+    <img src="https://img.shields.io/github/stars/watermelon-music/Watermelon-apk?style=for-the-badge&color=gold" alt="GitHub Stars">
+  </a>
+  <img src="https://img.shields.io/github/last-commit/watermelon-music/Watermelon-apk?style=for-the-badge" alt="Last Commit">
+</p>
+
+<p>
+  <a href="https://watermelon-web.onrender.com/" target="_blank"><strong>🌐 Website</strong></a> •
+  <a href="https://github.com/watermelon-music/Watermelon-apk/releases/latest" target="_blank"><strong>⬇️ Download APK</strong></a> •
+  <a href="https://watermelon-web.onrender.com/docs" target="_blank"><strong>📖 Docs</strong></a> •
+  <a href="https://github.com/watermelon-music/Watermelon-apk/issues" target="_blank"><strong>🐛 Issues</strong></a>
+</p>
+
+<img src="https://raw.githubusercontent.com/watermelon-music/Watermelon-apk/main/assets/watermelon-banner.png" width="100%" alt="Watermelon Banner">
 
 </div>
 
 ---
 
-## Table of Contents
+## 📑 Table of Contents
 
-1. [What is Watermelon?](#what-is-watermelon)
-2. [Features](#features)
-3. [Screenshots](#screenshots)
-4. [User Limits / Premium Plans](#user-limits--premium-plans)
-5. [Tech Stack](#tech-stack)
-6. [How Autoplay Works](#how-autoplay-works)
-7. [Architecture](#architecture)
-8. [Getting Started](#getting-started)
-9. [Build from Source](#build-from-source)
-10. [Contributing](#contributing)
-11. [Open Source Dependencies](#open-source-dependencies)
-12. [License](#license)
-13. [Contact](#contact)
-14. [Acknowledgements](#acknowledgements)
+1. [What is Watermelon?](#-what-is-watermelon)
+2. [TL;DR Quickstart](#-tldr-quickstart)
+3. [Live Stats](#-live-stats)
+4. [Features](#-features)
+   - [Streaming](#-streaming)
+   - [Offline & Downloads](#-offline--downloads)
+   - [Playlist & Library](#-playlist--library)
+   - [Radio & Discovery](#-radio--discovery)
+   - [Premium & Monetization](#-premium--monetization)
+   - [Notifications & UX](#-notifications--ux)
+5. [Screenshots](#-screenshots)
+6. [User Limits / Premium Plans](#-user-limits--premium-plans)
+7. [Tech Stack](#-tech-stack)
+8. [Architecture](#-architecture)
+9. [How Autoplay Works](#-how-autoplay-works)
+10. [Getting Started](#-getting-started)
+11. [Build & Release](#-build--release)
+12. [API Backend](#-api-backend)
+13. [Self-Hosting](#-self-hosting)
+14. [Contributing](#-contributing)
+15. [Open Source Dependencies](#-open-source-dependencies)
+16. [Ecosystem](#-ecosystem)
+17. [License](#-license)
+18. [Contact](#-contact)
+19. [Acknowledgements](#-acknowledgements)
 
 ---
 
-## What is Watermelon?
+## 🎯 What is Watermelon?
 
-Watermelon is a fully-featured music streaming app for Android that lets you search and play millions of songs from YouTube, stream over 30,000 global radio stations, and manage your personal library — all without paying a monthly subscription.
+**Watermelon** is a fully-featured music streaming app for Android that lets you search and play millions of songs from YouTube, stream over 30,000 global radio stations, and manage your personal library — all without paying a monthly subscription.
 
-Unlike paid services like **Spotify**, **Apple Music**, or **YouTube Music**, Watermelon is **completely free and open-source**. You own your data, your playlists, and your listening history. There are no algorithmic lock-ins, no ads you cannot skip (unless you choose to support the app), and no walled gardens. It is built for users who want a premium music experience on their own terms.
+Unlike paid services like **Spotify**, **Apple Music**, or **YouTube Music**, Watermelon is **completely free and open-source**. You own your data, your playlists, and your listening history. There are no algorithmic lock-ins, no ads you cannot skip, and no walled gardens.
 
-Whether you are an audiophile who wants to self-host your backend, a developer looking for a production-grade Android reference app, or a casual listener tired of subscription fatigue, Watermelon puts you in control.
+### 🚀 Made For
+
+- **Audiophiles** who want to self-host their backend
+- **Developers** looking for a production-grade Android reference app with clean architecture
+- **Casual listeners** tired of subscription fatigue and want control
 
 ---
 
-## Features
+## ⚡ TL;DR Quickstart
+
+```bash
+# Clone
+git clone https://github.com/watermelon-music/Watermelon-apk.git
+cd Watermelon-apk
+
+# Open in Android Studio and run
+# Or build from command line:
+./gradlew assembleDebug
+```
+
+**Or grab the latest APK:** [Releases](https://github.com/watermelon-music/Watermelon-apk/releases/latest)
+
+---
+
+## 📊 Live Stats
+
+| Metric | Value |
+|--------|-------|
+| **Total Users** | 6+ |
+| **Total Streams** | 36+ |
+| **Total Playlists** | 0 |
+| **GitHub Stars** | See badge above |
+| **APK Downloads** | See Releases |
+
+---
+
+## ✨ Features
 
 ### 🎧 Streaming
 
@@ -79,12 +143,12 @@ Whether you are an audiophile who wants to self-host your backend, a developer l
 
 ### 🔔 Notifications & UX
 
-- **Personalized Daily Notifications** — Daily music engagement alerts (Swiggy/Zomato style) scheduled at randomized intervals (6, 8, 12, 24h) with a custom ringtone (`watermelon_tone.mp3`) and dynamically personalized with the user's name.
+- **Personalized Daily Notifications** — Daily music engagement alerts scheduled at randomized intervals (6, 8, 12, 24h) with a custom ringtone (`watermelon_tone.mp3`) and dynamically personalized with the user's name.
 - **In-App Auto-Updater** — Seamlessly checks for new releases on app start, downloads APKs in the background, handles install permissions on Android 8.0+, and triggers in-place updates.
 
 ---
 
-## Screenshots
+## 📸 Screenshots
 
 > _Screenshots will be added here in a future release._
 
@@ -106,12 +170,12 @@ Your personal library hub — playlists, favorites, downloads, and recently play
 
 ---
 
-## User Limits / Premium Plans
+## 🏷️ User Limits / Premium Plans
 
 All core features are available to every user. Premium plans unlock higher limits and an enhanced, ad-free experience.
 
 | Feature | Free User | Premium User |
-|---|---|
+|---|---|---|
 | Playlist creation | Max **2** playlists | Max **10** playlists |
 | Ads | Supported by ads | Ad-free experience |
 | Radio | Full access | Full access |
@@ -129,7 +193,7 @@ All core features are available to every user. Premium plans unlock higher limit
 
 ---
 
-## Tech Stack
+## 🛠 Tech Stack
 
 | Technology | Version | Description |
 |---|---|---|
@@ -148,26 +212,9 @@ All core features are available to every user. Premium plans unlock higher limit
 
 ---
 
-## How Autoplay Works
+## 🏗 Architecture
 
-Watermelon's autoplay is backed by a local recommendation engine inside the app:
-
-1. **Analytics Collection** — Every time you play, skip, or transition between songs, the app records data in a local Room database (Play History, Skips, Transitions, Song Scores).
-2. **Metadata Extraction** — When suggesting the next track, the engine uses YT-DLP metadata (channel, tags, categories, duration) from YouTube videos.
-3. **Scoring Algorithm** — Songs are ranked using configurable weights:
-   - Transition frequency (how often one song leads to another)
-   - Like-to-skip ratio (positive vs negative signals)
-   - Tag similarity (matching artist/channel/tags to the current song)
-   - Recency decay (boost recent plays)
-4. **Smart Queue Refill** — When your current queue ends, the engine searches YouTube with metadata-aware queries, filters out duplicates and recent songs, picks the highest-scored candidate, and appends it to your queue.
-
-You can toggle Autoplay on or off in **Settings**.
-
----
-
-## Architecture
-
-The project follows a **modular clean architecture** that separates concerns into independent, testable layers:
+The project follows a **modular clean architecture**:
 
 ```
 Watermelon/
@@ -188,18 +235,33 @@ Watermelon/
 └── core/                Shared design system, navigation, and utilities
 ```
 
-**Key principles:**
+**Key Principles:**
 
 - **Unidirectional Data Flow** — UI observes state from ViewModels backed by repositories.
-- **Repository Pattern** — Data layer abstracts local (Room) and remote (Supabase, YouTube, Radio Browser) sources.
+- **Repository Pattern** — Abstracts local (Room) and remote (Supabase, YouTube, Radio Browser) sources.
 - **Dependency Injection** — Hilt wires modules and features without tight coupling.
 - **Offline-First** — Downloads and favorites are always available, even without a network.
 
 ---
 
-## Getting Started
+## 🤖 How Autoplay Works
 
-Follow these steps to build and run Watermelon on your local machine.
+Watermelon's autoplay is backed by a local recommendation engine:
+
+1. **Analytics Collection** — Every play, skip, and transition is recorded in a local Room database (Play History, Skips, Transitions, Song Scores).
+2. **Metadata Extraction** — Uses YT-DLP metadata (channel, tags, categories, duration) from YouTube videos.
+3. **Scoring Algorithm** — Songs are ranked using configurable weights:
+   - Transition frequency
+   - Like-to-skip ratio
+   - Tag similarity
+   - Recency decay
+4. **Smart Queue Refill** — When your queue ends, the engine searches YouTube with metadata-aware queries, filters duplicates, picks the highest-scored candidate, and appends it.
+
+Toggle Autoplay in **Settings**.
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -223,91 +285,103 @@ Follow these steps to build and run Watermelon on your local machine.
 
 3. **Sync Gradle**
 
-   Click **"Sync Project with Gradle Files"** (elephant icon) and wait for dependencies to resolve. If you encounter network issues, ensure that Maven Central and the Google repositories are reachable.
+   Click **"Sync Project with Gradle Files"** (elephant icon) and wait for dependencies to resolve.
 
 4. **Build & Run**
 
    Select a device or emulator running Android 8.0 (API 26) or higher, then click the **Run** button (Shift + F10).
 
-5. **Configure Supabase**
+5. **Configure Supabase** (optional but recommended)
 
-   Watermelon uses Supabase for cloud auth and playlist data. To run the app with full backend support:
-   - Create a project on [Supabase](https://supabase.com/) (or [self-host](https://supabase.com/docs/guides/self-hosting)).
-   - Copy your `SUPABASE_URL` and `SUPABASE_ANON_KEY` into the project's `local.properties` or environment configuration.
+   - Create a project on [Supabase](https://supabase.com/).
+   - Copy your `SUPABASE_URL` and `SUPABASE_ANON_KEY` into `local.properties`.
    - Rebuild the project.
 
 ---
 
-## Build from Source
+## 🔨 Build & Release
 
-To generate a debug APK from the command line:
-
+**Debug APK:**
 ```bash
 ./gradlew assembleDebug
 ```
+Output: `app/build/outputs/apk/debug/app-debug.apk`
 
-The output APK will be located at:
-
-```
-app/build/outputs/apk/debug/app-debug.apk
-```
-
-For a release build:
-
+**Release APK:**
 ```bash
 ./gradlew assembleRelease
 ```
-
-Make sure you have configured a signing keystore in `keystore.properties` before building a release variant.
+Requires a signing keystore configured in `keystore.properties`.
 
 ---
 
-## Contributing
+## 🔌 API Backend
 
-Contributions are welcome. Whether it is a bug fix, a new feature, or improved documentation, your help makes Watermelon better for everyone.
+Watermelon connects to a companion **Node.js + Express API** for audio extraction and metadata:
 
-### How to Contribute
+| Repo | URL | Description |
+|---|---|---|
+| **watermelon-api** | [GitHub](https://github.com/watermelon-music/watermelon-api) | yt-dlp powered backend for audio URLs and search |
 
-1. **Fork** the repository on GitHub.
-2. **Create a branch** for your feature or fix:
-   ```bash
-   git checkout -b feature/my-new-feature
-   ```
-3. **Write code** following the existing Kotlin and Compose conventions.
+---
+
+## 🌐 Web Platform
+
+| Repo | URL | Description |
+|---|---|---|
+| **watermelon-web** | [GitHub](https://github.com/watermelon-music/watermelon-web) | Next.js website, docs, and landing page |
+| **Live Site** | [watermelon-web.onrender.com](https://watermelon-web.onrender.com/) | Hosted on Render |
+
+---
+
+## 🏠 Self-Hosting
+
+Want full control? You can self-host the entire Watermelon stack:
+
+1. **Backend** — Deploy `watermelon-api` to Render, Railway, or any VPS.
+2. **Database** — Use [Supabase](https://supabase.com/) (cloud) or [self-host](https://supabase.com/docs/guides/self-hosting).
+3. **Payments** — Configure Razorpay keys for premium subscriptions (optional).
+4. **App** — Point the Android app to your self-hosted API by updating the base URL.
+
+See the full [Self-Hosting Guide](https://watermelon-web.onrender.com/docs/self-hosting).
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome. Bug fixes, new features, and documentation improvements all help.
+
+1. **Fork** the repository.
+2. **Create a branch:** `git checkout -b feature/my-new-feature`
+3. **Write code** following existing Kotlin and Compose conventions.
 4. **Add tests** where applicable.
-5. **Commit** with a clear message:
-   ```bash
-   git commit -m "feat: add shuffle mode to player queue"
-   ```
-6. **Push** to your fork and open a **Pull Request** against `main`.
+5. **Commit** with a clear message: `git commit -m "feat: add shuffle mode"`
+6. **Push** and open a **Pull Request** against `main`.
 
 ### Code Style
 
 - Follow the official [Kotlin Coding Conventions](https://kotlinlang.org/docs/coding-conventions.html).
-- Use **Compose best practices**: state hoisting, unidirectional data flow, and preview annotations.
-- Keep composables small and reusable. Extract business logic into ViewModels.
-- Write descriptive commit messages using conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`).
+- Use **Compose best practices**: state hoisting, unidirectional data flow, preview annotations.
+- Keep composables small and reusable.
+- Write descriptive commit messages using conventional commits.
 
-### PR Process
+### PR Checklist
 
-- All pull requests are reviewed before merging.
-- Ensure the project builds and passes lint checks (`./gradlew lint` and `./gradlew ktlintCheck`).
-- Update the README if your change affects public behavior or setup steps.
-- Be respectful and constructive in discussions.
+- Build passes (`./gradlew assembleDebug`)
+- Lint passes (`./gradlew lint` / `./gradlew ktlintCheck`)
+- README updated if public behavior changes
 
 ---
 
-## Open Source Dependencies
-
-Watermelon is built on the shoulders of incredible open-source projects.
+## 📦 Open Source Dependencies
 
 | Library | Description | Link |
 |---|---|---|
 | **Jetpack Compose** | Modern Android UI toolkit | [developer.android.com/jetpack/compose](https://developer.android.com/jetpack/compose) |
-| **Hilt** | Dependency injection for Android | [dagger.dev/hilt](https://dagger.dev/hilt) |
+| **Hilt** | Dependency injection | [dagger.dev/hilt](https://dagger.dev/hilt) |
 | **Room** | SQLite abstraction layer | [developer.android.com/training/data-storage/room](https://developer.android.com/training/data-storage/room) |
 | **ExoPlayer (Media3)** | Media playback engine | [developer.android.com/media/media3](https://developer.android.com/media/media3) |
-| **Retrofit** | HTTP client for Android | [square.github.io/retrofit](https://square.github.io/retrofit) |
+| **Retrofit** | HTTP client | [square.github.io/retrofit](https://square.github.io/retrofit) |
 | **OkHttp** | Efficient HTTP client | [square.github.io/okhttp](https://square.github.io/okhttp) |
 | **Coil** | Image loading for Compose | [coil-kt.github.io/coil](https://coil-kt.github.io/coil) |
 | **Supabase Kotlin** | Kotlin client for Supabase | [supabase.com/docs/reference/kotlin](https://supabase.com/docs/reference/kotlin) |
@@ -317,7 +391,17 @@ Watermelon is built on the shoulders of incredible open-source projects.
 
 ---
 
-## License
+## 🌐 Ecosystem
+
+| Project | Tech | Role |
+|---|---|---|
+| **Watermelon APK** | Kotlin + Jetpack Compose | Android music streaming app (this repo) |
+| **watermelon-api** | Node.js + Express | Backend for audio extraction & metadata |
+| **watermelon-web** | Next.js + Tailwind CSS | Website, docs, and landing page |
+
+---
+
+## 📄 License
 
 ```
 MIT License
@@ -345,7 +429,7 @@ SOFTWARE.
 
 ---
 
-## Contact
+## 📬 Contact
 
 - **GitHub Issues** — [github.com/watermelon-music/Watermelon-apk/issues](https://github.com/watermelon-music/Watermelon-apk/issues)
 - **Email** — [satyampote9999@gmail.com](mailto:satyampote9999@gmail.com)
@@ -354,7 +438,7 @@ For bug reports, feature requests, or questions, please open an issue on GitHub.
 
 ---
 
-## Acknowledgements
+## 🙏 Acknowledgements
 
 Watermelon is a **solo passion project** by **Satyam**, built in spare time with the goal of delivering a premium, open-source music experience on Android.
 

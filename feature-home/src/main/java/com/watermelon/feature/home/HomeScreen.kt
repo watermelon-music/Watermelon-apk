@@ -44,9 +44,6 @@ import com.watermelon.core.designsystem.theme.WatermelonRed
 import com.watermelon.feature.player.PlayerViewModel
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.Song
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
-import coil.compose.AsyncImage
 import coil.request.ImageRequest
 
 @Composable

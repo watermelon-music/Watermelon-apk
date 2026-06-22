@@ -388,6 +388,7 @@ private fun ThemeSelectorDialog(
     )
 }
 
+@Composable
 private fun DeleteAccountDialog(
     state: DeleteAccountState,
     onDismiss: () -> Unit,

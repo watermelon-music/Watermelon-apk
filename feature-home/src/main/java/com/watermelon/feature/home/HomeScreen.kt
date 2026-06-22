@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -43,6 +44,8 @@ import com.watermelon.core.designsystem.theme.WatermelonRed
 import com.watermelon.feature.player.PlayerViewModel
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.Song
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 
@@ -70,8 +73,10 @@ fun HomeScreen(
         }
     }
 
+    val user by viewModel.user.collectAsStateWithLifecycle()
     HomeScreenContent(
         uiState = uiState,
+        user = user,
         onSearchClick = onSearchClick,
         onSettingsClick = onSettingsClick,
         onProfileClick = onProfileClick,
@@ -144,6 +149,7 @@ fun HomeScreen(
 @Composable
 fun HomeScreenContent(
     uiState: HomeUiState,
+    user: com.watermelon.domain.model.User? = null,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onProfileClick: () -> Unit = {},
@@ -166,12 +172,11 @@ fun HomeScreenContent(
                     )
                 },
                 actions = {
-                    val user by viewModel.user.collectAsStateWithLifecycle()
                     IconButton(onClick = onProfileClick) {
                         if (!user?.avatarUrl.isNullOrBlank()) {
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
-                                    .data(user?.avatarUrl)
+                                    .data(user!!.avatarUrl)
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = "Profile",

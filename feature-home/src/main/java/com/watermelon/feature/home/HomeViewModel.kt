@@ -138,7 +138,6 @@ class HomeViewModel @Inject constructor(
                 val delayMs = next.timeInMillis - now.timeInMillis
                 delay(delayMs)
                 loadHomeData()
-        loadUser()
                 // Wait 24 h before next iteration (loop repeats)
                 delay(24 * 60 * 60 * 1000L)
             }
@@ -179,7 +178,6 @@ class HomeViewModel @Inject constructor(
     /** Manually refresh all home data (trending + genres + favorites + recently played). */
     fun refresh() {
         loadHomeData()
-        loadUser()
     }
 }
 
@@ -198,3 +196,10 @@ data class HomeUiState(
     val electronic: List<Song> = emptyList(),
     val isLoading: Boolean = false
 )
+
+    private fun loadUser() {
+        authRepository.getCurrentUser()
+            .onEach { _user.value = it }
+            .catch { _user.value = null }
+            .launchIn(viewModelScope)
+    }

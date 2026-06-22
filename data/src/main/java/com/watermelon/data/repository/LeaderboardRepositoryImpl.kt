@@ -4,7 +4,7 @@ import com.watermelon.data.remote.supabase.model.LeaderboardRow
 import com.watermelon.domain.model.LeaderboardEntry
 import com.watermelon.domain.repository.LeaderboardRepository
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -19,7 +19,7 @@ class LeaderboardRepositoryImpl @Inject constructor(
         runCatching {
             val rows = client.postgrest.from("leaderboard_global")
                 .select {
-                    order("rank_position", Order.ASCENDING)
+                    order("rank_position", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
                 }
                 .decodeList<LeaderboardRow>()
                 .take(limit)

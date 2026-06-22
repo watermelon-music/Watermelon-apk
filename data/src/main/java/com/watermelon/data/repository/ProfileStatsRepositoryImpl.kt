@@ -6,8 +6,8 @@ import com.watermelon.domain.model.AchievementBadge
 import com.watermelon.domain.model.ProfileStats
 import com.watermelon.domain.repository.ProfileStatsRepository
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.postgrest.filter.eq
-import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.gotrue.auth
+import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -20,8 +20,8 @@ class ProfileStatsRepositoryImpl @Inject constructor(
 
     override suspend fun getProfileStats(): Result<ProfileStats> = withContext(Dispatchers.IO) {
         runCatching {
-            val session = client.auth.currentSessionOrNull()
-            val userId = session?.user?.id ?: throw IllegalStateException("Not signed in")
+            val userId = client.auth.currentUserOrNull()?.id
+                ?: throw IllegalStateException("Not signed in")
             val row = client.postgrest.from("profiles")
                 .select {
                     filter { eq("id", userId) }
@@ -34,15 +34,15 @@ class ProfileStatsRepositoryImpl @Inject constructor(
 
     override suspend fun getAchievements(): Result<List<AchievementBadge>> = withContext(Dispatchers.IO) {
         runCatching {
-            val session = client.auth.currentSessionOrNull()
-            val userId = session?.user?.id ?: throw IllegalStateException("Not signed in")
+            val userId = client.auth.currentUserOrNull()?.id
+                ?: throw IllegalStateException("Not signed in")
             val rows = client.postgrest.from("user_achievements")
                 .select {
                     filter { eq("user_id", userId) }
-                    order("unlocked_at", Order.DESCENDING)
+                    order("unlocked_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
                 }
                 .decodeList<AchievementRow>()
-            rows.map { it.toAchievementBadge() }
+            rows.map { row -> row.toAchievementBadge() }
         }
     }
 

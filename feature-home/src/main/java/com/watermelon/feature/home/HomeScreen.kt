@@ -43,6 +43,8 @@ import com.watermelon.core.designsystem.theme.WatermelonRed
 import com.watermelon.feature.player.PlayerViewModel
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.Song
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 
 @Composable
 fun HomeScreen(
@@ -164,20 +166,35 @@ fun HomeScreenContent(
                     )
                 },
                 actions = {
+                    val user by viewModel.user.collectAsStateWithLifecycle()
                     IconButton(onClick = onProfileClick) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "P",
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
+                        if (!user?.avatarUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(user?.avatarUrl)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Profile",
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
                             )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = (user?.displayName?.firstOrNull() ?: user?.username?.firstOrNull() ?: "P").toString(),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                            }
                         }
                     }
                     IconButton(onClick = onSettingsClick) {

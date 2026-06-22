@@ -50,32 +50,6 @@ import com.watermelon.core.designsystem.theme.ThemeManager
 import com.watermelon.core.designsystem.theme.WatermelonRed
 import com.watermelon.domain.model.SubscriptionPlan
 
-private val AvatarColors = listOf(
-    Color(0xFFDC2626),
-    Color(0xFF2563EB),
-    Color(0xFF16A34A),
-    Color(0xFFD97706),
-    Color(0xFF9333EA),
-    Color(0xFFDB2777),
-    Color(0xFF0891B2),
-    Color(0xFF4B5563)
-)
-
-object AvatarManager {
-    private const val PREFS = "watermelon_avatar"
-    private const val KEY_COLOR_INDEX = "avatar_color_index"
-
-    fun save(context: Context, colorIndex: Int) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putInt(KEY_COLOR_INDEX, colorIndex).apply()
-    }
-
-    fun get(context: Context): Int {
-        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getInt(KEY_COLOR_INDEX, 0)
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -88,10 +62,10 @@ fun SettingsScreen(
     val user by viewModel.user.collectAsStateWithLifecycle()
     val cacheCleared by viewModel.cacheCleared.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var showThemeDialog by rememberSaveable { mutableStateOf(false) }
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
 
     val plan = user?.plan ?: SubscriptionPlan.FREE
-    val avatarColor = remember { AvatarColors.getOrNull(AvatarManager.get(context)) ?: AvatarColors.first() }
 
     val versionName = remember {
         try {
@@ -128,6 +102,13 @@ fun SettingsScreen(
                 .widthIn(max = 640.dp)
                 .fillMaxSize()
         ) {
+            SettingsItem(
+                icon = Icons.Default.Brush,
+                title = "Theme",
+                subtitle = currentThemeLabel(context),
+                onClick = { showThemeDialog = true }
+            )
+            // Autoplay is now permanently enabled and hidden from settings
             SettingsItem(
                 icon = Icons.Default.Share,
                 title = "Share App",
@@ -220,6 +201,31 @@ fun SettingsScreen(
         LaunchedEffect(Unit) {
             viewModel.resetCacheFlag()
         }
+    }
+
+    if (showThemeDialog) {
+        ThemeSelectorDialog(
+            currentMode = ThemeManager.get(context),
+            currentPlan = plan,
+            onDismiss = { showThemeDialog = false },
+            onSelect = { mode ->
+                ThemeManager.save(context, mode)
+                showThemeDialog = false
+                (context as? Activity)?.recreate()
+            },
+            onNavigateToPremium = {
+                showThemeDialog = false
+                onNavigateToPremium()
+            }
+        )
+    }
+
+    if (showDeleteDialog) {
+        DeleteAccountDialog(
+            state = viewModel.deleteState.collectAsStateWithLifecycle().value,
+            onDismiss = { showDeleteDialog = false },
+            onConfirm = { viewModel.deleteAccount { onLogoutComplete() } }
+        )
     }
 }
 
@@ -382,55 +388,6 @@ private fun ThemeSelectorDialog(
     )
 }
 
-@Composable
-private fun AvatarPickerDialog(
-    selectedIndex: Int,
-    onDismiss: () -> Unit,
-    onSelect: (Int) -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Pick Avatar Color") },
-        text = {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.height(180.dp)
-            ) {
-                items(AvatarColors.size) { index ->
-                    val color = AvatarColors[index]
-                    val selected = index == selectedIndex
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .background(color)
-                            .clickable { onSelect(index) }
-                            .then(
-                                if (selected) {
-                                    Modifier.border(3.dp, Color.White, CircleShape)
-                                } else Modifier
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (selected) {
-                            Text("✓", color = Color.White, style = MaterialTheme.typography.titleMedium)
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-        containerColor = MaterialTheme.colorScheme.surface,
-        titleContentColor = MaterialTheme.colorScheme.onSurface,
-        textContentColor = MaterialTheme.colorScheme.onSurface
-    )
-}
-
-@Composable
 private fun DeleteAccountDialog(
     state: DeleteAccountState,
     onDismiss: () -> Unit,

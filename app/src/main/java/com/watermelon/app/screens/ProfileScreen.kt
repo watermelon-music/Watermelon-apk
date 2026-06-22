@@ -74,6 +74,7 @@ import coil.request.ImageRequest
 import com.watermelon.domain.model.AchievementBadge
 import com.watermelon.domain.model.ProfileStats
 import com.watermelon.domain.model.User
+import com.watermelon.core.designsystem.theme.WatermelonRed
 import kotlinx.coroutines.launch
 import java.security.MessageDigest
 

@@ -3,6 +3,8 @@ package com.watermelon.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.watermelon.data.remote.watermelon.WatermelonRepository
+import com.watermelon.domain.model.User
+import com.watermelon.domain.repository.AuthRepository
 import com.watermelon.domain.model.Playlist
 import com.watermelon.domain.model.Song
 import com.watermelon.domain.repository.MusicCatalogRepository
@@ -29,7 +31,8 @@ class HomeViewModel @Inject constructor(
     private val musicCatalogRepository: MusicCatalogRepository,
     private val userActionsRepository: UserActionsRepository,
     private val playlistRepository: PlaylistRepository,
-    private val watermelonRepository: WatermelonRepository
+    private val watermelonRepository: WatermelonRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -47,11 +50,15 @@ class HomeViewModel @Inject constructor(
     private val _addToPlaylistMessage = MutableStateFlow<String?>(null)
     val addToPlaylistMessage: StateFlow<String?> = _addToPlaylistMessage.asStateFlow()
 
+    private val _user = MutableStateFlow<User?>(null)
+    val user: StateFlow<User?> = _user.asStateFlow()
+
     init {
         warmUpBackend()
         observeRecentlyPlayed()
         observeFavorites()
         loadHomeData()
+        loadUser()
         loadPlaylists()
         scheduleDailyTrendingRefresh()
     }
@@ -131,6 +138,7 @@ class HomeViewModel @Inject constructor(
                 val delayMs = next.timeInMillis - now.timeInMillis
                 delay(delayMs)
                 loadHomeData()
+        loadUser()
                 // Wait 24 h before next iteration (loop repeats)
                 delay(24 * 60 * 60 * 1000L)
             }
@@ -171,6 +179,7 @@ class HomeViewModel @Inject constructor(
     /** Manually refresh all home data (trending + genres + favorites + recently played). */
     fun refresh() {
         loadHomeData()
+        loadUser()
     }
 }
 

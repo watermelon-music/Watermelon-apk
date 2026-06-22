@@ -132,6 +132,10 @@ class ProfileViewModel @Inject constructor(
         _editState.update { it.copy(avatarUrl = url) }
     }
 
+    fun setAvatarUrl(url: String) {
+        _editState.update { it.copy(avatarUrl = url) }
+    }
+
     fun clearEditError() {
         _editState.update { it.copy(error = null) }
     }

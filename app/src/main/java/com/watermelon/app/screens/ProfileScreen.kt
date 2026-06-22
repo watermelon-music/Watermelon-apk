@@ -27,7 +27,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.outlined.EmojiEvents
@@ -76,12 +75,12 @@ import com.watermelon.domain.model.AchievementBadge
 import com.watermelon.domain.model.ProfileStats
 import com.watermelon.domain.model.User
 import kotlinx.coroutines.launch
+import java.security.MessageDigest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel,
-    onLogout: () -> Unit,
     onBack: () -> Unit = {},
 ) {
     val user by viewModel.user.collectAsState()
@@ -106,6 +105,7 @@ fun ProfileScreen(
                 onDisplayNameChange = viewModel::setDisplayName,
                 onUsernameChange = viewModel::setUsername,
                 onAvatarSelected = { seed -> viewModel.updateAvatar(seed) },
+                onAvatarUrlSelected = { url -> viewModel.setAvatarUrl(url) },
                 onSave = {
                     viewModel.saveProfile()
                     scope.launch { sheetState.hide() }.invokeOnCompletion { showEditSheet = false }
@@ -156,15 +156,6 @@ fun ProfileScreen(
             if (achievements.isNotEmpty()) {
                 AchievementsSection(achievements)
                 Spacer(modifier = Modifier.height(24.dp))
-            }
-            OutlinedButton(
-                onClick = onLogout,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Log Out")
             }
             Spacer(modifier = Modifier.height(32.dp))
         }
@@ -302,6 +293,7 @@ private fun EditProfileSheet(
     onDisplayNameChange: (String) -> Unit,
     onUsernameChange: (String) -> Unit,
     onAvatarSelected: (String) -> Unit,
+    onAvatarUrlSelected: (String) -> Unit = {},
     onSave: () -> Unit, onDismiss: () -> Unit
 ) {
     var selectedSeed by remember { mutableStateOf(user?.username ?: "user") }
@@ -323,7 +315,15 @@ private fun EditProfileSheet(
                 Text("Choose Avatar", style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { photoPicker.launch("image/*") }) { Text("Gallery") }
+                    TextButton(onClick = {
+                        val email = user?.email ?: ""
+                        if (email.isNotBlank()) {
+                            val digest = MessageDigest.getInstance("MD5")
+                            digest.update(email.trim().lowercase().toByteArray())
+                            val hash = digest.digest().joinToString("") { String.format("%02x", it) }
+                            onAvatarUrlSelected("https://www.gravatar.com/avatar/$hash?d=identicon")
+                        }
+                    }) { Text("Mail") }
                     TextButton(onClick = { selectedSeed = System.currentTimeMillis().toString(); onAvatarSelected("https://api.dicebear.com/10.x/$selectedStyle/svg?seed=$selectedSeed") }) { Text("Random") }
                 }
             }

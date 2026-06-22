@@ -185,6 +185,7 @@ fun WatermelonNavHost(
             HomeScreen(
                 onSearchClick = { navController.navigate(Routes.SEARCH) },
                 onSettingsClick = { navController.navigate(Routes.SETTINGS) },
+                onProfileClick = { navController.navigate(Routes.PROFILE) },
                 onSongClick = { song: Song, songs: List<Song> ->
                     playerViewModel.playQueue(songs, songs.indexOf(song))
                     navController.navigate(Routes.PLAYER)
@@ -282,14 +283,7 @@ fun WatermelonNavHost(
         composable(Routes.PROFILE) {
             val profileViewModel: com.watermelon.app.screens.ProfileViewModel = hiltViewModel()
             ProfileScreen(
-                viewModel = profileViewModel,
-                onLogout = {
-                    profileViewModel.signOut()
-                    playerViewModel.clearPlayer()
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
+                viewModel = profileViewModel
             )
         }
         composable(Routes.SETTINGS) {

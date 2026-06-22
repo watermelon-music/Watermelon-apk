@@ -48,6 +48,7 @@ import com.watermelon.domain.model.Song
 fun HomeScreen(
     onSearchClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {},
     onSongClick: (Song, List<Song>) -> Unit = { _, _ -> },
     onPlayerClick: () -> Unit = {},
     playerViewModel: PlayerViewModel,
@@ -71,6 +72,7 @@ fun HomeScreen(
         uiState = uiState,
         onSearchClick = onSearchClick,
         onSettingsClick = onSettingsClick,
+        onProfileClick = onProfileClick,
         onSongClick = onSongClick,
         onPlayerClick = onPlayerClick,
         onAddToPlaylist = viewModel::onAddToPlaylistClick,
@@ -142,6 +144,7 @@ fun HomeScreenContent(
     uiState: HomeUiState,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onProfileClick: () -> Unit = {},
     onSongClick: (Song, List<Song>) -> Unit,
     onPlayerClick: () -> Unit,
     onAddToPlaylist: (Song) -> Unit,
@@ -161,6 +164,22 @@ fun HomeScreenContent(
                     )
                 },
                 actions = {
+                    IconButton(onClick = onProfileClick) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "P",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
                     IconButton(onClick = onSettingsClick) {
                         Icon(
                             imageVector = Icons.Default.Settings,

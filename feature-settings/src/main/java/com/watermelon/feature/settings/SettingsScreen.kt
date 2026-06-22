@@ -128,7 +128,6 @@ fun SettingsScreen(
                 .widthIn(max = 640.dp)
                 .fillMaxSize()
         ) {
-            )
             SettingsItem(
                 icon = Icons.Default.Share,
                 title = "Share App",

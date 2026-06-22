@@ -295,7 +295,6 @@ fun WatermelonNavHost(
                         popUpTo(0) { inclusive = true }
                     }
                 },
-                onNavigateToProfile = { navController.navigate(Routes.PROFILE) },
                 onNavigateToAbout = { navController.navigate(Routes.ABOUT) },
                 onNavigateToPremium = { navController.navigate(Routes.PREMIUM) }
             )

@@ -2,8 +2,11 @@ package com.watermelon.app.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.watermelon.domain.model.AchievementBadge
+import com.watermelon.domain.model.ProfileStats
 import com.watermelon.domain.model.User
 import com.watermelon.domain.repository.AuthRepository
+import com.watermelon.domain.repository.ProfileStatsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,23 +21,59 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val profileStatsRepository: ProfileStatsRepository,
 ) : ViewModel() {
+
     private val _user = MutableStateFlow<User?>(null)
     val user: StateFlow<User?> = _user.asStateFlow()
-
-    init {
-        authRepository.getCurrentUser()
-            .onEach { _user.value = it }
-            .catch { e -> Timber.e(e, "getCurrentUser flow error") }
-            .launchIn(viewModelScope)
-    }
 
     private val _isPremium = MutableStateFlow(false)
     val isPremium: StateFlow<Boolean> = _isPremium.asStateFlow()
 
+    private val _profileStats = MutableStateFlow<ProfileStats?>(null)
+    val profileStats: StateFlow<ProfileStats?> = _profileStats.asStateFlow()
+
+    private val _achievements = MutableStateFlow<List<AchievementBadge>>(emptyList())
+    val achievements: StateFlow<List<AchievementBadge>> = _achievements.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
     private val _editState = MutableStateFlow(EditState())
     val editState: StateFlow<EditState> = _editState.asStateFlow()
+
+    init {
+        loadUser()
+        loadProfileStats()
+        loadAchievements()
+    }
+
+    private fun loadUser() {
+        authRepository.getCurrentUser()
+            .onEach { user ->
+                _user.value = user
+                _isPremium.value = user?.plan?.name == "PREMIUM"
+            }
+            .catch { e -> Timber.e(e, "getCurrentUser flow error") }
+            .launchIn(viewModelScope)
+    }
+
+    private fun loadProfileStats() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val result = profileStatsRepository.getProfileStats()
+            result.onSuccess { _profileStats.value = it }
+            _isLoading.value = false
+        }
+    }
+
+    private fun loadAchievements() {
+        viewModelScope.launch {
+            val result = profileStatsRepository.getAchievements()
+            result.onSuccess { _achievements.value = it }
+        }
+    }
 
     fun toggleEdit() {
         val current = _user.value
@@ -101,6 +140,14 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             authRepository.signOut()
         }
+    }
+
+    fun calculateLevelProgress(xpTotal: Long, level: Int): Float {
+        val currentLevelBase = (level * level * 100).toLong()
+        val nextLevelBase = ((level + 1) * (level + 1) * 100).toLong()
+        val xpIntoLevel = xpTotal - currentLevelBase
+        val xpNeeded = nextLevelBase - currentLevelBase
+        return if (xpNeeded > 0) (xpIntoLevel.toFloat() / xpNeeded.toFloat()).coerceIn(0f, 1f) else 1f
     }
 }
 

@@ -2,6 +2,9 @@ package com.watermelon.data.di
 
 import com.watermelon.data.repository.AuthRepositoryImpl
 import com.watermelon.data.repository.AutoplayRepositoryImpl
+import com.watermelon.data.repository.LeaderboardRepositoryImpl
+import com.watermelon.data.repository.ProfileStatsRepositoryImpl
+import com.watermelon.domain.player.PlaybackCommandDispatcher
 import com.watermelon.data.repository.DownloadRepositoryImpl
 import com.watermelon.data.repository.LyricsRepositoryImpl
 import com.watermelon.data.repository.MusicCatalogRepositoryImpl
@@ -16,8 +19,10 @@ import com.watermelon.domain.autoplay.AutoplayEngine
 import com.watermelon.domain.autoplay.RecommendationEngine
 import com.watermelon.domain.autoplay.RecommendationScorer
 import com.watermelon.domain.autoplay.TransitionTracker
+import com.watermelon.domain.repository.LeaderboardRepository
 import com.watermelon.domain.repository.LyricsRepository
 import com.watermelon.domain.repository.AuthRepository
+import com.watermelon.domain.repository.ProfileStatsRepository
 import com.watermelon.domain.repository.MusicCatalogRepository
 import com.watermelon.domain.repository.MusicRepository
 import com.watermelon.domain.repository.PlaylistRepository
@@ -28,6 +33,7 @@ import com.watermelon.domain.repository.UrlExtractorRepository
 import com.watermelon.domain.repository.UserActionsRepository
 import dagger.Binds
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
@@ -35,6 +41,14 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindProfileStatsRepository(impl: ProfileStatsRepositoryImpl): ProfileStatsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindLeaderboardRepository(impl: LeaderboardRepositoryImpl): LeaderboardRepository
 
     // Legacy binding — kept for backward compatibility until full migration
     @Binds
@@ -92,4 +106,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindRecommendationScorer(impl: AutoplayRepositoryImpl): RecommendationScorer
+
+    companion object {
+        @Provides
+        @Singleton
+        fun providePlaybackCommandDispatcher(): PlaybackCommandDispatcher = PlaybackCommandDispatcher()
+    }
 }

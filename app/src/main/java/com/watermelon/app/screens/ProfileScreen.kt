@@ -1,12 +1,9 @@
 package com.watermelon.app.screens
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,988 +28,336 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.LocalFireDepartment
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.watermelon.core.designsystem.theme.WatermelonRed
+import coil.request.ImageRequest
+import com.watermelon.domain.model.AchievementBadge
+import com.watermelon.domain.model.ProfileStats
 import com.watermelon.domain.model.User
-import java.text.NumberFormat
-import java.util.Locale
-
-private val CardBackground = Color(0xFF111111)
-private val CardBorder = Color(0xFF1A1A1A)
-private val SecondaryText = Color(0xFF888888)
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    onLogout: () -> Unit = {},
-    viewModel: ProfileViewModel = hiltViewModel()
+    viewModel: ProfileViewModel,
+    onLogout: () -> Unit,
+    onBack: () -> Unit,
 ) {
     val user by viewModel.user.collectAsState()
-    val isPremium by viewModel.isPremium.collectAsState()
-    val profileStats by viewModel.profileStats.collectAsState()
+    val stats by viewModel.profileStats.collectAsState()
     val achievements by viewModel.achievements.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val editState by viewModel.editState.collectAsState()
 
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    var showEditSheet by remember { mutableStateOf(false) }
+
+    if (showEditSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showEditSheet = false },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            EditProfileSheet(
+                editState = editState,
+                user = user,
+                onDisplayNameChange = viewModel::setDisplayName,
+                onUsernameChange = viewModel::setUsername,
+                onAvatarSelected = { seed -> viewModel.updateAvatar(seed) },
+                onSave = {
+                    viewModel.saveProfile()
+                    scope.launch { sheetState.hide() }.invokeOnCompletion { showEditSheet = false }
+                },
+                onDismiss = {
+                    scope.launch { sheetState.hide() }.invokeOnCompletion { showEditSheet = false }
+                }
+            )
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profile") },
-                actions = {
-                    if (!editState.isEditing) {
-                        IconButton(onClick = { viewModel.toggleEdit() }) {
-                            Icon(Icons.Filled.Edit, contentDescription = "Edit profile")
-                        }
-                    } else {
-                        IconButton(onClick = { viewModel.toggleEdit() }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Cancel edit")
-                        }
+                title = { Text("Profile", fontWeight = FontWeight.Bold) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                ),
+                navigationIcon = {
+                    TextButton(onClick = onBack) {
+                        Text("Back", color = MaterialTheme.colorScheme.primary)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                actions = {
+                    IconButton(onClick = { showEditSheet = true }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit profile")
+                    }
+                }
             )
         }
     ) { padding ->
-        if (editState.isEditing) {
-            ProfileEditContent(
-                paddingValues = padding,
-                user = user,
-                editState = editState,
-                viewModel = viewModel,
-                onLogout = onLogout
-            )
-        } else {
-            GamifiedProfileContent(
-                paddingValues = padding,
-                user = user,
-                isPremium = isPremium,
-                profileStats = profileStats,
-                achievements = achievements,
-                isLoading = isLoading,
-                viewModel = viewModel,
-                onLogout = onLogout
-            )
-        }
-    }
-}
-
-@Composable
-fun GamifiedProfileContent(
-    paddingValues: PaddingValues,
-    user: User?,
-    isPremium: Boolean,
-    profileStats: com.watermelon.domain.model.ProfileStats?,
-    achievements: List<com.watermelon.domain.model.AchievementBadge>,
-    isLoading: Boolean,
-    viewModel: ProfileViewModel,
-    onLogout: () -> Unit
-) {
-    val scrollState = rememberScrollState()
-    val rankColor = getRankColor(profileStats?.rankTier)
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .verticalScroll(scrollState)
-            .background(MaterialTheme.colorScheme.background),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // A. HEADER SECTION
-        ProfileHeader(
-            user = user,
-            profileStats = profileStats,
-            rankColor = rankColor,
-            isPremium = isPremium
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // B. PROGRESSION BAR
-        if (profileStats != null) {
-            LevelProgressBar(
-                xpTotal = profileStats.xpTotal,
-                level = profileStats.xpLevel,
-                rankTier = profileStats.rankTier,
-                viewModel = viewModel
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // C. STATS GRID
-        if (profileStats != null) {
-            StatsGrid(profileStats = profileStats)
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // D. ACHIEVEMENT BADGES
-        AchievementsSection(achievements = achievements)
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // E. LISTENING ANALYTICS
-        if (profileStats != null) {
-            ListeningAnalytics(profileStats = profileStats)
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // F. LOGOUT BUTTON
-        OutlinedButton(
-            onClick = onLogout,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.error
-            )
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Logout,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Logout")
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-    }
-}
-
-@Composable
-fun ProfileHeader(
-    user: User?,
-    profileStats: com.watermelon.domain.model.ProfileStats?,
-    rankColor: Color,
-    isPremium: Boolean
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "aura")
-    val auraScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "auraScale"
-    )
-    val auraAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "auraAlpha"
-    )
-
-    Box(contentAlignment = Alignment.Center) {
-        // Aura glow ring
-        Box(
-            modifier = Modifier
-                .size(140.dp)
-                .scale(auraScale)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            rankColor.copy(alpha = auraAlpha),
-                            rankColor.copy(alpha = 0f)
-                        )
-                    ),
-                    shape = CircleShape
-                )
-        )
-
-        // Avatar with glow border
-        Box(
-            modifier = Modifier
-                .size(120.dp)
-                .border(4.dp, rankColor, CircleShape)
-                .clip(CircleShape)
-                .background(Color.Black),
-            contentAlignment = Alignment.Center
-        ) {
-            val avatarUrl = user?.avatarUrl
-            if (!avatarUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = avatarUrl,
-                    contentDescription = "Avatar",
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Filled.Person,
-                    contentDescription = "Avatar",
-                    modifier = Modifier.size(64.dp),
-                    tint = WatermelonRed
-                )
-            }
-        }
-
-        // Online indicator
-        Box(
-            modifier = Modifier
-                .size(16.dp)
-                .align(Alignment.BottomEnd)
-                .background(Color(0xFF4CAF50), CircleShape)
-                .border(2.dp, MaterialTheme.colorScheme.background, CircleShape)
-        )
-    }
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    // Username + Display Name
-    Text(
-        text = user?.displayName ?: user?.email?.substringBefore("@") ?: "Guest",
-        style = MaterialTheme.typography.headlineMedium,
-        fontWeight = FontWeight.Bold,
-        color = Color.White
-    )
-
-    if (!user?.username.isNullOrBlank()) {
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "@${user!!.username}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = SecondaryText
-        )
-    }
-
-    Spacer(modifier = Modifier.height(12.dp))
-
-    // Rank Badge
-    profileStats?.let { stats ->
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = rankColor.copy(alpha = 0.15f)
-            ),
-            shape = RoundedCornerShape(20.dp)
-        ) {
-            Text(
-                text = "${stats.rankTier}",
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = rankColor
-            )
-        }
-    }
-
-    Spacer(modifier = Modifier.height(8.dp))
-
-    // Level + XP
-    profileStats?.let { stats ->
-        Text(
-            text = "Level ${stats.xpLevel} · ${NumberFormat.getNumberInstance(Locale.US).format(stats.xpTotal)} XP",
-            style = MaterialTheme.typography.bodyMedium,
-            color = SecondaryText
-        )
-    }
-
-    // Premium badge
-    if (isPremium) {
-        Spacer(modifier = Modifier.height(12.dp))
-        Card(
-            colors = CardDefaults.cardColors(containerColor = WatermelonRed.copy(alpha = 0.12f)),
-            shape = RoundedCornerShape(24.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Star,
-                    contentDescription = null,
-                    tint = WatermelonRed,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Premium Member",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = WatermelonRed
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun LevelProgressBar(
-    xpTotal: Long,
-    level: Int,
-    rankTier: String,
-    viewModel: ProfileViewModel
-) {
-    val progress = viewModel.calculateLevelProgress(xpTotal, level)
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(1000),
-        label = "progress"
-    )
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Level Progress",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = "${(progress * 100).toInt()}%",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = WatermelonRed,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Animated progress bar with glow
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(12.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(Color(0xFF2A2A2A))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(animatedProgress)
-                        .height(12.dp)
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(WatermelonRed, WatermelonRed.copy(alpha = 0.7f))
-                            ),
-                            shape = RoundedCornerShape(6.dp)
-                        )
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Rank transition text
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = rankTier,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SecondaryText
-                )
-                Text(
-                    text = getNextRank(rankTier),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SecondaryText
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun StatsGrid(profileStats: com.watermelon.domain.model.ProfileStats) {
-    val stats = listOf(
-        Triple("⏱", "Hours", formatHours(profileStats.hoursListened)),
-        Triple("🎵", "Songs", profileStats.songsPlayed.toString()),
-        Triple("🔥", "Streak", "${profileStats.streakDays} days"),
-        Triple("📀", "Playlists", profileStats.playlistsCreated.toString()),
-        Triple("🌊", "Artists", profileStats.artistsDiscovered.toString()),
-        Triple("❤️", "Liked", profileStats.likedSongsCount.toString())
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Row 1
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            StatCard(
-                modifier = Modifier.weight(1f),
-                emoji = stats[0].first,
-                label = stats[0].second,
-                value = stats[0].third
-            )
-            StatCard(
-                modifier = Modifier.weight(1f),
-                emoji = stats[1].first,
-                label = stats[1].second,
-                value = stats[1].third
-            )
-            StatCard(
-                modifier = Modifier.weight(1f),
-                emoji = stats[2].first,
-                label = stats[2].second,
-                value = stats[2].third
-            )
-        }
-        // Row 2
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            StatCard(
-                modifier = Modifier.weight(1f),
-                emoji = stats[3].first,
-                label = stats[3].second,
-                value = stats[3].third
-            )
-            StatCard(
-                modifier = Modifier.weight(1f),
-                emoji = stats[4].first,
-                label = stats[4].second,
-                value = stats[4].third
-            )
-            StatCard(
-                modifier = Modifier.weight(1f),
-                emoji = stats[5].first,
-                label = stats[5].second,
-                value = stats[5].third
-            )
-        }
-    }
-}
-
-@Composable
-fun StatCard(
-    modifier: Modifier = Modifier,
-    emoji: String,
-    label: String,
-    value: String
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Black.copy(alpha = 0.6f)
-        ),
-        shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
-    ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = emoji,
-                fontSize = 24.sp
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = SecondaryText
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        }
-    }
-}
-
-@Composable
-fun AchievementsSection(achievements: List<com.watermelon.domain.model.AchievementBadge>) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-    ) {
-        Text(
-            text = "Achievements",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (achievements.isEmpty()) {
-            // Placeholder achievement badges
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                val placeholderBadges = listOf(
-                    Triple("🎖", "First Steps", true),
-                    Triple("🌟", "Rising Star", true),
-                    Triple("🎯", "Perfect Pitch", false),
-                    Triple("🔮", "Deep Listener", false),
-                    Triple("⚡", "Speed Demon", false)
-                )
-                items(placeholderBadges) { (emoji, name, unlocked) ->
-                    AchievementBadgeChip(
-                        emoji = emoji,
-                        name = name,
-                        unlocked = unlocked
-                    )
-                }
-            }
-        } else {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(achievements) { badge ->
-                    AchievementBadgeChip(
-                        emoji = badge.emoji,
-                        name = badge.name,
-                        unlocked = badge.unlockedAt != null
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun AchievementBadgeChip(
-    emoji: String,
-    name: String,
-    unlocked: Boolean
-) {
-    val borderColor by animateColorAsState(
-        targetValue = if (unlocked) WatermelonRed else Color.Gray,
-        label = "borderColor"
-    )
-    val textColor by animateColorAsState(
-        targetValue = if (unlocked) Color.White else Color.Gray,
-        label = "textColor"
-    )
-
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (unlocked) WatermelonRed.copy(alpha = 0.1f) else Color(0xFF1A1A1A)
-        ),
-        shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(
-            width = if (unlocked) 2.dp else 1.dp,
-            color = borderColor
-        )
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = emoji, fontSize = 18.sp)
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = name,
-                style = MaterialTheme.typography.labelMedium,
-                color = textColor,
-                fontWeight = if (unlocked) FontWeight.SemiBold else FontWeight.Normal
-            )
-        }
-    }
-}
-
-@Composable
-fun ListeningAnalytics(profileStats: com.watermelon.domain.model.ProfileStats) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = "Listening",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Activity bars placeholder
-            Text(
-                text = "Weekly Activity",
-                style = MaterialTheme.typography.labelMedium,
-                color = SecondaryText
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            WeeklyActivityBars()
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Top genre
-            profileStats.topGenre?.let { genre ->
-                Text(
-                    text = "Top Genre",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = SecondaryText
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val genres = listOf(genre, "Pop", "Rock", "Jazz", "Electronic")
-                    items(genres) { g ->
-                        GenrePill(genre = g, isHighlighted = g == genre)
-                    }
-                }
+            ProfileHero(user, stats, isLoading) { showEditSheet = true }
+            Spacer(modifier = Modifier.height(24.dp))
+            if (stats != null) XpProgressSection(stats!!, viewModel::calculateLevelProgress)
+            Spacer(modifier = Modifier.height(24.dp))
+            if (stats != null) QuickStatsGrid(stats!!, achievements.size)
+            Spacer(modifier = Modifier.height(24.dp))
+            if (achievements.isNotEmpty()) {
+                AchievementsSection(achievements)
+                Spacer(modifier = Modifier.height(24.dp))
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Top artist
-            profileStats.topArtist?.let { artist ->
-                Text(
-                    text = "Top Artist",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = SecondaryText
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = artist,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun WeeklyActivityBars() {
-    val days = listOf("M", "T", "W", "T", "F", "S", "S")
-    val heights = listOf(0.4f, 0.7f, 0.5f, 0.9f, 0.6f, 0.8f, 0.3f)
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(60.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.Bottom
-    ) {
-        days.forEachIndexed { index, day ->
-            val barHeight by animateFloatAsState(
-                targetValue = heights[index],
-                animationSpec = tween(500),
-                label = "barHeight$index"
-            )
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+            OutlinedButton(
+                onClick = onLogout,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
             ) {
-                Box(
-                    modifier = Modifier
-                        .width(20.dp)
-                        .height((50 * barHeight).dp)
-                        .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                        .background(WatermelonRed.copy(alpha = 0.8f))
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = day,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = SecondaryText
-                )
+                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Log Out")
             }
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
 
 @Composable
-fun GenrePill(genre: String, isHighlighted: Boolean) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (isHighlighted) WatermelonRed.copy(alpha = 0.2f) else Color(0xFF1A1A1A)
-        ),
-        shape = RoundedCornerShape(16.dp),
-        border = if (isHighlighted) androidx.compose.foundation.BorderStroke(1.dp, WatermelonRed) else null
-    ) {
-        Text(
-            text = genre,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = if (isHighlighted) WatermelonRed else Color.White
-        )
-    }
-}
-
-@Composable
-fun ProfileEditContent(
-    paddingValues: PaddingValues,
-    user: User?,
-    editState: EditState,
-    viewModel: ProfileViewModel,
-    onLogout: () -> Unit
-) {
-    val scrollState = rememberScrollState()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .verticalScroll(scrollState)
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Box(
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-                .background(Color.Black),
-            contentAlignment = Alignment.Center
-        ) {
-            val avatar = editState.avatarUrl
-            if (avatar.isNotBlank()) {
+private fun ProfileHero(user: User?, stats: ProfileStats?, isLoading: Boolean, onAvatarClick: () -> Unit) {
+    val rankColor = getRankColor(stats?.rankTier)
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Box(contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .size(88.dp).clip(CircleShape)
+                    .background(rankColor.copy(alpha = 0.15f))
+                    .border(3.dp, rankColor, CircleShape)
+                    .clickable { onAvatarClick() },
+                contentAlignment = Alignment.Center
+            ) {
                 AsyncImage(
-                    model = avatar,
-                    contentDescription = "Avatar",
-                    modifier = Modifier.fillMaxSize()
+                    model = ImageRequest.Builder(LocalContext.current).data(user?.avatarUrl).crossfade(true).build(),
+                    contentDescription = "Profile photo",
+                    modifier = Modifier.size(76.dp).clip(CircleShape),
+                    contentScale = ContentScale.Crop
                 )
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd).size(24.dp).clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+                    .clickable { onAvatarClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.PhotoCamera, contentDescription = "Change photo", modifier = Modifier.size(14.dp), tint = Color.White)
+            }
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
             } else {
-                Icon(
-                    imageVector = Icons.Filled.Person,
-                    contentDescription = "Avatar",
-                    modifier = Modifier.size(64.dp),
-                    tint = WatermelonRed
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        OutlinedTextField(
-            value = editState.displayName,
-            onValueChange = { viewModel.setDisplayName(it) },
-            label = { Text("Display Name") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        OutlinedTextField(
-            value = editState.username,
-            onValueChange = { viewModel.setUsername(it) },
-            label = { Text("Username") },
-            singleLine = true,
-            prefix = { Text("@") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
-        )
-        if (editState.error != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = editState.error!!,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Avatar Style",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        val dicebearStyles = remember {
-            listOf(
-                "toon-head" to "Toon",
-                "adventurer" to "Adventure",
-                "avataaars" to "Avatar",
-                "big-ears" to "Ears",
-                "bottts" to "Bot",
-                "fun-emoji" to "Emoji",
-                "lorelei" to "Lorelei",
-                "notionists" to "Notion"
-            )
-        }
-        val seed = user?.username ?: user?.email ?: "user"
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(dicebearStyles) { (style, label) ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    AsyncImage(
-                        model = "https://api.dicebear.com/10.x/$style/svg?seed=$seed",
-                        contentDescription = label,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { viewModel.updateAvatar(seed, style) }
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            item {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(user?.displayName ?: user?.username ?: "User", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("@${user?.username ?: "user"}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(4.dp))
+                stats?.rankTier?.let { rank ->
                     Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .clickable {
-                                val randomStyle = dicebearStyles.random().first
-                                val randomSeed = (1000..9999).random().toString()
-                                viewModel.updateAvatar(randomSeed, randomStyle)
-                            },
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier.clip(RoundedCornerShape(12.dp))
+                            .background(rankColor.copy(alpha = 0.15f))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Shuffle,
-                            contentDescription = "Random",
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        Text(rank, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = rankColor)
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Random",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun XpProgressSection(stats: ProfileStats, calculateProgress: (Long, Int) -> Float) {
+    val progress by animateFloatAsState(
+        targetValue = calculateProgress(stats.xpTotal, stats.xpLevel),
+        animationSpec = tween(800), label = "xp_progress"
+    )
+    val next = ((stats.xpLevel + 1) * (stats.xpLevel + 1) * 100).toLong()
+    val base = (stats.xpLevel * stats.xpLevel * 100).toLong()
+    val into = stats.xpTotal - base
+    val need = next - base
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Level ${stats.xpLevel}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("$into / $need XP", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Box(
+            modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth(progress).height(10.dp).clip(RoundedCornerShape(5.dp))
+                    .background(Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)))
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text("${(progress * 100).toInt()}% to Level ${stats.xpLevel + 1}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun QuickStatsGrid(stats: ProfileStats, achievementsCount: Int) {
+    val items = listOf(
+        Triple("Songs", "${stats.songsPlayed}", Icons.Outlined.MusicNote),
+        Triple("Hours", "%.1f".format(stats.hoursListened), Icons.Outlined.History),
+        Triple("Streak", "${stats.streakDays}d", Icons.Outlined.LocalFireDepartment),
+        Triple("Badges", "$achievementsCount", Icons.Outlined.EmojiEvents),
+    )
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        items.forEach { (label, value, icon) ->
+            Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))) {
+                Column(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AchievementsSection(achievements: List<AchievementBadge>) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text("Achievements", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(horizontal = 4.dp)) {
+            items(achievements, key = { it.id }) { badge -> BadgeChip(badge) }
+        }
+    }
+}
+
+@Composable
+private fun BadgeChip(badge: AchievementBadge) {
+    Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(badge.emoji, fontSize = 18.sp)
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(badge.name, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+        }
+    }
+}
+
+@Composable
+private fun EditProfileSheet(
+    editState: EditState, user: User?,
+    onDisplayNameChange: (String) -> Unit,
+    onUsernameChange: (String) -> Unit,
+    onAvatarSelected: (String) -> Unit,
+    onSave: () -> Unit, onDismiss: () -> Unit
+) {
+    var selectedSeed by remember { mutableStateOf(user?.username ?: "user") }
+    var selectedStyle by remember { mutableStateOf("toon-head") }
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? -> uri?.let { onAvatarSelected(it.toString()) } }
+    val styles = listOf("toon-head" to "Toon", "adventurer" to "Adventurer", "open-peeps" to "Peeps", "bottts" to "Robot", "fun-emoji" to "Emoji")
+
+    Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
+        Text("Edit Profile", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(20.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            AsyncImage(
+                model = editState.avatarUrl.ifBlank { "https://api.dicebear.com/10.x/$selectedStyle/svg?seed=$selectedSeed" },
+                contentDescription = "Avatar preview",
+                modifier = Modifier.size(72.dp).clip(CircleShape).border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text("Choose Avatar", style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { photoPicker.launch("image/*") }) { Text("Gallery") }
+                    TextButton(onClick = { selectedSeed = System.currentTimeMillis().toString(); onAvatarSelected("https://api.dicebear.com/10.x/$selectedStyle/svg?seed=$selectedSeed") }) { Text("Random") }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(styles) { (style, label) ->
+                val isSelected = selectedStyle == style
+                Card(
+                    modifier = Modifier.clickable { selectedStyle = style; onAvatarSelected("https://api.dicebear.com/10.x/$style/svg?seed=$selectedSeed") },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Text(label, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium, color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = { viewModel.saveProfile() },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !editState.isSaving,
-            colors = ButtonDefaults.buttonColors(containerColor = WatermelonRed)
-        ) {
-            if (editState.isSaving) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text("Save", color = Color.White)
+        HorizontalDivider()
+        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedTextField(value = editState.displayName, onValueChange = onDisplayNameChange, label = { Text("Display Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedTextField(value = editState.username, onValueChange = onUsernameChange, label = { Text("Username") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+        editState.error?.let {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
+            Button(onClick = onSave, modifier = Modifier.weight(1f), enabled = !editState.isSaving, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
+                if (editState.isSaving) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp) else Text("Save")
             }
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        OutlinedButton(
-            onClick = onLogout,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.error
-            )
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Logout,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Logout")
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-    }
-}
-
-private fun formatHours(hours: Float): String {
-    return if (hours >= 1000) {
-        String.format(Locale.US, "%.1fk", hours / 1000)
-    } else {
-        String.format(Locale.US, "%.1f", hours)
-    }
-}
-
-private fun getNextRank(currentRank: String): String {
-    val ranks = listOf(
-        "🌱 Seed Listener",
-        "🍃 Sprout Wave",
-        "🎧 Pulse Rider",
-        "🌊 Echo Drift",
-        "🎶 Resonance",
-        "📀 Vinyl Hunter",
-        "🎵 Frequency Soul",
-        "🌌 NovaBeat",
-        "💿 Harmonic Flow",
-        "🔥 Reverb X",
-        "⚡ Soundrift",
-        "🌠 Celestia Tone",
-        "🎼 Wave Architect",
-        "🌈 Spectrum Lord",
-        "👑 Eternal Echo"
-    )
-    val currentIndex = ranks.indexOf(currentRank)
-    return if (currentIndex >= 0 && currentIndex < ranks.size - 1) {
-        ranks[currentIndex + 1]
-    } else {
-        "👑 Eternal Echo"
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }

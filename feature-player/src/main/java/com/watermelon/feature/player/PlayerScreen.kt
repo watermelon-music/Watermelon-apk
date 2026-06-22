@@ -47,7 +47,9 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.tooling.preview.Preview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.watermelon.core.designsystem.layout.adaptiveAlbumArtFraction
 import com.watermelon.core.designsystem.layout.adaptiveHorizontalPadding
 import com.watermelon.core.designsystem.layout.adaptiveMaxContentWidth
@@ -67,6 +69,7 @@ fun PlayerScreen(
 
     val isPlaying = state.isPlaying
     var localProgress by remember { mutableStateOf<Float?>(null) }
+    val scope = rememberCoroutineScope()
 
 
 
@@ -332,21 +335,26 @@ fun PlayerScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp)
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
+                var seekJob by remember { mutableStateOf<Job?>(null) }
                 Slider(
                     value = displayProgress.coerceIn(0f, 1f),
                     onValueChange = {
-                        localProgress = it.coerceIn(0f, 1f)
+                        val progress = it.coerceIn(0f, 1f)
+                        localProgress = progress
+                        // Debounce seek during drag; seek immediately on tap
+                        seekJob?.cancel()
+                        seekJob = scope.launch {
+                            delay(50)
+                            if (state.durationMs > 0) {
+                                viewModel.seekTo((progress * state.durationMs).toLong())
+                            }
+                        }
                     },
                     onValueChangeFinished = {
-                        val progress = localProgress
-                        if (progress != null && state.durationMs > 0) {
-                            val target = (progress * state.durationMs).toLong()
-                            viewModel.seekTo(target)
-                        }
-                        // Release the slider back to following the player state.
+                        seekJob?.cancel()
                         localProgress = null
                     },
                     enabled = state.durationMs > 0 && !state.isRadioStream,

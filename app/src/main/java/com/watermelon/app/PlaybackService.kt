@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
+import com.watermelon.domain.player.PlaybackCommandDispatcher
 import androidx.media3.session.MediaSessionService
 import androidx.media3.ui.PlayerNotificationManager
 import androidx.palette.graphics.Palette
@@ -32,6 +33,8 @@ import javax.inject.Inject
 class PlaybackService : MediaSessionService() {
 
     @Inject lateinit var player: ExoPlayer
+    @Inject lateinit var commandDispatcher: PlaybackCommandDispatcher
+    private var forwardingPlayer: QueueAwareForwardingPlayer? = null
     private var mediaSession: MediaSession? = null
     private var notificationManager: PlayerNotificationManager? = null
     private var currentAccentColor: Int = 0
@@ -54,7 +57,9 @@ class PlaybackService : MediaSessionService() {
             this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
         )
 
-        mediaSession = MediaSession.Builder(this, player)
+        forwardingPlayer = QueueAwareForwardingPlayer(player, commandDispatcher)
+
+        mediaSession = MediaSession.Builder(this, forwardingPlayer!!)
             .setSessionActivity(sessionActivityPendingIntent ?: PendingIntent.getActivity(
                 this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
             ))
@@ -63,6 +68,9 @@ class PlaybackService : MediaSessionService() {
         setupCustomNotification()
         startColorExtractionListener()
         startPlaybackStateListener()
+        commandDispatcher.onQueueStateChanged = {
+            notificationManager?.invalidate()
+        }
     }
 
     private fun setupCustomNotification() {
@@ -129,7 +137,7 @@ class PlaybackService : MediaSessionService() {
                 if (token != null) {
                     setMediaSessionToken(token)
                 }
-                setPlayer(player)
+                setPlayer(forwardingPlayer)
                 setUseNextAction(true)
                 setUsePreviousAction(true)
                 setUsePlayPauseActions(true)
@@ -215,6 +223,7 @@ class PlaybackService : MediaSessionService() {
         colorListener?.let { runCatching { player.removeListener(it) } }
         colorListener = null
         serviceScope.cancel()
+        commandDispatcher.onQueueStateChanged = null
         notificationManager?.setPlayer(null)
         runCatching {
             player.stop()

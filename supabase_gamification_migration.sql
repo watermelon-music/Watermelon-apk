@@ -48,6 +48,7 @@ CREATE POLICY "Profiles: users insert own" ON public.profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- Public profile view: other users can see limited profile info
+DROP POLICY IF EXISTS "Profiles: public view" ON public.profiles;
 CREATE POLICY "Profiles: public view" ON public.profiles
   FOR SELECT USING (is_profile_public = TRUE OR auth.uid() = id);
 

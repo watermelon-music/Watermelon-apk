@@ -288,7 +288,7 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun isProfileBanned(userId: String): Boolean {
+    private suspend fun isProfileBanned(userId: String): Boolean {
         val profile = runCatching {
             client.postgrest.from("profiles")
                 .select { filter { eq("id", userId) } }
@@ -360,8 +360,9 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun checkRemoteConfig(): RemoteConfig? = runCatching {
         val row = client.postgrest.from("remote_config")
-            .select()
-            .limit(1)
+            .select {
+                limit(1)
+            }
             .decodeSingleOrNull<RemoteConfigRow>()
         if (row == null) return@runCatching null
         RemoteConfig(

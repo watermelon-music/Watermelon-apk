@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.watermelon.domain.model.Song
 import com.watermelon.domain.autoplay.AutoplayEngine
 import com.watermelon.domain.autoplay.TransitionTracker
+import com.watermelon.domain.player.PlaybackCommandDispatcher
 import com.watermelon.domain.repository.DownloadRepository
 import com.watermelon.domain.repository.LyricsRepository
 import com.watermelon.domain.repository.RadioStationRepository
@@ -77,7 +78,8 @@ class PlayerViewModel @Inject constructor(
     private val playlistRepository: com.watermelon.domain.repository.PlaylistRepository,
     private val downloadRepository: com.watermelon.domain.repository.DownloadRepository,
     private val autoplayEngine: AutoplayEngine,
-    private val transitionTracker: TransitionTracker
+    private val transitionTracker: TransitionTracker,
+    private val commandDispatcher: PlaybackCommandDispatcher
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -109,12 +111,16 @@ class PlayerViewModel @Inject constructor(
 
     private var positionUpdateJob: Job? = null
     private var currentRadioStation: com.watermelon.domain.model.RadioStation? = null
+    private val _isSeeking = MutableStateFlow(false)
+    private val _skipPositionUpdatesUntil = MutableStateFlow(0L)
 
     private fun startPositionUpdates() {
         if (positionUpdateJob?.isActive == true) return
         positionUpdateJob = viewModelScope.launch {
             while (true) {
-                updatePosition()
+                if (!_isSeeking.value) {
+                    updatePosition()
+                }
                 // Higher frequency while actively playing to keep the slider smooth.
                 delay(if (streamingRepository.isPlaying()) 250L else 750L)
             }
@@ -218,6 +224,8 @@ class PlayerViewModel @Inject constructor(
 
     init {
         streamingRepository.addListener(listener)
+        commandDispatcher.onNext = { playNext() }
+        commandDispatcher.onPrevious = { playPrevious() }
         loadPlaylists()
         updatePosition()
         // Always run the position updater while the ViewModel is alive; the loop
@@ -406,8 +414,24 @@ class PlayerViewModel @Inject constructor(
                 durationMs = song.durationMs,
                 radioStation = null
             )
+            prefetchNextSongUrl()
             updateQueueState()
             fetchLyrics(song)
+        }
+    }
+
+    /**
+     * Pre-extract the next song's audio URL in the background so that
+     * skipping via notification / UI is instant (cache hit).
+     */
+    private fun prefetchNextSongUrl() {
+        val nextSong = internalQueue.getOrNull(currentIndex + 1) ?: return
+        viewModelScope.launch {
+            runCatching {
+                val sourceUrl = nextSong.audioUrl?.takeIf { it.isNotBlank() }
+                    ?: "https://www.youtube.com/watch?v=${nextSong.id}"
+                urlExtractor.extractAudioUrl(sourceUrl)
+            }
         }
     }
 
@@ -465,18 +489,14 @@ class PlayerViewModel @Inject constructor(
     fun seekTo(positionMs: Long) {
         val duration = _uiState.value.durationMs
         val clamped = if (duration > 0) positionMs.coerceIn(0L, duration) else positionMs.coerceAtLeast(0L)
-        // Optimistically reflect the seek target so the slider doesn't snap back
-        // before the player's discontinuity callback arrives.
+        _skipPositionUpdatesUntil.value = System.currentTimeMillis() + 500
         _uiState.update { it.copy(positionMs = clamped) }
         streamingRepository.seekTo(clamped)
-        // Re-sync from the player once it acknowledges the seek (covers paused state too).
-        viewModelScope.launch {
-            delay(50)
-            updatePosition()
-        }
     }
 
     fun updatePosition() {
+        if (_isSeeking.value) return
+        if (System.currentTimeMillis() < _skipPositionUpdatesUntil.value) return
         val pos = streamingRepository.currentPosition().coerceAtLeast(0L)
         val dur = streamingRepository.duration()
         _uiState.update {
@@ -485,6 +505,10 @@ class PlayerViewModel @Inject constructor(
                 durationMs = if (dur > 0) dur else it.durationMs
             )
         }
+    }
+
+    fun setSeeking(seeking: Boolean) {
+        _isSeeking.value = seeking
     }
 
     fun setVolume(volume: Float) {
@@ -617,6 +641,8 @@ class PlayerViewModel @Inject constructor(
                 currentSongId = internalQueue.getOrNull(currentIndex)?.id ?: ""
             )
         }
+        commandDispatcher.hasNext = hasNextInternal()
+        commandDispatcher.hasPrevious = currentIndex > 0
     }
 
     fun checkFavoriteStatus() {
@@ -786,5 +812,10 @@ class PlayerViewModel @Inject constructor(
         super.onCleared()
         stopPositionUpdates()
         streamingRepository.removeListener(listener)
+        commandDispatcher.onNext = null
+        commandDispatcher.onPrevious = null
+        commandDispatcher.onQueueStateChanged = null
+        commandDispatcher.hasNext = false
+        commandDispatcher.hasPrevious = false
     }
 }

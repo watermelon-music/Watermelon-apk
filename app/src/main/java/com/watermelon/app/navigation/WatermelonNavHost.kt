@@ -283,7 +283,8 @@ fun WatermelonNavHost(
         composable(Routes.PROFILE) {
             val profileViewModel: com.watermelon.app.screens.ProfileViewModel = hiltViewModel()
             ProfileScreen(
-                viewModel = profileViewModel
+                viewModel = profileViewModel,
+                onBack = { navController.popBackStack() }
             )
         }
         composable(Routes.SETTINGS) {

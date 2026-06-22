@@ -179,6 +179,13 @@ class HomeViewModel @Inject constructor(
     fun refresh() {
         loadHomeData()
     }
+
+    private fun loadUser() {
+        authRepository.getCurrentUser()
+            .onEach { _user.value = it }
+            .catch { _user.value = null }
+            .launchIn(viewModelScope)
+    }
 }
 
 data class HomeUiState(
@@ -197,25 +204,3 @@ data class HomeUiState(
     val isLoading: Boolean = false
 )
 
-data class HomeUiState(
-    val welcomeMessage: String = "Welcome back",
-    val recentlyPlayed: List<Song> = emptyList(),
-    val favorites: List<Song> = emptyList(),
-    val trendingMusic: List<Song> = emptyList(),
-    val bollywood: List<Song> = emptyList(),
-    val hollywood: List<Song> = emptyList(),
-    val pop: List<Song> = emptyList(),
-    val rock: List<Song> = emptyList(),
-    val jazz: List<Song> = emptyList(),
-    val classical: List<Song> = emptyList(),
-    val hiphop: List<Song> = emptyList(),
-    val electronic: List<Song> = emptyList(),
-    val isLoading: Boolean = false
-)
-
-    private fun loadUser() {
-        authRepository.getCurrentUser()
-            .onEach { _user.value = it }
-            .catch { _user.value = null }
-            .launchIn(viewModelScope)
-    }

@@ -82,7 +82,7 @@ import kotlinx.coroutines.launch
 fun ProfileScreen(
     viewModel: ProfileViewModel,
     onLogout: () -> Unit,
-    onBack: () -> Unit,
+    onBack: () -> Unit = {},
 ) {
     val user by viewModel.user.collectAsState()
     val stats by viewModel.profileStats.collectAsState()

@@ -93,6 +93,8 @@ class RecommendationEngineImpl @Inject constructor(
         if (durationSec > 0 && (durationSec < 45 || durationSec > 600)) return false
         return true
     }
+
+    override fun invalidateCache() {
         lastCurrentSongId = null
     }
 
@@ -143,7 +145,7 @@ class RecommendationEngineImpl @Inject constructor(
             if (titleSim > 0.25) return@mapNotNull null // Drop highly similar titles outright
 
             // Strict containment: if candidate contains all significant words of current title
-            val currentWords = currentSong.title.lowercase().split("\s+".toRegex()).filter { it.length > 2 }
+            val currentWords = currentSong.title.lowercase().split("\\s+".toRegex()).filter { it.length > 2 }
             if (currentWords.size >= 2 && currentWords.all { candidate.title.lowercase().contains(it) }) return@mapNotNull null
 
             // === Source scores (the 40/30/20/10 split) ===

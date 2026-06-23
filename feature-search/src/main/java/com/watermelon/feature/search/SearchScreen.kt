@@ -266,17 +266,39 @@ fun SearchScreenContent(
                     )
                 }
             }
-        } else if (selectedCategory == SearchCategory.PLAYLISTS && playlistResults.isNotEmpty()) {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = adaptiveListMinSize()),
-                verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
-                horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
-            ) {
-                items(playlistResults, key = { it.id }) { playlist ->
-                    PlaylistResultItem(
-                        playlist = playlist,
-                        onClick = { /* TODO: Navigate to playlist */ }
-                    )
+        } else if (selectedCategory == SearchCategory.PLAYLISTS) {
+            if (playlistResults.isNotEmpty()) {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = adaptiveListMinSize()),
+                    verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
+                    horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+                ) {
+                    items(playlistResults, key = { it.id }) { playlist ->
+                        PlaylistResultItem(
+                            playlist = playlist,
+                            onClick = { /* TODO: Navigate to playlist */ }
+                        )
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(WatermelonSpacing.md))
+                        Text(
+                            text = "No playlists found",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         } else if (results.isEmpty()) {

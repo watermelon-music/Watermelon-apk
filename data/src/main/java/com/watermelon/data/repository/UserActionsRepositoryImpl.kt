@@ -110,7 +110,7 @@ class UserActionsRepositoryImpl @Inject constructor(
                         artist = song.artistName,
                         cover_url = song.coverUrl,
                         audio_url = song.audioUrl,
-                        duration_ms = song.durationMs,
+                        duration_ms = listenedDurationMs.coerceIn(0, song.durationMs),
                         played_at = Instant.now().toString()
                     )
                 )

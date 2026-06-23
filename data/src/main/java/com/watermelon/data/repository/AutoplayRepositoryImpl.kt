@@ -106,6 +106,10 @@ class AutoplayRepositoryImpl @Inject constructor(
         )
     }
 
+    override suspend fun recordPlayEnd(song: Song, durationMs: Long) {
+        // Already handled by UserActionsRepository via recordRecentlyPlayed
+    }
+
     override suspend fun recordSkip(song: Song, context: String) {
         skipDao.insert(
             SkipEntity(

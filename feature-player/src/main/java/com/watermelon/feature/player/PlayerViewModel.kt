@@ -103,6 +103,7 @@ class PlayerViewModel @Inject constructor(
     private val internalQueue = mutableListOf<Song>()
     private var originalQueue = listOf<Song>()
     private var currentIndex = -1
+    private var currentPlayStartMs: Long = 0L
     private var isShuffleOn = false
     private var repeatMode = RepeatMode.NONE
     private var consecutiveErrors = 0
@@ -376,8 +377,24 @@ class PlayerViewModel @Inject constructor(
 
     private fun playCurrent() {
         val song = internalQueue.getOrNull(currentIndex) ?: return
+        val previousId = _uiState.value.currentSongId
+        if (currentPlayStartMs > 0 && previousId.isNotBlank() && previousId != song.id) {
+            val elapsedMs = System.currentTimeMillis() - currentPlayStartMs
+            val previousSong = internalQueue.find { it.id == previousId }
+            if (previousSong != null) {
+                viewModelScope.launch {
+                    runCatching {
+                        userActionsRepository.recordRecentlyPlayed(
+                            previousSong,
+                            elapsedMs.coerceIn(0, previousSong.durationMs)
+                        )
+                    }
+                }
+            }
+        }
+        currentPlayStartMs = System.currentTimeMillis()
         viewModelScope.launch {
-            runCatching { userActionsRepository.recordRecentlyPlayed(song) }
+            runCatching { userActionsRepository.recordRecentlyPlayed(song, 0L) }
             runCatching { transitionTracker.recordPlayStart(song) }
             val favorites = runCatching { userActionsRepository.getFavorites().first() }.getOrDefault(emptyList())
             _uiState.update { 

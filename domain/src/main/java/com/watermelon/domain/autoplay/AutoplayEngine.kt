@@ -7,4 +7,5 @@ interface AutoplayEngine {
     fun isAutoplayEnabled(): Boolean
     fun setAutoplayEnabled(enabled: Boolean)
     suspend fun clearAll()
+    suspend fun recordPlayEnd(song: Song, durationMs: Long)
 }

@@ -13,5 +13,5 @@ interface UserActionsRepository {
 
     suspend fun addToFavorites(song: Song): Result<Unit>
     suspend fun removeFromFavorites(songId: String): Result<Unit>
-    suspend fun recordRecentlyPlayed(song: Song): Result<Unit>
+    suspend fun recordRecentlyPlayed(song: Song, listenedDurationMs: Long = song.durationMs): Result<Unit>
 }

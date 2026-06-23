@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -85,6 +87,7 @@ fun SearchScreen(
             onQueryChange = viewModel::onQueryChange,
             onSongClick = onSongClick,
             onAddToPlaylist = viewModel::onAddToPlaylistClick,
+            onSavePlaylist = viewModel::onSavePlaylist,
             playlistResults = viewModel.playlistResults.collectAsStateWithLifecycle().value,
             selectedCategory = viewModel.selectedCategory.collectAsStateWithLifecycle().value,
             onCategorySelected = viewModel::onCategorySelected
@@ -159,6 +162,7 @@ fun SearchScreenContent(
     onQueryChange: (String) -> Unit,
     onSongClick: (Song, Int, List<Song>) -> Unit,
     onAddToPlaylist: (Song) -> Unit,
+    onSavePlaylist: (CommunityPlaylist) -> Unit = {},
     playlistResults: List<CommunityPlaylist> = emptyList(),
     selectedCategory: SearchCategory = SearchCategory.ALL,
     onCategorySelected: (SearchCategory) -> Unit = {}
@@ -276,7 +280,8 @@ fun SearchScreenContent(
                     items(playlistResults, key = { it.id }) { playlist ->
                         PlaylistResultItem(
                             playlist = playlist,
-                            onClick = { /* TODO: Navigate to playlist */ }
+                            onClick = { /* TODO: Navigate to playlist */ },
+                            onSave = { onSavePlaylist(playlist) }
                         )
                     }
                 }
@@ -301,45 +306,79 @@ fun SearchScreenContent(
                     }
                 }
             }
-        } else if (results.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(WatermelonSpacing.md))
-                    Text(
-                        text = "No results found",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(WatermelonSpacing.sm))
-                    Text(
-                        text = "Try a different search term",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                }
-            }
         } else {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = adaptiveListMinSize()),
-                verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
-                horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
-            ) {
-                items(results, key = { it.id }) { song ->
-                    val index = results.indexOf(song)
-                    SearchResultItem(
-                        song = song,
-                        onClick = { onSongClick(song, index, results) },
-                        onAddToPlaylist = { onAddToPlaylist(song) }
-                    )
+            if (results.isEmpty() && playlistResults.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(WatermelonSpacing.md))
+                        Text(
+                            text = "No results found",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                Column {
+                    if (playlistResults.isNotEmpty()) {
+                        Text(
+                            text = "Playlists",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(
+                                start = adaptiveHorizontalPadding(),
+                                top = WatermelonSpacing.md,
+                                bottom = WatermelonSpacing.md
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding()),
+                            horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+                        ) {
+                            items(playlistResults, key = { it.id }) { playlist ->
+                                PlaylistResultItem(
+                                    playlist = playlist,
+                                    onClick = { /* TODO */ },
+                                    onSave = { onSavePlaylist(playlist) }
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(WatermelonSpacing.lg))
+                    }
+                    if (results.isNotEmpty()) {
+                        Text(
+                            text = "Songs",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(
+                                start = adaptiveHorizontalPadding(),
+                                bottom = WatermelonSpacing.md
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = adaptiveListMinSize()),
+                            verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
+                            horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+                        ) {
+                            items(results, key = { it.id }) { song ->
+                                val index = results.indexOf(song)
+                                SearchResultItem(
+                                    song = song,
+                                    onClick = { onSongClick(song, index, results) },
+                                    onAddToPlaylist = { onAddToPlaylist(song) }
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -434,7 +473,8 @@ private fun SearchResultItem(
 @Composable
 private fun PlaylistResultItem(
     playlist: CommunityPlaylist,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onSave: () -> Unit = {}
 ) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(playlist.id) { visible = true }
@@ -504,6 +544,21 @@ private fun PlaylistResultItem(
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
                             contentDescription = "Open",
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    FilledIconButton(
+                        onClick = onSave,
+                        modifier = Modifier.size(40.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = WatermelonRed,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                            contentDescription = "Add to Library",
                             modifier = Modifier.size(22.dp)
                         )
                     }

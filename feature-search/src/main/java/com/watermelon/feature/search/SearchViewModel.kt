@@ -147,6 +147,14 @@ class SearchViewModel @Inject constructor(
             }
         }
     }
+
+    fun onSavePlaylist(playlist: CommunityPlaylist) {
+        viewModelScope.launch {
+            playlistRepository.saveCommunityPlaylist(playlist.id)
+                .onSuccess { _addToPlaylistMessage.value = "Saved to your library" }
+                .onFailure { _addToPlaylistMessage.value = "Failed to save" }
+        }
+    }
 }
 
 enum class SearchCategory {

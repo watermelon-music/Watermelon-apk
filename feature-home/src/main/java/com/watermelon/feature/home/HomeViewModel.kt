@@ -3,6 +3,8 @@ package com.watermelon.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.watermelon.data.remote.watermelon.WatermelonRepository
+import com.watermelon.domain.model.CommunityPlaylist
+import com.watermelon.domain.model.CuratedPlaylist
 import com.watermelon.domain.model.User
 import com.watermelon.domain.repository.AuthRepository
 import com.watermelon.domain.model.Playlist
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.util.Calendar
 import java.util.TimeZone
 import javax.inject.Inject
@@ -60,6 +63,8 @@ class HomeViewModel @Inject constructor(
         loadHomeData()
         loadUser()
         loadPlaylists()
+        loadCommunityPlaylists()
+        loadCuratedPlaylists()
         scheduleDailyTrendingRefresh()
     }
 
@@ -186,6 +191,80 @@ class HomeViewModel @Inject constructor(
             .catch { _user.value = null }
             .launchIn(viewModelScope)
     }
+
+    private fun loadCommunityPlaylists() {
+        viewModelScope.launch {
+            playlistRepository.getCommunityPlaylists()
+                .onSuccess { playlists ->
+                    _uiState.update { it.copy(communityPlaylists = playlists) }
+                }
+                .onFailure { Timber.e(it, "loadCommunityPlaylists failed") }
+        }
+    }
+
+    private fun loadCuratedPlaylists() {
+        viewModelScope.launch {
+            val curated = listOf(
+                CuratedPlaylist(
+                    id = "curated_chill",
+                    title = "Chill Vibes",
+                    subtitle = "Relax and unwind",
+                    coverUrl = null,
+                    gradientColors = listOf("#667eea", "#764ba2"),
+                    songs = emptyList(),
+                    tag = "chill"
+                ),
+                CuratedPlaylist(
+                    id = "curated_workout",
+                    title = "Workout Mode",
+                    subtitle = "Pump up your session",
+                    coverUrl = null,
+                    gradientColors = listOf("#f093fb", "#f5576c"),
+                    songs = emptyList(),
+                    tag = "workout"
+                ),
+                CuratedPlaylist(
+                    id = "curated_party",
+                    title = "Party Hits",
+                    subtitle = "Get the party started",
+                    coverUrl = null,
+                    gradientColors = listOf("#4facfe", "#00f2fe"),
+                    songs = emptyList(),
+                    tag = "party"
+                ),
+                CuratedPlaylist(
+                    id = "curated_focus",
+                    title = "Deep Focus",
+                    subtitle = "Concentrate better",
+                    coverUrl = null,
+                    gradientColors = listOf("#43e97b", "#38f9d7"),
+                    songs = emptyList(),
+                    tag = "focus"
+                )
+            )
+            _uiState.update { it.copy(curatedPlaylists = curated) }
+        }
+    }
+
+    fun likeCommunityPlaylist(playlistId: String) {
+        viewModelScope.launch {
+            playlistRepository.likeCommunityPlaylist(playlistId)
+                .onSuccess {
+                    loadCommunityPlaylists()
+                }
+                .onFailure { Timber.e(it, "likeCommunityPlaylist failed") }
+        }
+    }
+
+    fun saveCommunityPlaylist(playlistId: String) {
+        viewModelScope.launch {
+            playlistRepository.saveCommunityPlaylist(playlistId)
+                .onSuccess {
+                    loadCommunityPlaylists()
+                }
+                .onFailure { Timber.e(it, "saveCommunityPlaylist failed") }
+        }
+    }
 }
 
 data class HomeUiState(
@@ -201,6 +280,8 @@ data class HomeUiState(
     val classical: List<Song> = emptyList(),
     val hiphop: List<Song> = emptyList(),
     val electronic: List<Song> = emptyList(),
+    val communityPlaylists: List<CommunityPlaylist> = emptyList(),
+    val curatedPlaylists: List<CuratedPlaylist> = emptyList(),
     val isLoading: Boolean = false
 )
 

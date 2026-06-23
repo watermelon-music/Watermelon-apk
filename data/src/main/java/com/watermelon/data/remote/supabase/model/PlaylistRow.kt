@@ -15,7 +15,10 @@ data class PlaylistRow(
     val is_public: Boolean = false,
     val share_count: Long = 0,
     val save_count: Long = 0,
-    val copy_count: Long = 0
+    val copy_count: Long = 0,
+    val tags: List<String> = emptyList(),
+    val like_count: Long = 0,
+    val creator_display_name: String? = null
 )
 
 @Serializable

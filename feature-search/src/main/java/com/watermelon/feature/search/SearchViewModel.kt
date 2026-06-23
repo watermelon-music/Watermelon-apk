@@ -3,6 +3,7 @@ package com.watermelon.feature.search
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.watermelon.domain.model.Playlist
+import com.watermelon.domain.model.CommunityPlaylist
 import com.watermelon.domain.model.Song
 import com.watermelon.domain.repository.MusicCatalogRepository
 import com.watermelon.domain.repository.PlaylistRepository
@@ -67,8 +68,36 @@ class SearchViewModel @Inject constructor(
     private val _addToPlaylistMessage = MutableStateFlow<String?>(null)
     val addToPlaylistMessage: StateFlow<String?> = _addToPlaylistMessage.asStateFlow()
 
+    private val _selectedCategory = MutableStateFlow(SearchCategory.ALL)
+    val selectedCategory: StateFlow<SearchCategory> = _selectedCategory.asStateFlow()
+
+    private val _playlistResults = MutableStateFlow<List<CommunityPlaylist>>(emptyList())
+    val playlistResults: StateFlow<List<CommunityPlaylist>> = _playlistResults.asStateFlow()
+
     init {
         loadPlaylists()
+        observeQueryChanges()
+    }
+
+    private fun observeQueryChanges() {
+        viewModelScope.launch {
+            _query.collect { query ->
+                if (query.length >= 2) {
+                    when (_selectedCategory.value) {
+                        SearchCategory.ALL, SearchCategory.PLAYLISTS -> searchPlaylists(query)
+                        SearchCategory.SONGS -> { /* Song search handled by flow */ }
+                    }
+                } else {
+                    _playlistResults.value = emptyList()
+                }
+            }
+        }
+    }
+
+    private suspend fun searchPlaylists(query: String) {
+        playlistRepository.searchPlaylists(query)
+            .onSuccess { results -> _playlistResults.value = results }
+            .onFailure { _playlistResults.value = emptyList() }
     }
 
     private fun loadPlaylists() {
@@ -109,4 +138,17 @@ class SearchViewModel @Inject constructor(
     fun clearAddToPlaylistMessage() {
         _addToPlaylistMessage.value = null
     }
+
+    fun onCategorySelected(category: SearchCategory) {
+        _selectedCategory.value = category
+        if (category == SearchCategory.PLAYLISTS && _query.value.length >= 2) {
+            viewModelScope.launch {
+                searchPlaylists(_query.value)
+            }
+        }
+    }
+}
+
+enum class SearchCategory {
+    ALL, SONGS, PLAYLISTS
 }

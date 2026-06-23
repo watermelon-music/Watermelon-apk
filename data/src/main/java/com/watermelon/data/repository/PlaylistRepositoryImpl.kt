@@ -7,6 +7,7 @@ import com.watermelon.data.local.entity.CachedPlaylistEntity
 import com.watermelon.data.local.entity.CachedPlaylistSongEntity
 import com.watermelon.data.remote.supabase.model.PlaylistRow
 import com.watermelon.data.remote.supabase.model.PlaylistSongRow
+import com.watermelon.domain.model.CommunityPlaylist
 import com.watermelon.domain.model.Playlist
 import com.watermelon.domain.model.PlaylistSong
 import com.watermelon.domain.model.Song
@@ -324,5 +325,123 @@ class PlaylistRepositoryImpl @Inject constructor(
         shareCount = shareCount,
         saveCount = saveCount,
         copyCount = copyCount
+    )
+
+    override suspend fun getCommunityPlaylists(): Result<List<CommunityPlaylist>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val rows = client.postgrest.from("playlists")
+                .select {
+                    filter { eq("is_public", true) }
+                    order("like_count", Order.DESCENDING)
+                }
+                .decodeList<PlaylistRow>()
+            rows.map { it.toCommunityPlaylist() }
+        }.onFailure { Timber.e(it, "getCommunityPlaylists failed") }
+    }
+
+    override suspend fun likeCommunityPlaylist(playlistId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            val userId = getUserId() ?: throw IllegalStateException("Not authenticated")
+            val url = java.net.URL("${BuildConfig.BACKEND_BASE_URL}/api/community/playlists/$playlistId/like")
+            val conn = url.openConnection() as java.net.HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("x-user-id", userId)
+            conn.setRequestProperty("Content-Type", "application/json")
+            conn.doOutput = true
+            conn.connect()
+            val code = conn.responseCode
+            conn.disconnect()
+            if (code in 200..299) {
+                kotlin.runCatching { refreshPlaylists() }
+                true
+            } else throw IllegalStateException("Like failed: HTTP $code")
+        }.onFailure { Timber.e(it, "likeCommunityPlaylist failed") }
+    }
+
+    override suspend fun saveCommunityPlaylist(playlistId: String): Result<Playlist> = withContext(Dispatchers.IO) {
+        runCatching {
+            val row = client.postgrest.from("playlists")
+                .select { filter { eq("id", playlistId) } }
+                .decodeSingle<PlaylistRow>()
+            val userId = getUserId() ?: throw IllegalStateException("Not authenticated")
+            val newRow = PlaylistRow(
+                id = java.util.UUID.randomUUID().toString(),
+                user_id = userId,
+                name = row.name,
+                description = row.description,
+                cover_url = row.cover_url,
+                share_code = generateShareCode(),
+                is_public = false
+            )
+            client.postgrest.from("playlists").insert(newRow)
+
+            val songs = client.postgrest.from("playlist_songs")
+                .select {
+                    filter { eq("playlist_id", playlistId) }
+                    order("position", Order.ASCENDING)
+                }
+                .decodeList<PlaylistSongRow>()
+
+            songs.forEachIndexed { index, songRow ->
+                val psRow = PlaylistSongRow(
+                    playlist_id = newRow.id,
+                    song_id = songRow.song_id,
+                    title = songRow.title,
+                    artist = songRow.artist,
+                    cover_url = songRow.cover_url,
+                    audio_url = songRow.audio_url,
+                    position = index
+                )
+                client.postgrest.from("playlist_songs").insert(psRow)
+            }
+            refreshPlaylists()
+            getPlaylistById(newRow.id).getOrThrow()
+        }.onFailure { Timber.e(it, "saveCommunityPlaylist failed") }
+    }
+
+    override suspend fun searchPlaylists(query: String): Result<List<CommunityPlaylist>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val encoded = java.net.URLEncoder.encode(query, "UTF-8")
+            val url = java.net.URL("${BuildConfig.BACKEND_BASE_URL}/api/community/search/playlists?q=$encoded")
+            val conn = url.openConnection() as java.net.HttpURLConnection
+            conn.requestMethod = "GET"
+            conn.connect()
+            val text = conn.inputStream.bufferedReader().use { it.readText() }
+            conn.disconnect()
+
+            val array = org.json.JSONArray(text)
+            (0 until array.length()).map { i ->
+                val obj = array.getJSONObject(i)
+                CommunityPlaylist(
+                    id = obj.getString("id"),
+                    name = obj.getString("name"),
+                    description = obj.optString("description", null).takeIf { it != "null" && it.isNotBlank() },
+                    coverUrl = obj.optString("cover_url", null).takeIf { it != "null" && it.isNotBlank() },
+                    ownerId = obj.optString("owner_id", ""),
+                    creatorDisplayName = obj.optString("creator_display_name", ""),
+                    tags = obj.optJSONArray("tags")?.let { arr -> (0 until arr.length()).map { arr.getString(it) } } ?: emptyList(),
+                    likeCount = obj.optLong("like_count", 0),
+                    songCount = obj.optInt("song_count", 0),
+                    isPublic = obj.optBoolean("is_public", true),
+                    createdAt = obj.optLong("created_at", System.currentTimeMillis()),
+                    updatedAt = obj.optLong("updated_at", System.currentTimeMillis())
+                )
+            }
+        }.onFailure { Timber.e(it, "searchPlaylists failed") }
+    }
+
+    private fun PlaylistRow.toCommunityPlaylist(): CommunityPlaylist = CommunityPlaylist(
+        id = id,
+        name = name,
+        description = description,
+        coverUrl = cover_url,
+        ownerId = user_id,
+        creatorDisplayName = creator_display_name ?: "",
+        tags = tags ?: emptyList(),
+        likeCount = like_count,
+        songCount = 0,
+        isPublic = is_public,
+        createdAt = kotlin.runCatching { java.time.Instant.parse(created_at ?: "").toEpochMilli() }.getOrDefault(System.currentTimeMillis()),
+        updatedAt = kotlin.runCatching { java.time.Instant.parse(updated_at ?: "").toEpochMilli() }.getOrDefault(System.currentTimeMillis())
     )
 }

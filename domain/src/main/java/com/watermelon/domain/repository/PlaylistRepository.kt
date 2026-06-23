@@ -1,5 +1,6 @@
 package com.watermelon.domain.repository
 
+import com.watermelon.domain.model.CommunityPlaylist
 import com.watermelon.domain.model.Playlist
 import com.watermelon.domain.model.Song
 import kotlinx.coroutines.flow.Flow
@@ -14,4 +15,8 @@ interface PlaylistRepository {
     suspend fun sharePlaylist(playlistId: String): Result<String>
     suspend fun editPlaylist(playlistId: String, name: String, description: String?): Result<Unit>
     suspend fun getPlaylistById(playlistId: String): Result<Playlist>
+    suspend fun getCommunityPlaylists(): Result<List<CommunityPlaylist>>
+    suspend fun likeCommunityPlaylist(playlistId: String): Result<Boolean>
+    suspend fun saveCommunityPlaylist(playlistId: String): Result<Playlist>
+    suspend fun searchPlaylists(query: String): Result<List<CommunityPlaylist>>
 }

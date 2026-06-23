@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -44,6 +45,8 @@ import com.watermelon.core.designsystem.theme.WatermelonRed
 import com.watermelon.feature.player.PlayerViewModel
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.Song
+import com.watermelon.domain.model.CommunityPlaylist
+import com.watermelon.domain.model.CuratedPlaylist
 import coil.request.ImageRequest
 
 @Composable
@@ -235,6 +238,27 @@ fun HomeScreenContent(
                 contentPadding = PaddingValues(vertical = WatermelonSpacing.md)
             ) {
                 item { SearchBarShortcut(onClick = onSearchClick) }
+
+                if (uiState.curatedPlaylists.isNotEmpty()) {
+                    item {
+                        SectionHeader(title = "Made for You")
+                        CuratedPlaylistRow(
+                            playlists = uiState.curatedPlaylists,
+                            onPlaylistClick = { /* TODO: Navigate to curated playlist */ }
+                        )
+                    }
+                }
+
+                if (uiState.communityPlaylists.isNotEmpty()) {
+                    item {
+                        SectionHeader(title = "Community Playlists")
+                        CommunityPlaylistRow(
+                            playlists = uiState.communityPlaylists,
+                            onLikeClick = { viewModel.likeCommunityPlaylist(it) },
+                            onSaveClick = { viewModel.saveCommunityPlaylist(it) }
+                        )
+                    }
+                }
 
                 if (uiState.trendingMusic.isNotEmpty()) {
                     item {
@@ -655,6 +679,256 @@ private fun SongItem(
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+private fun CuratedPlaylistRow(
+    playlists: List<CuratedPlaylist>,
+    onPlaylistClick: (CuratedPlaylist) -> Unit
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding()),
+        horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+    ) {
+        items(playlists, key = { it.id }) { playlist ->
+            CuratedPlaylistCard(
+                playlist = playlist,
+                onClick = { onPlaylistClick(playlist) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CuratedPlaylistCard(
+    playlist: CuratedPlaylist,
+    cardWidth: androidx.compose.ui.unit.Dp = 150.dp,
+    onClick: () -> Unit
+) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 4 }
+    ) {
+        Column(
+            modifier = Modifier.width(cardWidth),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Card(
+                modifier = Modifier
+                    .size(cardWidth)
+                    .clickable(onClick = onClick),
+                shape = RoundedCornerShape(20.dp),
+                elevation = CardDefaults.cardElevation(6.dp)
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    val gradientColors = playlist.gradientColors.mapNotNull {
+                        try { Color(android.graphics.Color.parseColor(it)) }
+                        catch (e: Exception) { null }
+                    }
+                    if (playlist.coverUrl != null) {
+                        AsyncImage(
+                            model = playlist.coverUrl,
+                            contentDescription = playlist.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else if (gradientColors.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.linearGradient(colors = gradientColors)
+                                )
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(WatermelonRed)
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f)),
+                                    startY = 60f
+                                )
+                            )
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(10.dp),
+                        contentAlignment = Alignment.BottomStart
+                    ) {
+                        Column {
+                            Text(
+                                text = playlist.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = playlist.subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.8f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CommunityPlaylistRow(
+    playlists: List<CommunityPlaylist>,
+    onLikeClick: (String) -> Unit,
+    onSaveClick: (String) -> Unit
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding()),
+        horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+    ) {
+        items(playlists, key = { it.id }) { playlist ->
+            CommunityPlaylistCard(
+                playlist = playlist,
+                onLikeClick = { onLikeClick(playlist.id) },
+                onSaveClick = { onSaveClick(playlist.id) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CommunityPlaylistCard(
+    playlist: CommunityPlaylist,
+    cardWidth: androidx.compose.ui.unit.Dp = 160.dp,
+    onLikeClick: () -> Unit,
+    onSaveClick: () -> Unit
+) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 4 }
+    ) {
+        Column(
+            modifier = Modifier.width(cardWidth),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Card(
+                modifier = Modifier
+                    .size(cardWidth)
+                    .clickable { /* TODO: Navigate to playlist detail */ },
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(4.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    AsyncImage(
+                        model = playlist.coverUrl?.takeIf { it.isNotBlank() }
+                            ?: com.watermelon.core.designsystem.R.drawable.app_logo,
+                        contentDescription = playlist.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
+                                    startY = 80f
+                                )
+                            )
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp),
+                            contentAlignment = Alignment.TopEnd,
+                        verticalArrangement = Arrangement.Top
+                    ) {
+                        Column(horizontalAlignment = Alignment.End) {
+                            IconButton(
+                                onClick = onLikeClick,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Favorite,
+                                    contentDescription = "Like",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            IconButton(
+                                onClick = onSaveClick,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                                    contentDescription = "Save",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp),
+                        contentAlignment = Alignment.BottomStart
+                    ) {
+                        Column {
+                            Text(
+                                text = playlist.name,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "${playlist.likeCount} likes",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(WatermelonSpacing.sm))
+            Text(
+                text = playlist.name,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            if (playlist.creatorDisplayName.isNotBlank()) {
+                Text(
+                    text = "by ${playlist.creatorDisplayName}",
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

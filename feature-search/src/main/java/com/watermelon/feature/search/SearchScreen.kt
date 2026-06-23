@@ -33,6 +33,7 @@ import com.watermelon.core.designsystem.layout.adaptiveMaxContentWidth
 import com.watermelon.core.designsystem.theme.WatermelonRed
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.Song
+import com.watermelon.domain.model.CommunityPlaylist
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,7 +83,10 @@ fun SearchScreen(
             padding = padding,
             onQueryChange = viewModel::onQueryChange,
             onSongClick = onSongClick,
-            onAddToPlaylist = viewModel::onAddToPlaylistClick
+            onAddToPlaylist = viewModel::onAddToPlaylistClick,
+            playlistResults = viewModel.playlistResults.collectAsStateWithLifecycle().value,
+            selectedCategory = viewModel.selectedCategory.collectAsStateWithLifecycle().value,
+            onCategorySelected = viewModel::onCategorySelected
         )
     }
 
@@ -153,7 +157,10 @@ fun SearchScreenContent(
     padding: PaddingValues,
     onQueryChange: (String) -> Unit,
     onSongClick: (Song, Int, List<Song>) -> Unit,
-    onAddToPlaylist: (Song) -> Unit
+    onAddToPlaylist: (Song) -> Unit,
+    playlistResults: List<CommunityPlaylist> = emptyList(),
+    selectedCategory: SearchCategory = SearchCategory.ALL,
+    onCategorySelected: (SearchCategory) -> Unit = {}
 ) {
     val maxWidth = adaptiveMaxContentWidth()
     val widthModifier = if (maxWidth == androidx.compose.ui.unit.Dp.Unspecified)
@@ -194,7 +201,43 @@ fun SearchScreenContent(
             )
         )
 
-        Spacer(modifier = Modifier.height(WatermelonSpacing.lg))
+        Spacer(modifier = Modifier.height(WatermelonSpacing.md))
+
+        // Category Filter Chips
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.sm)
+        ) {
+            FilterChip(
+                selected = selectedCategory == SearchCategory.ALL,
+                onClick = { onCategorySelected(SearchCategory.ALL) },
+                label = { Text("All") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = WatermelonRed,
+                    selectedLabelColor = Color.White
+                )
+            )
+            FilterChip(
+                selected = selectedCategory == SearchCategory.SONGS,
+                onClick = { onCategorySelected(SearchCategory.SONGS) },
+                label = { Text("Songs") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = WatermelonRed,
+                    selectedLabelColor = Color.White
+                )
+            )
+            FilterChip(
+                selected = selectedCategory == SearchCategory.PLAYLISTS,
+                onClick = { onCategorySelected(SearchCategory.PLAYLISTS) },
+                label = { Text("Playlists") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = WatermelonRed,
+                    selectedLabelColor = Color.White
+                )
+            )
+        }
+
+        Spacer(modifier = Modifier.height(WatermelonSpacing.md))
 
         if (isLoading) {
             Column(verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)) {
@@ -219,6 +262,19 @@ fun SearchScreenContent(
                         text = "Type to search",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else if (selectedCategory == SearchCategory.PLAYLISTS && playlistResults.isNotEmpty()) {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = adaptiveListMinSize()),
+                verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
+                horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+            ) {
+                items(playlistResults, key = { it.id }) { playlist ->
+                    PlaylistResultItem(
+                        playlist = playlist,
+                        onClick = { /* TODO: Navigate to playlist */ }
                     )
                 }
             }
@@ -344,6 +400,88 @@ private fun SearchResultItem(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "More",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlaylistResultItem(
+    playlist: CommunityPlaylist,
+    onClick: () -> Unit
+) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(playlist.id) { visible = true }
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(300)) + slideInVertically(tween(300)) { it / 5 }
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(2.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(WatermelonSpacing.md),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AsyncImage(
+                    model = playlist.coverUrl?.takeIf { it.isNotBlank() }
+                        ?: com.watermelon.core.designsystem.R.drawable.app_logo,
+                    contentDescription = playlist.name,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                )
+                Spacer(modifier = Modifier.width(WatermelonSpacing.md))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = playlist.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "${playlist.likeCount} likes • ${playlist.songCount} songs",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (playlist.creatorDisplayName.isNotBlank()) {
+                        Text(
+                            text = "by ${playlist.creatorDisplayName}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    FilledIconButton(
+                        onClick = onClick,
+                        modifier = Modifier.size(40.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = WatermelonRed,
+                            contentColor = androidx.compose.ui.graphics.Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Open",
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 }

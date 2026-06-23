@@ -407,7 +407,8 @@ class PlaylistRepositoryImpl @Inject constructor(
         runCatching {
             initializer.ensureInitialized()
             val youtube = org.schabi.newpipe.extractor.ServiceList.YouTube
-            val info = org.schabi.newpipe.extractor.playlist.PlaylistInfo.getInfo(youtube, playlistUrl)
+            val fullUrl = if (playlistUrl.startsWith("http")) playlistUrl else "https://www.youtube.com$playlistUrl"
+            val info = org.schabi.newpipe.extractor.playlist.PlaylistInfo.getInfo(youtube, fullUrl)
             info.relatedItems
                 .filterIsInstance<org.schabi.newpipe.extractor.stream.StreamInfoItem>()
                 .map { item ->

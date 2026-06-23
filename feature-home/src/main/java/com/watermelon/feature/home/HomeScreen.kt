@@ -672,8 +672,20 @@ private fun FeaturedArtistsRow(
     artists: List<Artist>,
     onArtistClick: (Artist) -> Unit
 ) {
-    val cardWidth = maxOf(160.dp, (LocalConfiguration.current.screenWidthDp.dp - 48.dp) / 2.3f)
+    val listState = rememberLazyListState()
+    LaunchedEffect(Unit) {
+        if (artists.size > 1) {
+            var current = 0
+            while (isActive) {
+                delay(2500)
+                current = (current + 1) % artists.size
+                listState.animateScrollToItem(current)
+            }
+        }
+    }
+    val cardWidth = (LocalConfiguration.current.screenWidthDp.dp - 48.dp).coerceIn(260.dp, 340.dp)
     LazyRow(
+        state = listState,
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -681,28 +693,35 @@ private fun FeaturedArtistsRow(
             Card(
                 modifier = Modifier
                     .width(cardWidth)
+                    .height(170.dp)
                     .clickable { onArtistClick(artist) },
                 shape = RoundedCornerShape(20.dp),
                 elevation = CardDefaults.cardElevation(4.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                Column {
+                Row(modifier = Modifier.fillMaxSize()) {
                     AsyncImage(
                         model = artist.imageUrl?.takeIf { it.isNotBlank() }
                             ?: com.watermelon.core.designsystem.R.drawable.app_logo,
                         contentDescription = artist.name,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(cardWidth * 0.85f),
+                            .width(170.dp)
+                            .fillMaxHeight(),
                         contentScale = ContentScale.Crop
                     )
-                    Column(modifier = Modifier.padding(12.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.Center
+                    ) {
                         Text(
                             artist.name,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
                         if (artist.subscriberCount > 0) {
                             val subs = when {
                                 artist.subscriberCount >= 1_000_000 -> "%.1fM".format(artist.subscriberCount / 1_000_000.0)
@@ -711,18 +730,18 @@ private fun FeaturedArtistsRow(
                             }
                             Text(
                                 "$subs followers",
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         artist.bio?.takeIf { it.isNotBlank() }?.let { bio ->
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 bio,
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(top = 4.dp)
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }

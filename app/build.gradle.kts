@@ -15,8 +15,8 @@ android {
         applicationId = "com.watermelon.app"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 39
-        versionName = "1.0.38"
+        versionCode = 40
+        versionName = "1.0.39"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
         }

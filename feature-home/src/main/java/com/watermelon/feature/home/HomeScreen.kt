@@ -64,6 +64,7 @@ fun HomeScreen(
     onSongClick: (Song, List<Song>) -> Unit = { _, _ -> },
     onPlayerClick: () -> Unit = {},
     onArtistClick: (Artist) -> Unit = {},
+    onPlaylistClick: (com.watermelon.domain.model.CommunityPlaylist) -> Unit = {},
     playerViewModel: PlayerViewModel,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -93,7 +94,8 @@ fun HomeScreen(
         onAddToPlaylist = viewModel::onAddToPlaylistClick,
         onSaveCommunityPlaylist = viewModel::saveCommunityPlaylist,
         snackbarHostState = snackbarHostState,
-        onArtistClick = onArtistClick
+        onArtistClick = onArtistClick,
+        onPlaylistClick = onPlaylistClick
     )
 
     if (showSheet) {

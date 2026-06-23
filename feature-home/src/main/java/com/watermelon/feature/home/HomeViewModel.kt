@@ -388,6 +388,24 @@ class HomeViewModel @Inject constructor(
     private val _openPlaylistDetail = MutableStateFlow<String?>(null)
     val openPlaylistDetail: kotlinx.coroutines.flow.StateFlow<String?> = _openPlaylistDetail.asStateFlow()
 
+    private val _youtubeSongsToPlay = MutableStateFlow<List<Song>?>(null)
+    val youtubeSongsToPlay: kotlinx.coroutines.flow.StateFlow<List<Song>?> = _youtubeSongsToPlay.asStateFlow()
+
+    fun playYouTubePlaylist(playlist: CommunityPlaylist) {
+        viewModelScope.launch {
+            if (playlist.id.startsWith("ytpl_")) {
+                val url = playlist.id.removePrefix("ytpl_")
+                playlistRepository.fetchPlaylistSongs(url)
+                    .onSuccess { songs -> _youtubeSongsToPlay.value = songs }
+                    .onFailure { _addToPlaylistMessage.value = "Failed to load playlist songs" }
+            }
+        }
+    }
+
+    fun clearYoutubeSongsToPlay() {
+        _youtubeSongsToPlay.value = null
+    }
+
     fun openPlaylist(playlist: CommunityPlaylist) {
         viewModelScope.launch {
             if (playlist.id.startsWith("ytpl_")) {

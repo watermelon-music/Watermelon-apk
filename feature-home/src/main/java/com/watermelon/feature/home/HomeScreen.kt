@@ -76,11 +76,22 @@ fun HomeScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val snackbarHostState = remember { SnackbarHostState() }
     val toastMessage by viewModel.addToPlaylistMessage.collectAsStateWithLifecycle()
+    val youtubeSongs by viewModel.youtubeSongsToPlay.collectAsStateWithLifecycle()
 
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearAddToPlaylistMessage()
+        }
+    }
+
+    LaunchedEffect(youtubeSongs) {
+        youtubeSongs?.let { songs ->
+            if (songs.isNotEmpty()) {
+                playerViewModel.playQueue(songs, 0)
+                onPlayerClick()
+            }
+            viewModel.clearYoutubeSongsToPlay()
         }
     }
 

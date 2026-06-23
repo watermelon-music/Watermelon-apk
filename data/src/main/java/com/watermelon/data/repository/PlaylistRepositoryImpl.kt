@@ -374,14 +374,16 @@ class PlaylistRepositoryImpl @Inject constructor(
                 songs.forEach { song ->
                     addSongToPlaylist(newPlaylist.id, song)
                 }
-            } else {
-                val songs = client.postgrest.from("playlist_songs")
-                    .select {
-                        filter { eq("playlist_id", playlist.id) }
-                        order("position", Order.ASCENDING)
-                    }
-                    .decodeList<PlaylistSongRow>()
-                songs.forEachIndexed { index, songRow ->
+            } else if (!playlist.id.startsWith("demo_")) {
+                val songs = runCatching {
+                    client.postgrest.from("playlist_songs")
+                        .select {
+                            filter { eq("playlist_id", playlist.id) }
+                            order("position", Order.ASCENDING)
+                        }
+                        .decodeList<PlaylistSongRow>()
+                }.getOrNull() ?: emptyList()
+                songs.forEach { songRow ->
                     val song = Song(
                         id = songRow.song_id,
                         title = songRow.title,

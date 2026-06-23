@@ -193,7 +193,11 @@ fun WatermelonNavHost(
                     navController.navigate(Routes.PLAYER)
                 },
                 playerViewModel = playerViewModel,
-                onPlayerClick = { navController.navigate(Routes.PLAYER) }
+                onPlayerClick = { navController.navigate(Routes.PLAYER) },
+                onArtistClick = { artist ->
+                    val encoded = java.net.URLEncoder.encode(artist.id, "UTF-8")
+                    navController.navigate("artist/$encoded")
+                }
             )
         }
         composable(Routes.RADIO) {

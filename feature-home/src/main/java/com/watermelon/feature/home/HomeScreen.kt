@@ -87,7 +87,7 @@ fun HomeScreen(
         onLikeCommunityPlaylist = viewModel::likeCommunityPlaylist,
         onSaveCommunityPlaylist = viewModel::saveCommunityPlaylist,
         snackbarHostState = snackbarHostState,
-        onArtistClick = { artist -> /* TODO: Navigate to artist detail */ }
+        onArtistClick = onArtistClick
     )
 
     if (showSheet) {

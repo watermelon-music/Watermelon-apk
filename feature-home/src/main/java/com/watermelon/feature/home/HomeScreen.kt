@@ -1039,29 +1039,16 @@ private fun CommunityPlaylistCard(
                             .padding(8.dp),
                         contentAlignment = Alignment.TopEnd
                     ) {
-                        Column(horizontalAlignment = Alignment.End) {
-                            IconButton(
-                                onClick = onLikeClick,
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Favorite,
-                                    contentDescription = "Like",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                            IconButton(
-                                onClick = { onSaveClick(playlist) },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
-                                    contentDescription = "Save",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                        IconButton(
+                            onClick = { onSaveClick(playlist) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                                contentDescription = "Save",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
                     }
                     Box(
@@ -1080,6 +1067,7 @@ private fun CommunityPlaylistCard(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
+                                text = "${playlist.songCount} songs",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White.copy(alpha = 0.8f)
                             )

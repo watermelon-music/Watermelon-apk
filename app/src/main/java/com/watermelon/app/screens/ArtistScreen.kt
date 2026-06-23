@@ -246,10 +246,11 @@ private fun ArtistHeader(artist: Artist?) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        if (!artist.bio.isNullOrBlank()) {
+        val bio = artist.bio
+        if (!bio.isNullOrBlank()) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = artist.bio,
+                text = bio,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 3,

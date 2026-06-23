@@ -392,7 +392,7 @@ class HomeViewModel @Inject constructor(
                 playlistRepository.saveCommunityPlaylist(playlist)
                     .onSuccess { saved ->
                         _openPlaylistDetail.value = saved.id
-                        _addToPlaylistMessage.value = "Saved "${playlist.name}" to your library"
+                        _addToPlaylistMessage.value = "Saved " + playlist.name + " to your library"
                     }
                     .onFailure {
                         _addToPlaylistMessage.value = "Failed to open playlist"
@@ -411,7 +411,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             playlistRepository.saveCommunityPlaylist(playlist)
                 .onSuccess {
-                    _addToPlaylistMessage.value = "Saved "${playlist.name}" to your library"
+                    _addToPlaylistMessage.value = "Saved " + playlist.name + " to your library"
                     loadCommunityPlaylists()
                 }
                 .onFailure {

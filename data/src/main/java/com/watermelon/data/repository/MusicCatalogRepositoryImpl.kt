@@ -57,13 +57,11 @@ class MusicCatalogRepositoryImpl @Inject constructor(
     )
     private fun isMusicContent(title: String, durationSec: Long = 0): Boolean {
         val lower = title.lowercase()
-        // Zero-tolerance block for gaming/vlog/news/irrelevant content
-        val hasBlocked = gamingVlogKeywords.any { lower.contains(it.lowercase()) }
+        val hasBlocked = blockedKeywords.any { lower.contains(it.lowercase()) }
         if (hasBlocked) return false
-        // Duration heuristic: songs are typically 45 seconds to 12 minutes
         if (durationSec > 0) {
-            if (durationSec < 45) return false      // Too short (shorts/reels)
-            if (durationSec > 720) return false     // Too long (podcasts, streams)
+            if (durationSec < 45) return false
+            if (durationSec > 600) return false
         }
         return true
     }

@@ -278,7 +278,7 @@ fun HomeScreenContent(
                 }
             }
 
-            // ── GENRE SECTIONS ──
+            // ── CONTINUE LISTENING ──
             if (uiState.recentlyPlayed.isNotEmpty()) {
                 item {
                     SectionHeader(title = "Continue Listening")
@@ -288,8 +288,6 @@ fun HomeScreenContent(
                     )
                 }
             }
-
-            genreSections(uiState, onSongClick)
 
             // ── FEATURED ARTISTS ──
             if (uiState.trendingArtists.isNotEmpty()) {
@@ -301,6 +299,9 @@ fun HomeScreenContent(
                     )
                 }
             }
+
+            // ── GENRE SECTIONS ──
+            genreSections(uiState, onSongClick)
 
             item { Spacer(modifier = Modifier.height(120.dp)) }
         }

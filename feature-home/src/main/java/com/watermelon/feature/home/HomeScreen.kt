@@ -800,7 +800,7 @@ private fun CuratedPlaylistCard(
 private fun CommunityPlaylistRow(
     playlists: List<CommunityPlaylist>,
     onLikeClick: (String) -> Unit,
-    onSaveClick: (String) -> Unit
+    onSaveClick: (com.watermelon.domain.model.CommunityPlaylist) -> Unit
 ) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding()),
@@ -810,7 +810,7 @@ private fun CommunityPlaylistRow(
             CommunityPlaylistCard(
                 playlist = playlist,
                 onLikeClick = { onLikeClick(playlist.id) },
-                onSaveClick = { onSaveClick(playlist.id) }
+                onSaveClick = onSaveClick
             )
         }
     }
@@ -879,7 +879,7 @@ private fun CommunityPlaylistCard(
                                 )
                             }
                             IconButton(
-                                onClick = onSaveClick,
+                                onClick = { onSaveClick(playlist) },
                                 modifier = Modifier.size(32.dp)
                             ) {
                                 Icon(

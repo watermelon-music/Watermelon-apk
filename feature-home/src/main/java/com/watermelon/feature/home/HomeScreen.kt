@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -85,7 +86,6 @@ fun HomeScreen(
         onSongClick = onSongClick,
         onPlayerClick = onPlayerClick,
         onAddToPlaylist = viewModel::onAddToPlaylistClick,
-        onLikeCommunityPlaylist = viewModel::likeCommunityPlaylist,
         onSaveCommunityPlaylist = viewModel::saveCommunityPlaylist,
         snackbarHostState = snackbarHostState,
         onArtistClick = onArtistClick
@@ -161,7 +161,6 @@ fun HomeScreenContent(
     onSongClick: (Song, List<Song>) -> Unit,
     onPlayerClick: () -> Unit,
     onAddToPlaylist: (Song) -> Unit,
-    onLikeCommunityPlaylist: (String) -> Unit = {},
     onSaveCommunityPlaylist: (com.watermelon.domain.model.CommunityPlaylist) -> Unit = {},
     snackbarHostState: SnackbarHostState,
     onArtistClick: (Artist) -> Unit = {}
@@ -257,24 +256,39 @@ fun HomeScreenContent(
                     }
                 }
 
-                if (uiState.trendingArtists.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Trending Artists")
+                item {
+                    SectionHeader(title = "Trending Artists")
+                    if (uiState.trendingArtists.isNotEmpty()) {
                         TrendingArtistsRow(
                             artists = uiState.trendingArtists,
                             onArtistClick = onArtistClick
                         )
+                    } else if (uiState.isLoading) {
+                        Box(modifier = Modifier.height(120.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        }
+                    } else {
+                        Box(modifier = Modifier.height(80.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            Text("Discover artists coming soon", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
 
-                if (uiState.communityPlaylists.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Community Playlists")
+                item {
+                    SectionHeader(title = "Community Playlists")
+                    if (uiState.communityPlaylists.isNotEmpty()) {
                         CommunityPlaylistRow(
                             playlists = uiState.communityPlaylists,
-                            onLikeClick = onLikeCommunityPlaylist,
                             onSaveClick = onSaveCommunityPlaylist
                         )
+                    } else if (uiState.isLoading) {
+                        Box(modifier = Modifier.height(160.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        }
+                    } else {
+                        Box(modifier = Modifier.height(80.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            Text("No playlists yet", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
 
@@ -843,9 +857,10 @@ private fun ArtistCircleItem(
     artist: Artist,
     onClick: () -> Unit
 ) {
+    val itemWidth = maxOf(80.dp, (LocalConfiguration.current.screenWidthDp.dp - 48.dp) / 4.5f)
     Column(
         modifier = Modifier
-            .width(90.dp)
+            .width(itemWidth)
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -854,7 +869,7 @@ private fun ArtistCircleItem(
                 ?: com.watermelon.core.designsystem.R.drawable.app_logo,
             contentDescription = artist.name,
             modifier = Modifier
-                .size(72.dp)
+                .size(itemWidth * 0.85f)
                 .clip(CircleShape),
             contentScale = ContentScale.Crop
         )
@@ -957,7 +972,6 @@ private fun LanguagePlaylistCard(
 @Composable
 private fun CommunityPlaylistRow(
     playlists: List<CommunityPlaylist>,
-    onLikeClick: (String) -> Unit,
     onSaveClick: (com.watermelon.domain.model.CommunityPlaylist) -> Unit
 ) {
     LazyRow(
@@ -967,7 +981,6 @@ private fun CommunityPlaylistRow(
         items(playlists, key = { it.id }) { playlist ->
             CommunityPlaylistCard(
                 playlist = playlist,
-                onLikeClick = { onLikeClick(playlist.id) },
                 onSaveClick = onSaveClick
             )
         }
@@ -977,9 +990,11 @@ private fun CommunityPlaylistRow(
 @Composable
 private fun CommunityPlaylistCard(
     playlist: CommunityPlaylist,
-    cardWidth: androidx.compose.ui.unit.Dp = 160.dp,
-    onLikeClick: () -> Unit,
-    onSaveClick: (com.watermelon.domain.model.CommunityPlaylist) -> Unit
+    onSaveClick: (com.watermelon.domain.model.CommunityPlaylist) -> Unit,
+    cardWidth: androidx.compose.ui.unit.Dp = maxOf(
+        140.dp,
+        ((LocalConfiguration.current.screenWidthDp.dp - 48.dp) / 2.3f)
+    )
 ) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
@@ -1065,7 +1080,6 @@ private fun CommunityPlaylistCard(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "${playlist.likeCount} likes",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White.copy(alpha = 0.8f)
                             )

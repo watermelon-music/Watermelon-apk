@@ -40,6 +40,7 @@ import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.Song
 import com.watermelon.domain.model.CommunityPlaylist
 import com.watermelon.domain.model.Artist
+import androidx.compose.ui.platform.LocalConfiguration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -575,7 +576,7 @@ private fun ArtistResultItem(
     ) {
         Column(
             modifier = Modifier
-                .width(160.dp)
+                .width(maxOf(148.dp, (LocalConfiguration.current.screenWidthDp.dp - 48.dp) / 2.3f))
                 .clickable(onClick = onClick),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -688,7 +689,7 @@ private fun PlaylistResultItem(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "${playlist.likeCount} likes • ${playlist.songCount} songs",
+                        text = "${playlist.songCount} songs",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -745,7 +746,7 @@ private fun FeaturedArtistsRow(
     LaunchedEffect(Unit) {
         if (artists.size > 1) {
             var current = 0
-            while (isActive) {
+            while (true) {
                 delay(2500)
                 current = (current + 1) % artists.size
                 listState.animateScrollToItem(current)

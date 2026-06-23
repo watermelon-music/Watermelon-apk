@@ -202,6 +202,16 @@ fun WatermelonNavHost(
                     if (!playlist.id.startsWith("ytpl_")) {
                         navController.navigate("playlist_detail/${playlist.id}")
                     }
+                },
+                onRadioPlay = { station: RadioStation ->
+                    playerViewModel.loadAndPlay(
+                        station.url ?: "",
+                        station.name ?: "Unknown Station",
+                        station.country ?: "",
+                        station.favicon ?: "",
+                        isRadioStream = true,
+                        radioStation = station
+                    )
                 }
             )
         }

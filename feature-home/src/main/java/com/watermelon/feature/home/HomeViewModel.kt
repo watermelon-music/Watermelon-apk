@@ -256,9 +256,9 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun saveCommunityPlaylist(playlistId: String) {
+    fun saveCommunityPlaylist(playlist: CommunityPlaylist) {
         viewModelScope.launch {
-            playlistRepository.saveCommunityPlaylist(playlistId)
+            playlistRepository.saveCommunityPlaylist(playlist)
                 .onSuccess {
                     loadCommunityPlaylists()
                 }

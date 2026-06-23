@@ -159,7 +159,7 @@ fun HomeScreenContent(
     onPlayerClick: () -> Unit,
     onAddToPlaylist: (Song) -> Unit,
     onLikeCommunityPlaylist: (String) -> Unit = {},
-    onSaveCommunityPlaylist: (String) -> Unit = {},
+    onSaveCommunityPlaylist: (com.watermelon.domain.model.CommunityPlaylist) -> Unit = {},
     snackbarHostState: SnackbarHostState
 ) {
     Scaffold(
@@ -821,7 +821,7 @@ private fun CommunityPlaylistCard(
     playlist: CommunityPlaylist,
     cardWidth: androidx.compose.ui.unit.Dp = 160.dp,
     onLikeClick: () -> Unit,
-    onSaveClick: () -> Unit
+    onSaveClick: (com.watermelon.domain.model.CommunityPlaylist) -> Unit
 ) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }

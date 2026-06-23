@@ -46,6 +46,9 @@ dependencies {
     // Image loading
     implementation(libs.coil.compose)
 
+    // Logging
+    implementation(libs.timber)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

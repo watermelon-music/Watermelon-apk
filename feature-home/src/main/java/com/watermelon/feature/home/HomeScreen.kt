@@ -83,6 +83,8 @@ fun HomeScreen(
         onSongClick = onSongClick,
         onPlayerClick = onPlayerClick,
         onAddToPlaylist = viewModel::onAddToPlaylistClick,
+        onLikeCommunityPlaylist = viewModel::likeCommunityPlaylist,
+        onSaveCommunityPlaylist = viewModel::saveCommunityPlaylist,
         snackbarHostState = snackbarHostState
     )
 
@@ -156,6 +158,8 @@ fun HomeScreenContent(
     onSongClick: (Song, List<Song>) -> Unit,
     onPlayerClick: () -> Unit,
     onAddToPlaylist: (Song) -> Unit,
+    onLikeCommunityPlaylist: (String) -> Unit = {},
+    onSaveCommunityPlaylist: (String) -> Unit = {},
     snackbarHostState: SnackbarHostState
 ) {
     Scaffold(
@@ -254,8 +258,8 @@ fun HomeScreenContent(
                         SectionHeader(title = "Community Playlists")
                         CommunityPlaylistRow(
                             playlists = uiState.communityPlaylists,
-                            onLikeClick = { viewModel.likeCommunityPlaylist(it) },
-                            onSaveClick = { viewModel.saveCommunityPlaylist(it) }
+                            onLikeClick = onLikeCommunityPlaylist,
+                            onSaveClick = onSaveCommunityPlaylist
                         )
                     }
                 }
@@ -860,8 +864,7 @@ private fun CommunityPlaylistCard(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(8.dp),
-                            contentAlignment = Alignment.TopEnd,
-                        verticalArrangement = Arrangement.Top
+                        contentAlignment = Alignment.TopEnd
                     ) {
                         Column(horizontalAlignment = Alignment.End) {
                             IconButton(

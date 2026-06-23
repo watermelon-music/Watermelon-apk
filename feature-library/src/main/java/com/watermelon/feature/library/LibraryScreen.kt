@@ -39,6 +39,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import android.content.Intent
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -607,48 +609,56 @@ private fun SongList(
             )
         }
     } else {
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = adaptiveListMinSize()),
-            modifier = modifier.padding(horizontal = adaptiveHorizontalPadding(), vertical = WatermelonSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
-            horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+        LazyColumn(
+            modifier = modifier.padding(horizontal = adaptiveHorizontalPadding()),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            gridItems(songs, key = { it.id }) { song ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSongClick(song) },
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(WatermelonSpacing.md),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AsyncImage(
-                            model = song.coverUrl,
-                            contentDescription = song.title,
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                        )
-                        Spacer(modifier = Modifier.width(WatermelonSpacing.md))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = song.title,
-                                style = MaterialTheme.typography.bodyLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = song.artistName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
+            items(songs, key = { it.id }) { song ->
+                SongListItem(
+                    song = song,
+                    onClick = { onSongClick(song) }
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun SongListItem(
+    song: Song,
+    onClick: () -> Unit,
+    trailingContent: @Composable (() -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AsyncImage(
+            model = song.coverUrl,
+            contentDescription = song.title,
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(8.dp)),
+            contentScale = ContentScale.Crop
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = song.artistName,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        trailingContent?.invoke()
     }
 }
 
@@ -658,67 +668,31 @@ private fun FeedContent(
     onSongClick: (Song) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = adaptiveListMinSize()),
-        modifier = modifier.padding(horizontal = adaptiveHorizontalPadding(), vertical = WatermelonSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
-        horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
-    ) {
-        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+    if (recentlyPlayed.isEmpty()) {
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
             Text(
-                text = "Recently Played",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = WatermelonSpacing.sm)
+                text = "Play some music to see your activity",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        if (recentlyPlayed.isEmpty()) {
-            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Play some music to see your activity",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+    } else {
+        LazyColumn(
+            modifier = modifier.padding(horizontal = adaptiveHorizontalPadding()),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            item {
+                Text(
+                    text = "Recently Played",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(vertical = 12.dp)
+                )
             }
-        } else {
-            gridItems(recentlyPlayed, key = { it.id }) { song ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSongClick(song) },
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(WatermelonSpacing.md),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AsyncImage(
-                            model = song.coverUrl,
-                            contentDescription = song.title,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                        )
-                        Spacer(modifier = Modifier.width(WatermelonSpacing.md))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = song.title,
-                                style = MaterialTheme.typography.bodyLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = song.artistName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
+            items(recentlyPlayed, key = { it.id }) { song ->
+                SongListItem(
+                    song = song,
+                    onClick = { onSongClick(song) }
+                )
             }
         }
     }

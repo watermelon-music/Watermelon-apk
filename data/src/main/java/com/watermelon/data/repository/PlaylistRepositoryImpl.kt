@@ -367,6 +367,7 @@ class PlaylistRepositoryImpl @Inject constructor(
                 description = playlist.description,
                 coverUrl = playlist.coverUrl
             ).getOrThrow()
+            refreshPlaylists()
 
             if (playlist.id.startsWith("ytpl_")) {
                 val url = playlist.id.removePrefix("ytpl_")

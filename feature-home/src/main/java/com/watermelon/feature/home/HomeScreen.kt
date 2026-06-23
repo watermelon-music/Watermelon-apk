@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 
 package com.watermelon.feature.home
 
@@ -10,16 +10,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,7 +40,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import com.watermelon.core.designsystem.animation.ShimmerCard
+import coil.request.ImageRequest
+
 import com.watermelon.core.designsystem.layout.adaptiveBigCardWidth
 import com.watermelon.core.designsystem.layout.adaptiveHorizontalPadding
 import com.watermelon.core.designsystem.layout.adaptiveMaxContentWidth
@@ -47,9 +51,9 @@ import com.watermelon.feature.player.PlayerViewModel
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.Song
 import com.watermelon.domain.model.CommunityPlaylist
-import com.watermelon.domain.model.CuratedPlaylist
 import com.watermelon.domain.model.Artist
-import coil.request.ImageRequest
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -103,54 +107,29 @@ fun HomeScreen(
             ) {
                 Text(
                     text = "Add to Playlist",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(vertical = 16.dp, horizontal = 24.dp)
                 )
-                if (playlists.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No playlists yet. Create one in Library.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    playlists.forEach { playlist ->
-                        ListItem(
-                            headlineContent = {
-                                Text(
-                                    playlist.name,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            },
-                            leadingContent = {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
-                                    contentDescription = null,
-                                    tint = WatermelonRed
-                                )
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    viewModel.onPlaylistSelected(playlist.id)
-                                }
-                        )
-                    }
+                playlists.forEach { playlist ->
+                    ListItem(
+                        headlineContent = { Text(playlist.name) },
+                        leadingContent = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) },
+                        modifier = Modifier.clickable {
+                            viewModel.onPlaylistSelected(playlist.id)
+                        }
+                    )
                 }
+                ListItem(
+                    headlineContent = { Text("Create New Playlist", color = WatermelonRed) },
+                    leadingContent = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null, tint = WatermelonRed) },
+                    modifier = Modifier.clickable { /* TODO */ }
+                )
             }
         }
     }
+
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreenContent(
     uiState: HomeUiState,
@@ -165,6 +144,10 @@ fun HomeScreenContent(
     snackbarHostState: SnackbarHostState,
     onArtistClick: (Artist) -> Unit = {}
 ) {
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val cardWidth = maxOf(152.dp, (screenWidth - 48.dp) / 2.3f)
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -179,669 +162,238 @@ fun HomeScreenContent(
                     )
                 },
                 actions = {
-                    IconButton(onClick = onProfileClick) {
-                        if (!user?.avatarUrl.isNullOrBlank()) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(user!!.avatarUrl)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = "Profile",
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = (user?.displayName?.firstOrNull() ?: user?.username?.firstOrNull() ?: "P").toString(),
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp
-                                )
-                            }
-                        }
+                    IconButton(onClick = onSearchClick) {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
                     }
                     IconButton(onClick = onSettingsClick) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
+                    if (user != null) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(user.avatarUrl ?: "")
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Profile",
+                            modifier = Modifier
+                                .padding(end = 12.dp)
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = onProfileClick),
+                            contentScale = ContentScale.Crop
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
                 )
             )
         }
-    ) { paddingValues ->
-        if (uiState.isLoading) {
-            HomeShimmerContent(paddingValues = paddingValues)
-        } else {
-            val maxWidth = adaptiveMaxContentWidth()
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // ── HERO CAROUSEL ──
+            if (uiState.trendingMusic.isNotEmpty()) {
+                item {
+                    HeroCarousel(
+                        songs = uiState.trendingMusic.take(5),
+                        onSongClick = { song -> onSongClick(song, uiState.trendingMusic) }
+                    )
+                }
+            }
+
+            // ── TRENDING ARTISTS ──
+            item {
+                SectionHeader(title = "Trending Artists")
+                if (uiState.trendingArtists.isNotEmpty()) {
+                    TrendingArtistsRow(
+                        artists = uiState.trendingArtists,
+                        onArtistClick = onArtistClick
+                    )
+                } else if (uiState.isLoading) {
+                    Box(modifier = Modifier.height(180.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    }
+                } else {
+                    Box(modifier = Modifier.height(100.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text("Discover artists coming soon", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+
+            // ── COMMUNITY PLAYLISTS ──
+            item {
+                SectionHeader(title = "Trending Playlists")
+                if (uiState.communityPlaylists.isNotEmpty()) {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(uiState.communityPlaylists, key = { it.id }) { playlist ->
+                            PlaylistBoxCard(
+                                playlist = playlist,
+                                cardWidth = cardWidth,
+                                onSaveClick = { onSaveCommunityPlaylist(playlist) }
+                            )
+                        }
+                    }
+                } else if (uiState.isLoading) {
+                    Box(modifier = Modifier.height(200.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    }
+                } else {
+                    Box(modifier = Modifier.height(100.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text("No playlists yet", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+
+            // ── MOOD CARDS ──
+            item {
+                SectionHeader(title = "Moods")
+                MoodRow()
+            }
+
+            // ── GENRE SECTIONS ──
+            if (uiState.recentlyPlayed.isNotEmpty()) {
+                item {
+                    SectionHeader(title = "Continue Listening")
+                    SongHorizontalRow(
+                        songs = uiState.recentlyPlayed,
+                        onSongClick = onSongClick
+                    )
+                }
+            }
+
+            genreSections(uiState, onSongClick)
+
+            item { Spacer(modifier = Modifier.height(120.dp)) }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HERO CAROUSEL
+// ═══════════════════════════════════════════════════════════
+@Composable
+private fun HeroCarousel(songs: List<Song>, onSongClick: (Song) -> Unit) {
+    val pagerState = rememberPagerState(pageCount = { songs.size })
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(pagerState.currentPage) {
+        delay(4000)
+        scope.launch {
+            val next = (pagerState.currentPage + 1) % songs.size
+            pagerState.animateScrollToPage(next)
+        }
+    }
+
+    Column {
+        HorizontalPager(
+            state = pagerState,
+            beyondBoundsPageCount = 1,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(260.dp)
+                .padding(horizontal = 16.dp)
+                .clip(RoundedCornerShape(24.dp))
+        ) { page ->
+            val song = songs[page]
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.TopCenter
+                    .clickable { onSongClick(song) }
             ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .then(
-                        if (maxWidth == androidx.compose.ui.unit.Dp.Unspecified)
-                            Modifier.fillMaxWidth()
-                        else
-                            Modifier.widthIn(max = maxWidth).fillMaxWidth()
-                    ),
-                contentPadding = PaddingValues(vertical = WatermelonSpacing.md)
-            ) {
-                item { SearchBarShortcut(onClick = onSearchClick) }
-
-                if (uiState.curatedPlaylists.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Made for You")
-                        CuratedPlaylistRow(
-                            playlists = uiState.curatedPlaylists,
-                            onPlaylistClick = { /* TODO: Navigate to curated playlist */ }
+                AsyncImage(
+                    model = song.coverUrl,
+                    contentDescription = song.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f)),
+                                startY = 60f
+                            )
                         )
-                    }
+                )
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(20.dp)
+                ) {
+                    Text(
+                        text = if (page == 0) "Trending Worldwide" else "Tonight\'s Top Pick",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = WatermelonRed,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = song.title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = song.artistName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.8f),
+                        maxLines = 1
+                    )
                 }
-
-                item {
-                    SectionHeader(title = "Trending Artists")
-                    if (uiState.trendingArtists.isNotEmpty()) {
-                        TrendingArtistsRow(
-                            artists = uiState.trendingArtists,
-                            onArtistClick = onArtistClick
-                        )
-                    } else if (uiState.isLoading) {
-                        Box(modifier = Modifier.height(120.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                        }
-                    } else {
-                        Box(modifier = Modifier.height(80.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            Text("Discover artists coming soon", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-
-                item {
-                    SectionHeader(title = "Community Playlists")
-                    if (uiState.communityPlaylists.isNotEmpty()) {
-                        CommunityPlaylistRow(
-                            playlists = uiState.communityPlaylists,
-                            onSaveClick = onSaveCommunityPlaylist
-                        )
-                    } else if (uiState.isLoading) {
-                        Box(modifier = Modifier.height(160.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                        }
-                    } else {
-                        Box(modifier = Modifier.height(80.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            Text("No playlists yet", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-
-                if (uiState.languagePlaylists.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Trending by Language")
-                        LanguagePlaylistRow(
-                            playlists = uiState.languagePlaylists,
-                            onPlaylistClick = { /* TODO: Navigate to playlist detail */ }
-                        )
-                    }
-                }
-
-                if (uiState.trendingMusic.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Trending")
-                        BigSongRow(
-                            songs = uiState.trendingMusic,
-                            onSongClick = onSongClick,
-                            onAddToPlaylist = onAddToPlaylist
-                        )
-                    }
-                }
-
-                if (uiState.bollywood.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Bollywood")
-                        BigSongRow(
-                            songs = uiState.bollywood,
-                            onSongClick = onSongClick,
-                            onAddToPlaylist = onAddToPlaylist
-                        )
-                    }
-                }
-
-                if (uiState.hollywood.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Hollywood")
-                        BigSongRow(
-                            songs = uiState.hollywood,
-                            onSongClick = onSongClick,
-                            onAddToPlaylist = onAddToPlaylist
-                        )
-                    }
-                }
-
-                if (uiState.pop.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Pop")
-                        BigSongRow(
-                            songs = uiState.pop,
-                            onSongClick = onSongClick,
-                            onAddToPlaylist = onAddToPlaylist
-                        )
-                    }
-                }
-
-                if (uiState.rock.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Rock")
-                        BigSongRow(
-                            songs = uiState.rock,
-                            onSongClick = onSongClick,
-                            onAddToPlaylist = onAddToPlaylist
-                        )
-                    }
-                }
-
-                if (uiState.jazz.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Jazz")
-                        BigSongRow(
-                            songs = uiState.jazz,
-                            onSongClick = onSongClick,
-                            onAddToPlaylist = onAddToPlaylist
-                        )
-                    }
-                }
-
-                if (uiState.classical.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Classical")
-                        BigSongRow(
-                            songs = uiState.classical,
-                            onSongClick = onSongClick,
-                            onAddToPlaylist = onAddToPlaylist
-                        )
-                    }
-                }
-
-                if (uiState.hiphop.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Hip Hop")
-                        BigSongRow(
-                            songs = uiState.hiphop,
-                            onSongClick = onSongClick,
-                            onAddToPlaylist = onAddToPlaylist
-                        )
-                    }
-                }
-
-                if (uiState.electronic.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Electronic")
-                        BigSongRow(
-                            songs = uiState.electronic,
-                            onSongClick = onSongClick,
-                            onAddToPlaylist = onAddToPlaylist
-                        )
-                    }
-                }
-
-                if (uiState.recentlyPlayed.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Recently Played")
-                        SongRow(
-                            songs = uiState.recentlyPlayed,
-                            onSongClick = onSongClick,
-                            onAddToPlaylist = onAddToPlaylist
-                        )
-                    }
-                }
-
-                if (uiState.favorites.isNotEmpty()) {
-                    item {
-                        SectionHeader(title = "Favorites")
-                        SongRow(
-                            songs = uiState.favorites,
-                            onSongClick = onSongClick,
-                            onAddToPlaylist = onAddToPlaylist
-                        )
-                    }
-                }
-            }
-            }
-        }
-    }
-}
-
-@Composable
-private fun HomeShimmerContent(paddingValues: PaddingValues) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .padding(horizontal = adaptiveHorizontalPadding()),
-        verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.lg)
-    ) {
-        ShimmerCard(height = 56.dp)
-        repeat(4) {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)) {
-                items(4) {
-                    ShimmerCard(modifier = Modifier.width(170.dp), height = 200.dp)
+                FloatingActionButton(
+                    onClick = { onSongClick(song) },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(20.dp)
+                        .size(48.dp),
+                    containerColor = WatermelonRed,
+                    shape = CircleShape
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color.White)
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun SearchBarShortcut(onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = adaptiveHorizontalPadding())
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(0.dp)
-    ) {
+        Spacer(modifier = Modifier.height(8.dp))
+        // Page indicator dots
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(WatermelonSpacing.md),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(WatermelonSpacing.md))
-            Text(
-                text = "Search songs, artists...",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-
-
-
-@Composable
-private fun SectionHeader(title: String, isDarkText: Boolean = false) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-        modifier = Modifier.padding(
-            start = WatermelonSpacing.md,
-            top = WatermelonSpacing.lg,
-            bottom = WatermelonSpacing.sm
-        ),
-        color = if (isDarkText) Color.Black else MaterialTheme.colorScheme.onBackground
-    )
-}
-
-@Composable
-private fun BigSongRow(
-    songs: List<Song>,
-    isDarkText: Boolean = false,
-    onSongClick: (Song, List<Song>) -> Unit,
-    onAddToPlaylist: (Song) -> Unit
-) {
-    val cardWidth = adaptiveBigCardWidth()
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding()),
-        horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
-    ) {
-        items(songs, key = { it.id }) { song ->
-            BigSongItem(
-                song = song,
-                cardWidth = cardWidth,
-                isDarkText = isDarkText,
-                onClick = { onSongClick(song, songs) },
-                onAddToPlaylist = { onAddToPlaylist(song) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun BigSongItem(
-    song: Song,
-    cardWidth: androidx.compose.ui.unit.Dp = 170.dp,
-    isDarkText: Boolean = false,
-    onClick: () -> Unit,
-    onAddToPlaylist: () -> Unit
-) {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
-
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 4 }
-    ) {
-        Column(
-            modifier = Modifier.width(cardWidth),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Card(
-                modifier = Modifier
-                    .size(cardWidth)
-                    .clickable(onClick = onClick),
-                shape = RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(6.dp),
-                colors = CardDefaults.cardColors(containerColor = if (isDarkText) Color.LightGray else MaterialTheme.colorScheme.surface)
-            ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    AsyncImage(
-                        model = song.coverUrl?.takeIf { it.isNotBlank() }
-                            ?: com.watermelon.core.designsystem.R.drawable.app_logo,
-                        contentDescription = song.title,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                                    startY = 80f
-                                )
-                            )
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(10.dp),
-                        contentAlignment = Alignment.TopEnd
-                    ) {
-                        IconButton(
-                            onClick = onAddToPlaylist,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
-                                contentDescription = "Add to Playlist",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(10.dp),
-                        contentAlignment = Alignment.BottomEnd
-                    ) {
-                        FilledIconButton(
-                            onClick = onClick,
-                            modifier = Modifier.size(40.dp),
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = WatermelonRed,
-                                contentColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.PlayArrow,
-                                contentDescription = "Play",
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(WatermelonSpacing.sm))
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = if (isDarkText) Color.Black else MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = song.artistName,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = if (isDarkText) Color.DarkGray else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun SongRow(
-    songs: List<Song>,
-    onSongClick: (Song, List<Song>) -> Unit,
-    onAddToPlaylist: (Song) -> Unit
-) {
-    val cardWidth = adaptiveSmallCardWidth()
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding()),
-        horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
-    ) {
-        items(songs, key = { it.id }) { song ->
-            SongItem(
-                song = song,
-                cardWidth = cardWidth,
-                onClick = { onSongClick(song, songs) },
-                onAddToPlaylist = { onAddToPlaylist(song) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun SongItem(
-    song: Song,
-    cardWidth: androidx.compose.ui.unit.Dp = 130.dp,
-    onClick: () -> Unit,
-    onAddToPlaylist: () -> Unit
-) {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
-
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 4 }
-    ) {
-        Column(
-            modifier = Modifier.width(cardWidth),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Card(
-                modifier = Modifier
-                    .size(cardWidth)
-                    .clickable(onClick = onClick),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(4.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    AsyncImage(
-                        model = song.coverUrl?.takeIf { it.isNotBlank() }
-                            ?: com.watermelon.core.designsystem.R.drawable.app_logo,
-                        contentDescription = song.title,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(6.dp),
-                        contentAlignment = Alignment.TopEnd
-                    ) {
-                        IconButton(
-                            onClick = onAddToPlaylist,
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
-                                contentDescription = "Add to Playlist",
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(WatermelonSpacing.sm))
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = song.artistName,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun CuratedPlaylistRow(
-    playlists: List<CuratedPlaylist>,
-    onPlaylistClick: (CuratedPlaylist) -> Unit
-) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding()),
-        horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
-    ) {
-        items(playlists, key = { it.id }) { playlist ->
-            CuratedPlaylistCard(
-                playlist = playlist,
-                onClick = { onPlaylistClick(playlist) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun CuratedPlaylistCard(
-    playlist: CuratedPlaylist,
-    cardWidth: androidx.compose.ui.unit.Dp = 150.dp,
-    onClick: () -> Unit
-) {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
-
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 4 }
-    ) {
-        Column(
-            modifier = Modifier.width(cardWidth),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Card(
-                modifier = Modifier
-                    .size(cardWidth)
-                    .clickable(onClick = onClick),
-                shape = RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(6.dp)
-            ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    val gradientColors = playlist.gradientColors.mapNotNull {
-                        try { Color(android.graphics.Color.parseColor(it)) }
-                        catch (e: Exception) { null }
-                    }
-                    if (playlist.coverUrl != null) {
-                        AsyncImage(
-                            model = playlist.coverUrl,
-                            contentDescription = playlist.title,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else if (gradientColors.isNotEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.linearGradient(colors = gradientColors)
-                                )
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(WatermelonRed)
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f)),
-                                    startY = 60f
-                                )
-                            )
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(10.dp),
-                        contentAlignment = Alignment.BottomStart
-                    ) {
-                        Column {
-                            Text(
-                                text = playlist.title,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = playlist.subtitle,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.8f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
+            repeat(songs.size) { index ->
+                val color = if (index == pagerState.currentPage) WatermelonRed else Color.White.copy(alpha = 0.3f)
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 4.dp)
+                        .size(if (index == pagerState.currentPage) 8.dp else 6.dp)
+                        .clip(CircleShape)
+                        .background(color)
+                )
             }
         }
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
+// ═══════════════════════════════════════════════════════════
+//  ARTIST CIRCLES (BIG)
+// ═══════════════════════════════════════════════════════════
 @Composable
 private fun TrendingArtistsRow(
     artists: List<Artist>,
     onArtistClick: (Artist) -> Unit
 ) {
     LazyRow(
-        contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding()),
-        horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         items(artists, key = { it.id }) { artist ->
             ArtistCircleItem(
@@ -857,238 +409,345 @@ private fun ArtistCircleItem(
     artist: Artist,
     onClick: () -> Unit
 ) {
-    val itemWidth = maxOf(80.dp, (LocalConfiguration.current.screenWidthDp.dp - 48.dp) / 4.5f)
+    val circleSize = 130.dp
     Column(
         modifier = Modifier
-            .width(itemWidth)
+            .width(circleSize)
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        AsyncImage(
-            model = artist.imageUrl?.takeIf { it.isNotBlank() }
-                ?: com.watermelon.core.designsystem.R.drawable.app_logo,
-            contentDescription = artist.name,
-            modifier = Modifier
-                .size(itemWidth * 0.85f)
-                .clip(CircleShape),
-            contentScale = ContentScale.Crop
-        )
-        Spacer(modifier = Modifier.height(WatermelonSpacing.xs))
+        Box(
+            modifier = Modifier.size(circleSize),
+            contentAlignment = Alignment.Center
+        ) {
+            // Glowing border
+            Box(
+                modifier = Modifier
+                    .size(circleSize)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.sweepGradient(
+                            listOf(WatermelonRed, Color(0xFF00BFFF), WatermelonRed)
+                        )
+                    )
+            )
+            AsyncImage(
+                model = artist.imageUrl?.takeIf { it.isNotBlank() }
+                    ?: com.watermelon.core.designsystem.R.drawable.app_logo,
+                contentDescription = artist.name,
+                modifier = Modifier
+                    .size(circleSize - 6.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+            if (artist.verified) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = "Verified",
+                    tint = Color(0xFF00BFFF),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(24.dp)
+                        .background(Color.Black.copy(alpha = 0.6f), CircleShape)
+                        .padding(2.dp)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = artist.name,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onBackground
+            overflow = TextOverflow.Ellipsis
         )
-    }
-}
-
-@Composable
-private fun LanguagePlaylistRow(
-    playlists: List<CommunityPlaylist>,
-    onPlaylistClick: (CommunityPlaylist) -> Unit
-) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding()),
-        horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
-    ) {
-        items(playlists, key = { it.id }) { playlist ->
-            LanguagePlaylistCard(
-                playlist = playlist,
-                onClick = { onPlaylistClick(playlist) }
+        if (artist.subscriberCount > 0) {
+            val subs = when {
+                artist.subscriberCount >= 1_000_000 -> "%.1fM".format(artist.subscriberCount / 1_000_000.0)
+                artist.subscriberCount >= 1_000 -> "%.1fK".format(artist.subscriberCount / 1_000.0)
+                else -> "${artist.subscriberCount}"
+            }
+            Text(
+                text = "$subs followers",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
+// ═══════════════════════════════════════════════════════════
+//  PLAYLIST BOX CARD
+// ═══════════════════════════════════════════════════════════
 @Composable
-private fun LanguagePlaylistCard(
+private fun PlaylistBoxCard(
     playlist: CommunityPlaylist,
-    cardWidth: androidx.compose.ui.unit.Dp = 160.dp,
-    onClick: () -> Unit
+    cardWidth: androidx.compose.ui.unit.Dp,
+    onSaveClick: () -> Unit
 ) {
-    val languageEmoji = when {
-        playlist.name.contains("Hindi", ignoreCase = true) -> "🇮🇳"
-        playlist.name.contains("English", ignoreCase = true) -> "🇺🇸"
-        playlist.name.contains("Telugu", ignoreCase = true) -> "🇮🇳"
-        playlist.name.contains("Tamil", ignoreCase = true) -> "🇮🇳"
-        playlist.name.contains("Spanish", ignoreCase = true) -> "🇪🇸"
-        playlist.name.contains("Korean", ignoreCase = true) -> "🇰🇷"
-        playlist.name.contains("Japanese", ignoreCase = true) -> "🇯🇵"
-        playlist.name.contains("French", ignoreCase = true) -> "🇫🇷"
-        playlist.name.contains("German", ignoreCase = true) -> "🇩🇪"
-        playlist.name.contains("Chinese", ignoreCase = true) -> "🇨🇳"
-        else -> "🌐"
-    }
-
     Column(
-        modifier = Modifier
-            .width(cardWidth)
-            .clickable(onClick = onClick),
+        modifier = Modifier.width(cardWidth),
         horizontalAlignment = Alignment.Start
     ) {
         Card(
-            modifier = Modifier.size(cardWidth, 100.dp),
-            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .size(cardWidth)
+                .clickable { /* TODO: Navigate to playlist detail */ },
+            shape = RoundedCornerShape(20.dp),
             elevation = CardDefaults.cardElevation(4.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primaryContainer,
-                                MaterialTheme.colorScheme.secondaryContainer
+            Box(modifier = Modifier.fillMaxSize()) {
+                AsyncImage(
+                    model = playlist.coverUrl?.takeIf { it.isNotBlank() }
+                        ?: com.watermelon.core.designsystem.R.drawable.app_logo,
+                    contentDescription = playlist.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
+                                startY = 80f
                             )
                         )
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = languageEmoji,
-                    style = MaterialTheme.typography.headlineLarge
                 )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp),
+                    contentAlignment = Alignment.TopEnd
+                ) {
+                    IconButton(
+                        onClick = onSaveClick,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                            contentDescription = "Save",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = playlist.name,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "${playlist.songCount} songs",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.height(WatermelonSpacing.sm))
         Text(
             text = playlist.name,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             color = MaterialTheme.colorScheme.onBackground
         )
-        Text(
-            text = "${playlist.songCount} songs",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun CommunityPlaylistRow(
-    playlists: List<CommunityPlaylist>,
-    onSaveClick: (com.watermelon.domain.model.CommunityPlaylist) -> Unit
-) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding()),
-        horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
-    ) {
-        items(playlists, key = { it.id }) { playlist ->
-            CommunityPlaylistCard(
-                playlist = playlist,
-                onSaveClick = onSaveClick
+        if (playlist.creatorDisplayName.isNotBlank()) {
+            Text(
+                text = "by ${playlist.creatorDisplayName}",
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
-@Composable
-private fun CommunityPlaylistCard(
-    playlist: CommunityPlaylist,
-    onSaveClick: (com.watermelon.domain.model.CommunityPlaylist) -> Unit,
-    cardWidth: androidx.compose.ui.unit.Dp = maxOf(
-        140.dp,
-        ((LocalConfiguration.current.screenWidthDp.dp - 48.dp) / 2.3f)
-    )
-) {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
+// ═══════════════════════════════════════════════════════════
+//  MOOD ROW
+// ═══════════════════════════════════════════════════════════
+private data class MoodItem(val emoji: String, val label: String, val gradient: List<Color>)
 
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 4 }
+@Composable
+private fun MoodRow() {
+    val moods = listOf(
+        MoodItem("🌙", "Night Drive", listOf(Color(0xFF1a1a2e), Color(0xFF16213e))),
+        MoodItem("⚡", "Gym Energy", listOf(Color(0xFF2d1b1b), Color(0xFFfe3d5c))),
+        MoodItem("🌧", "Rainy Nights", listOf(Color(0xFF1a2e2e), Color(0xFF00bfff))),
+        MoodItem("💔", "Heartbreak", listOf(Color(0xFF2e1a1a), Color(0xFF333333))),
+        MoodItem("🎮", "Gaming", listOf(Color(0xFF1a1a2e), Color(0xFF4caf50))),
+        MoodItem("🧠", "Deep Focus", listOf(Color(0xFF1e1e1e), Color(0xFF555555))),
+        MoodItem("🔥", "Hype Mode", listOf(Color(0xFF2e1a1a), Color(0xFFfe3d5c))),
+    )
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column(
-            modifier = Modifier.width(cardWidth),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Card(
+        items(moods) { mood ->
+            Box(
                 modifier = Modifier
-                    .size(cardWidth)
-                    .clickable { /* TODO: Navigate to playlist detail */ },
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(4.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    .width(120.dp)
+                    .height(80.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Brush.linearGradient(mood.gradient))
+                    .clickable { /* TODO: mood search */ },
+                contentAlignment = Alignment.Center
             ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    AsyncImage(
-                        model = playlist.coverUrl?.takeIf { it.isNotBlank() }
-                            ?: com.watermelon.core.designsystem.R.drawable.app_logo,
-                        contentDescription = playlist.name,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(mood.emoji, fontSize = 20.sp)
+                    Text(
+                        mood.label,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White
                     )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                                    startY = 80f
-                                )
-                            )
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(8.dp),
-                        contentAlignment = Alignment.TopEnd
-                    ) {
-                        IconButton(
-                            onClick = { onSaveClick(playlist) },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
-                                contentDescription = "Save",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(8.dp),
-                        contentAlignment = Alignment.BottomStart
-                    ) {
-                        Column {
-                            Text(
-                                text = playlist.name,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = "${playlist.songCount} songs",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
                 }
             }
-            Spacer(modifier = Modifier.height(WatermelonSpacing.sm))
-            Text(
-                text = playlist.name,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            if (playlist.creatorDisplayName.isNotBlank()) {
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SECTIONS
+// ═══════════════════════════════════════════════════════════
+fun LazyListScope.genreSections(uiState: HomeUiState, onSongClick: (Song, List<Song>) -> Unit) {
+    if (uiState.bollywood.isNotEmpty()) {
+        item {
+            SectionHeader(title = "Bollywood")
+            SongHorizontalRow(songs = uiState.bollywood, onSongClick = onSongClick)
+        }
+    }
+    if (uiState.hollywood.isNotEmpty()) {
+        item {
+            SectionHeader(title = "Hollywood")
+            SongHorizontalRow(songs = uiState.hollywood, onSongClick = onSongClick)
+        }
+    }
+    if (uiState.pop.isNotEmpty()) {
+        item {
+            SectionHeader(title = "Pop")
+            SongHorizontalRow(songs = uiState.pop, onSongClick = onSongClick)
+        }
+    }
+    if (uiState.rock.isNotEmpty()) {
+        item {
+            SectionHeader(title = "Rock")
+            SongHorizontalRow(songs = uiState.rock, onSongClick = onSongClick)
+        }
+    }
+    if (uiState.jazz.isNotEmpty()) {
+        item {
+            SectionHeader(title = "Jazz")
+            SongHorizontalRow(songs = uiState.jazz, onSongClick = onSongClick)
+        }
+    }
+    if (uiState.classical.isNotEmpty()) {
+        item {
+            SectionHeader(title = "Classical")
+            SongHorizontalRow(songs = uiState.classical, onSongClick = onSongClick)
+        }
+    }
+    if (uiState.hiphop.isNotEmpty()) {
+        item {
+            SectionHeader(title = "Hip Hop")
+            SongHorizontalRow(songs = uiState.hiphop, onSongClick = onSongClick)
+        }
+    }
+    if (uiState.electronic.isNotEmpty()) {
+        item {
+            SectionHeader(title = "Electronic")
+            SongHorizontalRow(songs = uiState.electronic, onSongClick = onSongClick)
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground
+        )
+    }
+}
+
+@Composable
+private fun SongHorizontalRow(
+    songs: List<Song>,
+    onSongClick: (Song, List<Song>) -> Unit
+) {
+    val cardWidth = adaptiveSmallCardWidth()
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+    ) {
+        items(songs, key = { it.id }) { song ->
+            Column(
+                modifier = Modifier.width(cardWidth),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Card(
+                    modifier = Modifier
+                        .size(cardWidth)
+                        .clickable { onSongClick(song, songs) },
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(2.dp)
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        AsyncImage(
+                            model = song.coverUrl,
+                            contentDescription = song.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                                    )
+                                )
+                        )
+                        Text(
+                            text = song.title,
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(8.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "by ${playlist.creatorDisplayName}",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = song.title,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = song.artistName,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

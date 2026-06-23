@@ -211,6 +211,14 @@ fun HomeScreenContent(
                 }
             }
 
+            // ── TOP HITS ──
+            if (uiState.trendingMusic.isNotEmpty()) {
+                item {
+                    SectionHeader(title = "Top Hits")
+                    SongHorizontalRow(songs = uiState.trendingMusic.take(8), onSongClick = onSongClick)
+                }
+            }
+
             // ── TRENDING ARTISTS ──
             item {
                 SectionHeader(title = "Trending Artists")
@@ -660,6 +668,67 @@ private fun LiveRadioRow(
                             tint = Color.White,
                             modifier = Modifier.size(18.dp)
                         )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NewsBroadcastRow(
+    news: List<com.watermelon.feature.home.MusicNews>,
+    onNewsClick: (com.watermelon.feature.home.MusicNews) -> Unit
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(news) { item ->
+            Card(
+                modifier = Modifier
+                    .width(280.dp)
+                    .height(120.dp)
+                    .clickable { onNewsClick(item) },
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(4.dp)
+            ) {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    AsyncImage(
+                        model = item.imageUrl,
+                        contentDescription = item.title,
+                        modifier = Modifier
+                            .width(120.dp)
+                            .fillMaxHeight(),
+                        contentScale = ContentScale.Crop
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = item.title,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = item.source,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = item.timeAgo,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }

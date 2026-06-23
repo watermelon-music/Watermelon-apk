@@ -69,6 +69,7 @@ class HomeViewModel @Inject constructor(
         loadCommunityPlaylists()
         loadCuratedPlaylists()
         loadDemoRadioStations()
+        loadDemoNews()
         loadTrendingArtists()
         loadLanguagePlaylists()
         scheduleDailyTrendingRefresh()
@@ -408,6 +409,42 @@ class HomeViewModel @Inject constructor(
         _openPlaylistDetail.value = null
     }
 
+    private fun loadDemoNews() {
+        val demoNews = listOf(
+            MusicNews(
+                title = "Taylor Swift breaks streaming record with new album",
+                source = "Billboard",
+                imageUrl = "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=720&q=80",
+                timeAgo = "2h ago"
+            ),
+            MusicNews(
+                title = "Spotify Wrapped 2024: Most streamed artists revealed",
+                source = "The Verge",
+                imageUrl = "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=720&q=80",
+                timeAgo = "5h ago"
+            ),
+            MusicNews(
+                title = "Kendrick Lamar announces world tour dates",
+                source = "Rolling Stone",
+                imageUrl = "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=720&q=80",
+                timeAgo = "8h ago"
+            ),
+            MusicNews(
+                title = "YouTube Music crosses 100 million subscribers",
+                source = "TechCrunch",
+                imageUrl = "https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=720&q=80",
+                timeAgo = "12h ago"
+            ),
+            MusicNews(
+                title = "Grammy nominations 2025: Full list announced",
+                source = "NME",
+                imageUrl = "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=720&q=80",
+                timeAgo = "1d ago"
+            ),
+        )
+        _uiState.update { it.copy(newsItems = demoNews) }
+    }
+
     private fun loadDemoRadioStations() {
         val demoStations = listOf(
             com.watermelon.domain.model.RadioStation(
@@ -458,6 +495,13 @@ class HomeViewModel @Inject constructor(
     }
 }
 
+data class MusicNews(
+    val title: String,
+    val source: String,
+    val imageUrl: String,
+    val timeAgo: String
+)
+
 data class HomeUiState(
     val welcomeMessage: String = "Welcome back",
     val recentlyPlayed: List<Song> = emptyList(),
@@ -476,6 +520,7 @@ data class HomeUiState(
     val trendingArtists: List<Artist> = emptyList(),
     val languagePlaylists: List<CommunityPlaylist> = emptyList(),
     val radioStations: List<com.watermelon.domain.model.RadioStation> = emptyList(),
+    val newsItems: List<MusicNews> = emptyList(),
     val isLoading: Boolean = false
 )
 

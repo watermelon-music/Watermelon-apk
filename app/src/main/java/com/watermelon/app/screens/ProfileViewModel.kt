@@ -62,16 +62,21 @@ class ProfileViewModel @Inject constructor(
     private fun loadProfileStats() {
         viewModelScope.launch {
             _isLoading.value = true
-            val result = profileStatsRepository.getProfileStats()
+            val result = runCatching { profileStatsRepository.getProfileStats().getOrThrow() }
             result.onSuccess { _profileStats.value = it }
+                .onFailure {
+                    Timber.e(it, "Profile stats fetch failed")
+                    _profileStats.value = ProfileStats()
+                }
             _isLoading.value = false
         }
     }
 
     private fun loadAchievements() {
         viewModelScope.launch {
-            val result = profileStatsRepository.getAchievements()
+            val result = runCatching { profileStatsRepository.getAchievements().getOrThrow() }
             result.onSuccess { _achievements.value = it }
+                .onFailure { Timber.e(it, "Achievements fetch failed") }
         }
     }
 

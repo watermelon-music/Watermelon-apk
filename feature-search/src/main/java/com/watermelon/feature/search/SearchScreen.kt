@@ -234,7 +234,7 @@ fun SearchScreenContent(
             FilterChip(
                 selected = selectedCategory == SearchCategory.PLAYLISTS,
                 onClick = { onCategorySelected(SearchCategory.PLAYLISTS) },
-                label = { Text("Playlists") },
+                label = { Text("Community Playlist") },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = WatermelonRed,
                     selectedLabelColor = Color.White

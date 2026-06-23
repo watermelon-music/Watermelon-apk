@@ -39,7 +39,8 @@ class PlaylistRepositoryImpl @Inject constructor(
     private val client: SupabaseClient,
     @ApplicationContext private val context: Context,
     private val playlistCacheDao: PlaylistCacheDao,
-    private val authRepository: com.watermelon.domain.repository.AuthRepository
+    private val authRepository: com.watermelon.domain.repository.AuthRepository,
+    private val initializer: com.watermelon.data.remote.youtube.NewPipeInitializer
 ) : PlaylistRepository {
 
     private val prefs = context.getSharedPreferences("watermelon_playlists", Context.MODE_PRIVATE)
@@ -402,33 +403,33 @@ class PlaylistRepositoryImpl @Inject constructor(
 
     override suspend fun searchPlaylists(query: String): Result<List<CommunityPlaylist>> = withContext(Dispatchers.IO) {
         runCatching {
-            val encoded = java.net.URLEncoder.encode(query, "UTF-8")
-            val base = BuildConfig.WATERMELON_API_URL.removeSuffix("/")
-            val url = java.net.URL("$base/api/community/search/playlists?q=$encoded")
-            val conn = url.openConnection() as java.net.HttpURLConnection
-            conn.requestMethod = "GET"
-            conn.connect()
-            val text = conn.inputStream.bufferedReader().use { it.readText() }
-            conn.disconnect()
-
-            val array = org.json.JSONArray(text)
-            (0 until array.length()).map { i ->
-                val obj = array.getJSONObject(i)
-                CommunityPlaylist(
-                    id = obj.getString("id"),
-                    name = obj.getString("name"),
-                    description = obj.optString("description", null).takeIf { it != "null" && it.isNotBlank() },
-                    coverUrl = obj.optString("cover_url", null).takeIf { it != "null" && it.isNotBlank() },
-                    ownerId = obj.optString("owner_id", ""),
-                    creatorDisplayName = obj.optString("creator_display_name", ""),
-                    tags = obj.optJSONArray("tags")?.let { arr -> (0 until arr.length()).map { arr.getString(it) } } ?: emptyList(),
-                    likeCount = obj.optLong("like_count", 0),
-                    songCount = obj.optInt("song_count", 0),
-                    isPublic = obj.optBoolean("is_public", true),
-                    createdAt = obj.optLong("created_at", System.currentTimeMillis()),
-                    updatedAt = obj.optLong("updated_at", System.currentTimeMillis())
-                )
-            }
+            initializer.ensureInitialized()
+            val youtube = org.schabi.newpipe.extractor.ServiceList.YouTube
+            val queryHandler = youtube.getSearchQHFactory().fromQuery(
+                query, listOf("playlists"), ""
+            )
+            val extractor = youtube.getSearchExtractor(queryHandler)
+            extractor.fetchPage()
+            extractor.initialPage.items
+                .filterIsInstance<org.schabi.newpipe.extractor.playlist.PlaylistInfoItem>()
+                .take(15)
+                .map { item ->
+                    val thumbnailUrl = item.thumbnails?.firstOrNull()?.url ?: ""
+                    CommunityPlaylist(
+                        id = "ytpl_${item.url}",
+                        name = item.name,
+                        description = null,
+                        coverUrl = thumbnailUrl,
+                        ownerId = item.uploaderUrl ?: "",
+                        creatorDisplayName = item.uploaderName ?: "YouTube",
+                        tags = emptyList(),
+                        likeCount = 0,
+                        songCount = item.streamCount.takeIf { it > 0 }?.toInt() ?: 0,
+                        isPublic = true,
+                        createdAt = System.currentTimeMillis(),
+                        updatedAt = System.currentTimeMillis()
+                    )
+                }
         }.onFailure { Timber.e(it, "searchPlaylists failed") }
     }
 

@@ -237,9 +237,9 @@ fun HomeScreenContent(
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         items(uiState.communityPlaylists, key = { it.id }) { playlist ->
-                            PlaylistBoxCard(
+                            PlaylistRecommendationCard(
                                 playlist = playlist,
-                                cardWidth = cardWidth,
+                                onPlaylistClick = { onPlaylistClick(playlist) },
                                 onSaveClick = { onSaveCommunityPlaylist(playlist) }
                             )
                         }

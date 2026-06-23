@@ -52,16 +52,15 @@ fun SearchScreen(
 ) {
     val viewModel: SearchViewModel = hiltViewModel()
     val query by viewModel.query.collectAsStateWithLifecycle()
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val songs by viewModel.songs.collectAsStateWithLifecycle()
+    val results by viewModel.results.collectAsStateWithLifecycle()
     val artists by viewModel.artistResults.collectAsStateWithLifecycle()
-    val playlists by viewModel.playlistResults.collectAsStateWithLifecycle()
+    val playlistResults by viewModel.playlistResults.collectAsStateWithLifecycle()
     val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
     val playPlaylistEvent by viewModel.playPlaylistEvent.collectAsStateWithLifecycle()
 
     LaunchedEffect(playPlaylistEvent) {
         playPlaylistEvent?.let { songs ->
-            if (songs.isNotEmpty()) {
+            if (results.isNotEmpty()) {
                 onSongClick(songs.first(), 0, songs)
             }
             viewModel.clearPlayPlaylistEvent()
@@ -119,9 +118,9 @@ fun SearchScreen(
 
             when (selectedCategory) {
                 SearchCategory.ALL -> AllResultsView(
-                    songs = songs,
+                    songs = results,
                     artists = artists,
-                    playlists = playlists,
+                    playlists = playlistResults,
                     onSongClick = onSongClick,
                     onArtistClick = onArtistClick,
                     onPlaylistClick = { viewModel.onPlaylistClick(it) },
@@ -129,11 +128,11 @@ fun SearchScreen(
                     query = query
                 )
                 SearchCategory.SONGS -> SongsGridView(
-                    songs = songs,
+                    songs = results,
                     onSongClick = { index -> onSongClick(songs[index], index, songs) }
                 )
                 SearchCategory.PLAYLISTS -> PlaylistsGridView(
-                    playlists = playlists,
+                    playlists = playlistResults,
                     onPlaylistClick = { viewModel.onPlaylistClick(it) },
                     onSave = { viewModel.onSavePlaylist(it) }
                 )
@@ -172,7 +171,7 @@ private fun AllResultsView(
                 }
             }
         }
-        if (playlists.isNotEmpty()) {
+        if (playlistResults.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Playlists", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -188,16 +187,16 @@ private fun AllResultsView(
                 }
             }
         }
-        if (songs.isNotEmpty()) {
+        if (results.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Songs", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
             }
-            items(songs, key = { it.id }) { song ->
+            items(results, key = { it.id }) { song ->
                 SongListItem(
                     song = song,
-                    onClick = { onSongClick(song, songs.indexOf(song), songs) }
+                    onClick = { onSongClick(song, results.indexOf(song), songs) }
                 )
             }
         }
@@ -219,8 +218,8 @@ private fun SongsGridView(songs: List<Song>, onSongClick: (Int) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        items(songs, key = { it.id }) { song ->
-            val index = songs.indexOf(song)
+        items(results, key = { it.id }) { song ->
+            val index = results.indexOf(song)
             SongGridItem(song = song, onClick = { onSongClick(index) })
         }
     }
@@ -238,7 +237,7 @@ private fun PlaylistsGridView(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        items(playlists, key = { it.id }) { playlist ->
+        items(playlistResults, key = { it.id }) { playlist ->
             PlaylistResultItem(
                 playlist = playlist,
                 onClick = { onPlaylistClick(playlist) },

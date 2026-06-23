@@ -102,7 +102,7 @@ class RecommendationEngineImpl @Inject constructor(
 
             // Strict filter: Do not play the exact same song or film song with just different text
             val titleSim = titleSimilarity(currentSong.title.lowercase(), candidate.title.lowercase())
-            if (titleSim > 0.45) return@mapNotNull null // Drop highly similar titles outright
+            if (titleSim > 0.25) return@mapNotNull null // Drop highly similar titles outright
 
             // === Source scores (the 40/30/20/10 split) ===
             if (candidate.id in artistCandidates.map { it.id }) {

@@ -342,7 +342,7 @@ class PlaylistRepositoryImpl @Inject constructor(
     override suspend fun likeCommunityPlaylist(playlistId: String): Result<Boolean> = withContext(Dispatchers.IO) {
         runCatching {
             val userId = getUserId() ?: throw IllegalStateException("Not authenticated")
-            val url = java.net.URL("${BuildConfig.BACKEND_BASE_URL}/api/community/playlists/$playlistId/like")
+            val url = java.net.URL("${BuildConfig.WATERMELON_API_URL}/api/community/playlists/$playlistId/like")
             val conn = url.openConnection() as java.net.HttpURLConnection
             conn.requestMethod = "POST"
             conn.setRequestProperty("x-user-id", userId)
@@ -402,7 +402,7 @@ class PlaylistRepositoryImpl @Inject constructor(
     override suspend fun searchPlaylists(query: String): Result<List<CommunityPlaylist>> = withContext(Dispatchers.IO) {
         runCatching {
             val encoded = java.net.URLEncoder.encode(query, "UTF-8")
-            val url = java.net.URL("${BuildConfig.BACKEND_BASE_URL}/api/community/search/playlists?q=$encoded")
+            val url = java.net.URL("${BuildConfig.WATERMELON_API_URL}/api/community/search/playlists?q=$encoded")
             val conn = url.openConnection() as java.net.HttpURLConnection
             conn.requestMethod = "GET"
             conn.connect()

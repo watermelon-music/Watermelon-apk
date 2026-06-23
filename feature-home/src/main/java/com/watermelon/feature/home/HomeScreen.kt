@@ -252,12 +252,6 @@ fun HomeScreenContent(
                 }
             }
 
-            // ── MOOD CARDS ──
-            item {
-                SectionHeader(title = "Moods")
-                MoodRow()
-            }
-
             // ── GENRE SECTIONS ──
             if (uiState.recentlyPlayed.isNotEmpty()) {
                 item {
@@ -270,6 +264,17 @@ fun HomeScreenContent(
             }
 
             genreSections(uiState, onSongClick)
+
+            // ── FEATURED ARTISTS ──
+            if (uiState.trendingArtists.isNotEmpty()) {
+                item {
+                    SectionHeader(title = "Featured Artists")
+                    FeaturedArtistsRow(
+                        artists = uiState.trendingArtists.take(6),
+                        onArtistClick = onArtistClick
+                    )
+                }
+            }
 
             item { Spacer(modifier = Modifier.height(120.dp)) }
         }
@@ -580,37 +585,64 @@ private fun PlaylistBoxCard(
 private data class MoodItem(val emoji: String, val label: String, val gradient: List<Color>)
 
 @Composable
-private fun MoodRow() {
-    val moods = listOf(
-        MoodItem("🌙", "Night Drive", listOf(Color(0xFF1a1a2e), Color(0xFF16213e))),
-        MoodItem("⚡", "Gym Energy", listOf(Color(0xFF2d1b1b), Color(0xFFfe3d5c))),
-        MoodItem("🌧", "Rainy Nights", listOf(Color(0xFF1a2e2e), Color(0xFF00bfff))),
-        MoodItem("💔", "Heartbreak", listOf(Color(0xFF2e1a1a), Color(0xFF333333))),
-        MoodItem("🎮", "Gaming", listOf(Color(0xFF1a1a2e), Color(0xFF4caf50))),
-        MoodItem("🧠", "Deep Focus", listOf(Color(0xFF1e1e1e), Color(0xFF555555))),
-        MoodItem("🔥", "Hype Mode", listOf(Color(0xFF2e1a1a), Color(0xFFfe3d5c))),
-    )
+private fun FeaturedArtistsRow(
+    artists: List<Artist>,
+    onArtistClick: (Artist) -> Unit
+) {
+    val cardWidth = maxOf(160.dp, (LocalConfiguration.current.screenWidthDp.dp - 48.dp) / 2.3f)
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(moods) { mood ->
-            Box(
+        items(artists, key = { it.id }) { artist ->
+            Card(
                 modifier = Modifier
-                    .width(120.dp)
-                    .height(80.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Brush.linearGradient(mood.gradient))
-                    .clickable { /* TODO: mood search */ },
-                contentAlignment = Alignment.Center
+                    .width(cardWidth)
+                    .clickable { onArtistClick(artist) },
+                shape = RoundedCornerShape(20.dp),
+                elevation = CardDefaults.cardElevation(4.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(mood.emoji, fontSize = 20.sp)
-                    Text(
-                        mood.label,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White
+                Column {
+                    AsyncImage(
+                        model = artist.imageUrl?.takeIf { it.isNotBlank() }
+                            ?: com.watermelon.core.designsystem.R.drawable.app_logo,
+                        contentDescription = artist.name,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(cardWidth * 0.85f),
+                        contentScale = ContentScale.Crop
                     )
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            artist.name,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (artist.subscriberCount > 0) {
+                            val subs = when {
+                                artist.subscriberCount >= 1_000_000 -> "%.1fM".format(artist.subscriberCount / 1_000_000.0)
+                                artist.subscriberCount >= 1_000 -> "%.1fK".format(artist.subscriberCount / 1_000.0)
+                                else -> "${artist.subscriberCount}"
+                            }
+                            Text(
+                                "$subs followers",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        artist.bio?.takeIf { it.isNotBlank() }?.let { bio ->
+                            Text(
+                                bio,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -692,7 +724,7 @@ private fun SongHorizontalRow(
     songs: List<Song>,
     onSongClick: (Song, List<Song>) -> Unit
 ) {
-    val cardWidth = adaptiveSmallCardWidth()
+    val cardWidth = adaptiveBigCardWidth()
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)

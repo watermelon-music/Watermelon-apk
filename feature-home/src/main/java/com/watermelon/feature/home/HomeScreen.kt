@@ -600,7 +600,7 @@ private fun LiveRadioRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(stations, key = { it.stationuuid ?: it.name }) { station ->
+        items(stations, key = { it.stationuuid ?: it.name ?: "" }) { station ->
             Card(
                 modifier = Modifier
                     .width(140.dp)
@@ -634,7 +634,7 @@ private fun LiveRadioRow(
                             .padding(12.dp)
                     ) {
                         Text(
-                            text = station.name,
+                            text = station.name ?: "",
                             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                             color = Color.White,
                             maxLines = 2,

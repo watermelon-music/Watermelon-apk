@@ -412,23 +412,33 @@ class HomeViewModel @Inject constructor(
         val demoStations = listOf(
             com.watermelon.domain.model.RadioStation(
                 stationuuid = "1", name = "BBC Radio 1", url = "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_one",
-                favicon = "https://cdn-radiotime-logos.tunein.com/s24942d.png", country = "UK", language = "English", tags = "pop,music", votes = 5000, bitrate = 128
+                urlResolved = "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_one",
+                homepage = "https://www.bbc.co.uk/radio1", favicon = "https://cdn-radiotime-logos.tunein.com/s24942d.png",
+                country = "UK", countrycode = "GB", language = "English", tags = "pop,music", votes = 5000, bitrate = 128
             ),
             com.watermelon.domain.model.RadioStation(
                 stationuuid = "2", name = "NPR News", url = "https://npr-ice.streamguys1.com/live.mp3",
-                favicon = "https://cdn-radiotime-logos.tunein.com/s28847d.png", country = "USA", language = "English", tags = "news,talk", votes = 4200, bitrate = 128
+                urlResolved = "https://npr-ice.streamguys1.com/live.mp3",
+                homepage = "https://www.npr.org", favicon = "https://cdn-radiotime-logos.tunein.com/s28847d.png",
+                country = "USA", countrycode = "US", language = "English", tags = "news,talk", votes = 4200, bitrate = 128
             ),
             com.watermelon.domain.model.RadioStation(
                 stationuuid = "3", name = "தமிழ் FM", url = "https://tamilfm.stream.laut.fm/tamilfm",
-                favicon = "https://cdn-radiotime-logos.tunein.com/s174864d.png", country = "India", language = "Tamil", tags = "tamil,music", votes = 3800, bitrate = 128
+                urlResolved = "https://tamilfm.stream.laut.fm/tamilfm",
+                homepage = "https://laut.fm/tamilfm", favicon = "https://cdn-radiotime-logos.tunein.com/s174864d.png",
+                country = "India", countrycode = "IN", language = "Tamil", tags = "tamil,music", votes = 3800, bitrate = 128
             ),
             com.watermelon.domain.model.RadioStation(
                 stationuuid = "4", name = "LoFi Girl", url = "https://lofi.stream.laut.fm/lofi",
-                favicon = "https://cdn-radiotime-logos.tunein.com/s2967d.png", country = "France", language = "English", tags = "lofi,relax", votes = 6000, bitrate = 128
+                urlResolved = "https://lofi.stream.laut.fm/lofi",
+                homepage = "https://laut.fm/lofi", favicon = "https://cdn-radiotime-logos.tunein.com/s2967d.png",
+                country = "France", countrycode = "FR", language = "English", tags = "lofi,relax", votes = 6000, bitrate = 128
             ),
             com.watermelon.domain.model.RadioStation(
                 stationuuid = "5", name = "Radio City", url = "https://prclive1.listenon.in/RadioCity",
-                favicon = "https://cdn-radiotime-logos.tunein.com/s36411d.png", country = "India", language = "Hindi", tags = "bollywood,music", votes = 4500, bitrate = 128
+                urlResolved = "https://prclive1.listenon.in/RadioCity",
+                homepage = "https://www.radiocity.in", favicon = "https://cdn-radiotime-logos.tunein.com/s36411d.png",
+                country = "India", countrycode = "IN", language = "Hindi", tags = "bollywood,music", votes = 4500, bitrate = 128
             ),
         )
         _uiState.update { it.copy(radioStations = demoStations) }
@@ -465,6 +475,7 @@ data class HomeUiState(
     val curatedPlaylists: List<CuratedPlaylist> = emptyList(),
     val trendingArtists: List<Artist> = emptyList(),
     val languagePlaylists: List<CommunityPlaylist> = emptyList(),
+    val radioStations: List<com.watermelon.domain.model.RadioStation> = emptyList(),
     val isLoading: Boolean = false
 )
 

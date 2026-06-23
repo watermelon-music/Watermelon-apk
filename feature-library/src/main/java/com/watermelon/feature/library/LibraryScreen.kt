@@ -427,89 +427,58 @@ private fun PlaylistList(
             }
         }
     } else {
-        LazyColumn(
-            modifier = modifier.padding(horizontal = adaptiveHorizontalPadding()),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = adaptiveListMinSize()),
+            modifier = modifier.padding(horizontal = adaptiveHorizontalPadding(), vertical = WatermelonSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
         ) {
-            items(playlists, key = { it.id }) { playlist ->
+            gridItemsIndexed(playlists, key = { _, pl -> pl.id }) { index, playlist ->
                 var menuExpanded by remember { mutableStateOf(false) }
 
-                Row(
+                // Alternating watermelon gradient backgrounds
+                // Even index: dark (black + red), Odd index: light (white + red)
+                val isDark = index % 2 == 0
+                val cardGradient = if (isDark) {
+                    Brush.horizontalGradient(listOf(Color(0xFF1A0000), Color(0xFF3D0000), Color(0xFF8B0000)))
+                } else {
+                    Brush.horizontalGradient(listOf(Color(0xFFFFFFFF), Color(0xFFFFE4E4), Color(0xFFFFCCCC)))
+                }
+                val onCardColor = if (isDark) Color.White else Color(0xFF1A0000)
+                val subtitleColor = if (isDark) Color.White.copy(alpha = 0.65f) else Color(0xFF8B0000).copy(alpha = 0.75f)
+
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onPlaylistClick(playlist) }
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .clickable { onPlaylistClick(playlist) },
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(3.dp)
                 ) {
-                    PlaylistCoverGrid(
-                        songs = playlist.songs,
-                        modifier = Modifier.size(56.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = playlist.name,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        if (!playlist.description.isNullOrBlank()) {
-                            Text(
-                                text = playlist.description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        Text(
-                            text = "${playlist.songs.size} songs",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Box {
-                        IconButton(onClick = { menuExpanded = true }) {
-                            Icon(
-                                imageVector = Icons.Filled.MoreVert,
-                                contentDescription = "More"
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(cardGradient)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(WatermelonSpacing.md),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            DropdownMenuItem(
-                                text = { Text("Play") },
-                                onClick = { menuExpanded = false; onPlayPlaylist(playlist) }
+                            PlaylistCoverGrid(
+                                songs = playlist.songs,
+                                modifier = Modifier.size(64.dp)
                             )
-                            DropdownMenuItem(
-                                text = { Text("Shuffle") },
-                                onClick = { menuExpanded = false; onShufflePlaylist(playlist) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Share") },
-                                onClick = { menuExpanded = false; onSharePlaylist(playlist) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Edit") },
-                                onClick = { menuExpanded = false; onEditPlaylist(playlist) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Show QR") },
-                                onClick = { menuExpanded = false; onShowQr(playlist) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                                onClick = { menuExpanded = false; onDeletePlaylist(playlist) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+                            Spacer(modifier = Modifier.width(WatermelonSpacing.md))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = playlist.name,
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                    ),
+                                    color = onCardColor,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (!playlist.description.isNullOrBlank()) {
                                     Text(
                                         text = playlist.description ?: "",
                                         style = MaterialTheme.typography.bodyMedium,

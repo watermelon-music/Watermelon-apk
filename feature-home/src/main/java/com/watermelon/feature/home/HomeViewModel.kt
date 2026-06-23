@@ -201,11 +201,102 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             playlistRepository.getCommunityPlaylists()
                 .onSuccess { playlists ->
-                    _uiState.update { it.copy(communityPlaylists = playlists) }
+                    val final = if (playlists.isEmpty()) demoPlaylists() else playlists
+                    _uiState.update { it.copy(communityPlaylists = final) }
                 }
-                .onFailure { Timber.e(it, "loadCommunityPlaylists failed") }
+                .onFailure {
+                    Timber.e(it, "loadCommunityPlaylists failed")
+                    _uiState.update { it.copy(communityPlaylists = demoPlaylists()) }
+                }
         }
     }
+
+    private fun demoPlaylists(): List<CommunityPlaylist> = listOf(
+        CommunityPlaylist(
+            id = "demo_night_drive",
+            name = "Night Drive",
+            description = "Late night cruising vibes",
+            coverUrl = "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=720",
+            ownerId = "system",
+            creatorDisplayName = "Watermelon",
+            tags = listOf("chill", "night"),
+            likeCount = 0,
+            songCount = 42,
+            isPublic = true,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        ),
+        CommunityPlaylist(
+            id = "demo_gym_rage",
+            name = "Gym Rage",
+            description = "Workout energy boosters",
+            coverUrl = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=720",
+            ownerId = "system",
+            creatorDisplayName = "Watermelon",
+            tags = listOf("workout", "energy"),
+            likeCount = 0,
+            songCount = 38,
+            isPublic = true,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        ),
+        CommunityPlaylist(
+            id = "demo_lofi_rain",
+            name = "Rainy Lofi",
+            description = "Chill beats for rainy days",
+            coverUrl = "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=720",
+            ownerId = "system",
+            creatorDisplayName = "Watermelon",
+            tags = listOf("lofi", "rain"),
+            likeCount = 0,
+            songCount = 56,
+            isPublic = true,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        ),
+        CommunityPlaylist(
+            id = "demo_indie_discover",
+            name = "Indie Discoveries",
+            description = "Hidden indie gems",
+            coverUrl = "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=720",
+            ownerId = "system",
+            creatorDisplayName = "Watermelon",
+            tags = listOf("indie", "discover"),
+            likeCount = 0,
+            songCount = 31,
+            isPublic = true,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        ),
+        CommunityPlaylist(
+            id = "demo_phonk_energy",
+            name = "Phonk Energy",
+            description = "Hard phonk beats",
+            coverUrl = "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=720",
+            ownerId = "system",
+            creatorDisplayName = "Watermelon",
+            tags = listOf("phonk", "hype"),
+            likeCount = 0,
+            songCount = 27,
+            isPublic = true,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        ),
+        CommunityPlaylist(
+            id = "demo_bollywood_hits",
+            name = "Bollywood Hits",
+            description = "Top Bollywood tracks",
+            coverUrl = "https://images.unsplash.com/photo-1514525253440-b393452e8d26?w=720",
+            ownerId = "system",
+            creatorDisplayName = "Watermelon",
+            tags = listOf("bollywood", "hits"),
+            likeCount = 0,
+            songCount = 64,
+            isPublic = true,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        )
+    )
 
     private fun loadCuratedPlaylists() {
         viewModelScope.launch {

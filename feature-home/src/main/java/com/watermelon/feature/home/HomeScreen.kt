@@ -142,6 +142,7 @@ fun HomeScreenContent(
     onPlayerClick: () -> Unit,
     onAddToPlaylist: (Song) -> Unit,
     onSaveCommunityPlaylist: (com.watermelon.domain.model.CommunityPlaylist) -> Unit = {},
+    onPlaylistClick: (com.watermelon.domain.model.CommunityPlaylist) -> Unit = {},
     snackbarHostState: SnackbarHostState,
     onArtistClick: (Artist) -> Unit = {}
 ) {
@@ -486,95 +487,96 @@ private fun ArtistCircleItem(
 //  PLAYLIST BOX CARD
 // ═══════════════════════════════════════════════════════════
 @Composable
-private fun PlaylistBoxCard(
+private fun PlaylistRecommendationCard(
     playlist: CommunityPlaylist,
-    cardWidth: androidx.compose.ui.unit.Dp,
+    onPlaylistClick: () -> Unit,
     onSaveClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier.width(cardWidth),
-        horizontalAlignment = Alignment.Start
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp)
+            .clickable(onClick = onPlaylistClick)
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Card(
+        Box(
             modifier = Modifier
-                .size(cardWidth)
-                .clickable { /* TODO: Navigate to playlist detail */ },
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(4.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                .fillMaxSize()
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(Color(0xFF1a1a2e), Color(0xFF2d1b4e))
+                    )
+                )
+                .padding(16.dp)
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            Row(modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 AsyncImage(
                     model = playlist.coverUrl?.takeIf { it.isNotBlank() }
                         ?: com.watermelon.core.designsystem.R.drawable.app_logo,
                     contentDescription = playlist.name,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(RoundedCornerShape(8.dp)),
                     contentScale = ContentScale.Crop
                 )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                                startY = 80f
-                            )
-                        )
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp),
-                    contentAlignment = Alignment.TopEnd
-                ) {
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = playlist.name,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 22.sp
+                        ),
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = playlist.creatorDisplayName.ifBlank { "Watermelon" },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFE0E0E0)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "${playlist.songCount} songs",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFD0D0D0),
+                        maxLines = 1
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
                     IconButton(
                         onClick = onSaveClick,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color.White.copy(alpha = 0.15f), CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
                             contentDescription = "Save",
                             tint = Color.White,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    IconButton(
+                        onClick = onPlaylistClick,
+                        modifier = Modifier
+                            .size(52.dp)
+                            .background(Color.White, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Play",
+                            tint = Color.Black,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(12.dp)
-                ) {
-                    Text(
-                        text = playlist.name,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = "${playlist.songCount} songs",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-                }
             }
-        }
-        Spacer(modifier = Modifier.height(WatermelonSpacing.sm))
-        Text(
-            text = playlist.name,
-            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        if (playlist.creatorDisplayName.isNotBlank()) {
-            Text(
-                text = "by ${playlist.creatorDisplayName}",
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }

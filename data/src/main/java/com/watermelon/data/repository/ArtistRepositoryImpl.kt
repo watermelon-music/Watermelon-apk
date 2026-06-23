@@ -29,7 +29,8 @@ class ArtistRepositoryImpl @Inject constructor(
             extractor.initialPage.items
                 .filterIsInstance<org.schabi.newpipe.extractor.channel.ChannelInfoItem>()
                 .map { item ->
-                    val thumbnailUrl = item.thumbnails?.firstOrNull()?.url ?: ""
+                    val rawThumbnail = item.thumbnails?.firstOrNull()?.url ?: ""
+                    val thumbnailUrl = if (rawThumbnail.contains("googleusercontent.com")) rawThumbnail.replace(Regex("=s\d+(-c)?"), "=s720$1") else rawThumbnail
                     Artist(
                         id = item.url,
                         name = item.name,

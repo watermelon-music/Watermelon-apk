@@ -451,7 +451,8 @@ class PlaylistRepositoryImpl @Inject constructor(
                 .filterIsInstance<org.schabi.newpipe.extractor.playlist.PlaylistInfoItem>()
                 .take(15)
                 .map { item ->
-                    val thumbnailUrl = item.thumbnails?.firstOrNull()?.url ?: ""
+                    val rawThumbnail = item.thumbnails?.firstOrNull()?.url ?: ""
+                    val thumbnailUrl = if (rawThumbnail.contains("googleusercontent.com")) rawThumbnail.replace(Regex("=s\d+(-c)?"), "=s720$1") else rawThumbnail
                     CommunityPlaylist(
                         id = "ytpl_${item.url}",
                         name = item.name,

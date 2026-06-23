@@ -1,11 +1,24 @@
 package com.watermelon.feature.search.preview
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import com.watermelon.feature.search.SearchScreen
+import androidx.compose.ui.unit.dp
+import com.watermelon.core.designsystem.theme.WatermelonTheme
+import com.watermelon.feature.search.SearchScreenContent
 
-@Preview
+@Preview(showBackground = true)
 @Composable
 fun SearchScreenPreview() {
-    SearchScreen()
+    WatermelonTheme {
+        SearchScreenContent(
+            query = "",
+            results = emptyList(),
+            isLoading = false,
+            padding = PaddingValues(0.dp),
+            onQueryChange = {},
+            onSongClick = { _, _, _ -> },
+            onAddToPlaylist = {}
+        )
+    }
 }

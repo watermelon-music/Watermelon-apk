@@ -31,7 +31,7 @@ class ArtistRepositoryImpl @Inject constructor(
                 .map { item ->
                     val thumbnailUrl = item.thumbnails?.firstOrNull()?.url ?: ""
                     Artist(
-                        id = item.url.hashCode().toString(),
+                        id = item.url,
                         name = item.name,
                         bio = item.description,
                         imageUrl = thumbnailUrl,
@@ -39,7 +39,7 @@ class ArtistRepositoryImpl @Inject constructor(
                         verified = item.isVerified ?: false
                     )
                 }
-        }.onFailure { Timber.e(it, "searchArtists failed for query=$query") }
+        }.onFailure { e -> Timber.e(e, "searchArtists failed for query=$query") }
     }
 
     override suspend fun getArtistDetails(channelUrl: String): Result<Artist> = withContext(Dispatchers.IO) {
@@ -47,23 +47,27 @@ class ArtistRepositoryImpl @Inject constructor(
             initializer.ensureInitialized()
             val info = ChannelInfo.getInfo(youtube, channelUrl)
             Artist(
-                id = channelUrl.hashCode().toString(),
+                id = channelUrl,
                 name = info.name,
                 bio = info.description,
                 imageUrl = info.avatars.firstOrNull()?.url,
                 subscriberCount = info.subscriberCount,
-                songCount = info.relatedItems.size,
+                songCount = 0,
                 verified = info.isVerified ?: false,
                 bannerUrl = info.banners.firstOrNull()?.url
             )
-        }.onFailure { Timber.e(it, "getArtistDetails failed for channelUrl=$channelUrl") }
+        }.onFailure { e -> Timber.e(e, "getArtistDetails failed for channelUrl=$channelUrl") }
     }
 
     override suspend fun getArtistSongs(channelUrl: String): Result<List<Song>> = withContext(Dispatchers.IO) {
         runCatching {
             initializer.ensureInitialized()
-            val info = ChannelInfo.getInfo(youtube, channelUrl)
-            info.relatedItems
+            val artistInfo = ChannelInfo.getInfo(youtube, channelUrl)
+            val artistName = artistInfo.name
+            val queryHandler = youtube.getSearchQHFactory().fromQuery("$artistName songs", listOf("videos"), "")
+            val extractor = youtube.getSearchExtractor(queryHandler)
+            extractor.fetchPage()
+            extractor.initialPage.items
                 .filterIsInstance<StreamInfoItem>()
                 .map { item ->
                     val fullUrl = if (item.url.startsWith("http")) item.url else "https://youtube.com${item.url}"
@@ -75,8 +79,8 @@ class ArtistRepositoryImpl @Inject constructor(
                     Song(
                         id = videoId,
                         title = item.name,
-                        artistId = channelUrl.hashCode().toString(),
-                        artistName = info.name,
+                        artistId = channelUrl,
+                        artistName = artistName,
                         albumId = null,
                         albumName = null,
                         durationMs = if (item.duration > 0) item.duration * 1000L else 0L,
@@ -86,6 +90,6 @@ class ArtistRepositoryImpl @Inject constructor(
                         releaseDate = null
                     )
                 }
-        }.onFailure { Timber.e(it, "getArtistSongs failed for channelUrl=$channelUrl") }
+        }.onFailure { e -> Timber.e(e, "getArtistSongs failed for channelUrl=$channelUrl") }
     }
 }

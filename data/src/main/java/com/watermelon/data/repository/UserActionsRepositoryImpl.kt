@@ -85,7 +85,7 @@ class UserActionsRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun recordRecentlyPlayed(song: Song): Result<Unit> = runCatching {
+    override suspend fun recordRecentlyPlayed(song: Song, listenedDurationMs: Long): Result<Unit> = runCatching {
         userActionDao.removeRecent(song.id)
         val entity = UserActionEntity(
             songId = song.id,

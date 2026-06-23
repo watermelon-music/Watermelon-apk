@@ -371,8 +371,16 @@ class PlaylistRepositoryImpl @Inject constructor(
 
             if (playlist.id.startsWith("ytpl_")) {
                 val url = playlist.id.removePrefix("ytpl_")
-                val songs = fetchPlaylistSongs(url).getOrNull() ?: emptyList()
-                songs.forEach { song ->
+                val songs = fetchPlaylistSongs(url)
+                songs.onSuccess { songList ->
+                    if (songList.isEmpty()) {
+                        Timber.w("fetchPlaylistSongs returned empty for $url")
+                    }
+                }.onFailure { e ->
+                    Timber.e(e, "fetchPlaylistSongs failed for $url")
+                }
+                val songList = songs.getOrNull() ?: emptyList()
+                for (song in songList) {
                     addSongToPlaylist(newPlaylist.id, song)
                 }
             } else if (!playlist.id.startsWith("demo_")) {
@@ -410,7 +418,11 @@ class PlaylistRepositoryImpl @Inject constructor(
         runCatching {
             initializer.ensureInitialized()
             val youtube = org.schabi.newpipe.extractor.ServiceList.YouTube
-            val fullUrl = if (playlistUrl.startsWith("http")) playlistUrl else "https://www.youtube.com$playlistUrl"
+            val fullUrl = when {
+                    playlistUrl.startsWith("http") -> playlistUrl
+                    playlistUrl.startsWith("/") -> "https://www.youtube.com$playlistUrl"
+                    else -> "https://www.youtube.com/$playlistUrl"
+                }
             val info = org.schabi.newpipe.extractor.playlist.PlaylistInfo.getInfo(youtube, fullUrl)
             info.relatedItems
                 .filterIsInstance<org.schabi.newpipe.extractor.stream.StreamInfoItem>()
@@ -438,6 +450,16 @@ class PlaylistRepositoryImpl @Inject constructor(
         }.onFailure { Timber.e(it, "fetchPlaylistSongs failed") }
     }
 
+    private fun isMusicPlaylist(name: String?, uploader: String?): Boolean {
+        val text = (name ?: "") + " " + (uploader ?: "")
+        val lower = text.lowercase()
+        val blocked = listOf(
+            "cricket", "match", "highlights", "india vs", "vs pakistan", "news",
+            "sports", "live", "gaming", "movie", "vlog"
+        )
+        return !blocked.any { lower.contains(it) }
+    }
+
     override suspend fun searchPlaylists(query: String): Result<List<CommunityPlaylist>> = withContext(Dispatchers.IO) {
         runCatching {
             initializer.ensureInitialized()
@@ -449,6 +471,7 @@ class PlaylistRepositoryImpl @Inject constructor(
             extractor.fetchPage()
             extractor.initialPage.items
                 .filterIsInstance<org.schabi.newpipe.extractor.playlist.PlaylistInfoItem>()
+                .filter { isMusicPlaylist(it.name, it.uploaderName) }
                 .take(15)
                 .map { item ->
                     val rawThumbnail = item.thumbnails?.firstOrNull()?.url ?: ""

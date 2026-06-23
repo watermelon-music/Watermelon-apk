@@ -54,208 +54,46 @@ class RecommendationEngineImpl @Inject constructor(
     private val random = Random(System.currentTimeMillis())
     private var lastCurrentSongId: String? = null
 
-    override fun invalidateCache() {
-        lastCurrentSongId = null
-    }
-
     private fun isValidMusic(title: String, durationSec: Long = 0): Boolean {
         val lower = title.lowercase()
         val blocked = listOf(
-            "xxx",
-            "porn",
-            "sex",
-            "nude",
-            "naked",
-            "adult",
-            "erotic",
-            "stripper",
-            "blowjob",
-            "anal",
-            "milf",
-            "onlyfans",
-            "camgirl",
-            "webcam",
-            "sexual",
-            "fetish",
-            "twerk",
-            "nipple",
-            "orgasm",
-            "masturbation",
-            "cum",
-            "dick",
-            "pussy",
-            "cock",
-            "penis",
-            "vagina",
-            "slut",
-            "whore",
-            "bitch",
-            "bikini",
-            "lingerie",
-            "uncensored",
-            "leaked",
-            "nsfw",
-            "hentai",
-            "jav",
-            "porntube",
-            "redtube",
-            "xvideos",
-            "pornhub",
-            "brazzers",
-            "only fans",
-            "fans only",
-            "sex tape",
-            "sex video",
-            "hot girl",
-            "sexy girl",
-            "sexy dance",
-            "topless",
-            "bottomless",
-            "breaking news",
-            "live news",
-            "news update",
-            "press conference",
-            "live stream",
-            "breaking",
-            "headline",
-            "ticker",
-            "debate",
-            "election",
-            "politics",
-            "political",
-            "government",
-            "minister",
-            "prime minister",
-            "president",
-            "parliament",
-            "senate",
-            "congress",
-            "republican",
-            "democrat",
-            "cricket",
-            "ipl",
-            "world cup",
-            "match highlights",
-            "india vs",
-            "pakistan vs",
-            "football",
-            "soccer",
-            "nba",
-            "nfl",
-            "basketball",
-            "tennis",
-            "wrestling",
-            "ufc",
-            "mma",
-            "boxing",
-            "goal",
-            "score",
-            "tournament",
-            "fixture",
-            "man of the match",
-            "live commentary",
-            "sports news",
-            "full movie",
-            "hd movie",
-            "movie trailer",
-            "full film",
-            "cinema",
-            "netflix",
-            "movie review",
-            "trailer reaction",
-            "scene",
-            "clip",
-            "tv show",
-            "web series",
-            "episode",
-            "season",
-            "sitcom",
-            "drama",
-            "anime episode",
-            "cartoon episode",
-            "gameplay",
-            "walkthrough",
-            "playthrough",
-            "gaming",
-            "speedrun",
-            "gta",
-            "fortnite",
-            "minecraft",
-            "call of duty",
-            "cod",
-            "pubg",
-            "free fire",
-            "valorant",
-            "among us",
-            "roblox",
-            "boss fight",
-            "no commentary",
-            "indie game",
-            "mobile game",
-            "android gameplay",
-            "ios gameplay",
-            "game music video",
-            "gmv",
-            "vlog",
-            "unboxing",
-            "tutorial",
-            "how to",
-            "diy",
-            "makeup tutorial",
-            "cooking",
-            "recipe",
-            "fitness",
-            "workout",
-            "gym",
-            "yoga",
-            "meditation",
-            "prank",
-            "challenge",
-            "reaction",
-            "review",
-            "asmr",
-            "mukbang",
-            "q and a",
-            "bhajan",
-            "kirtan",
-            "aarti",
-            "puja",
-            "prayer",
-            "sermon",
-            "preach",
-            "quran",
-            "bible",
-            "gospel",
-            "worship",
-            "devotional",
-            "hymn",
-            "chanting",
-            "mantra",
-            "podcast",
-            "audiobook",
-            "full audiobook",
-            "audio book",
-            "talk show",
-            "interview",
-            "speech",
-            "lecture",
-            "ted talk",
-            "motivational",
-            "comedy special",
-            "standup",
-            "whatsapp status",
-            "tiktok",
-            "shorts compilation",
-            "reels compilation",
-            "compilation",
-            "funny moments",
-            "fail compilation",
-            "try not to laugh",
-            "meme"
+            "xxx", "porn", "sex", "nude", "naked", "adult", "erotic", "stripper",
+            "blowjob", "anal", "milf", "onlyfans", "camgirl", "webcam", "sexual", "fetish",
+            "twerk", "nipple", "orgasm", "masturbation", "cum", "dick", "pussy", "cock",
+            "penis", "vagina", "slut", "whore", "bitch", "bikini", "lingerie",
+            "uncensored", "leaked", "nsfw", "hentai", "jav", "porntube", "redtube", "xvideos",
+            "pornhub", "brazzers", "only fans", "fans only", "sex tape", "sex video",
+            "hot girl", "sexy girl", "sexy dance", "topless", "bottomless",
+            "breaking news", "live news", "news update", "press conference", "live stream",
+            "breaking", "headline", "ticker", "debate", "election", "politics", "political",
+            "government", "minister", "prime minister", "president", "parliament",
+            "senate", "congress", "republican", "democrat",
+            "cricket", "ipl", "world cup", "match highlights", "india vs", "pakistan vs",
+            "football", "soccer", "nba", "nfl", "basketball", "tennis", "wrestling", "ufc",
+            "mma", "boxing", "goal", "score", "tournament", "fixture", "man of the match",
+            "live commentary", "sports news",
+            "full movie", "hd movie", "movie trailer", "full film", "cinema", "netflix",
+            "movie review", "trailer reaction", "scene", "clip", "tv show", "web series",
+            "episode", "season", "sitcom", "drama", "anime episode", "cartoon episode",
+            "gameplay", "walkthrough", "playthrough", "gaming", "speedrun",
+            "gta", "fortnite", "minecraft", "call of duty", "cod", "pubg", "free fire",
+            "valorant", "among us", "roblox", "boss fight", "no commentary", "indie game",
+            "mobile game", "android gameplay", "ios gameplay", "game music video", "gmv",
+            "vlog", "unboxing", "tutorial", "how to", "diy", "makeup tutorial", "cooking",
+            "recipe", "fitness", "workout", "gym", "yoga", "meditation", "prank", "challenge",
+            "reaction", "review", "asmr", "mukbang", "q and a",
+            "bhajan", "kirtan", "aarti", "puja", "prayer", "sermon", "preach", "quran",
+            "bible", "gospel", "worship", "devotional", "hymn", "chanting", "mantra",
+            "podcast", "audiobook", "full audiobook", "audio book", "talk show", "interview",
+            "speech", "lecture", "ted talk", "motivational", "comedy special", "standup",
+            "whatsapp status", "tiktok", "shorts compilation", "reels compilation",
+            "compilation", "funny moments", "fail compilation", "try not to laugh", "meme"
         )
         if (blocked.any { lower.contains(it.lowercase()) }) return false
         if (durationSec > 0 && (durationSec < 45 || durationSec > 600)) return false
         return true
+    }
+        lastCurrentSongId = null
     }
 
     override suspend fun generateQueue(
@@ -280,11 +118,11 @@ class RecommendationEngineImpl @Inject constructor(
 
         // Combine all candidates, dedup by ID, strict content filter
         val allCandidates = mutableMapOf<String, Song>()
-        artistCandidates.filter { isValidMusic(it.title, it.durationMs / 1000) }}.forEach { allCandidates[it.id] = it }}
-        genreCandidates.filter { isValidMusic(it.title, it.durationMs / 1000) }}.forEach { allCandidates[it.id] = it }}
-        historyCandidates.filter { isValidMusic(it.title, it.durationMs / 1000) }}.forEach { allCandidates[it.id] = it }}
-        randomCandidates.filter { isValidMusic(it.title, it.durationMs / 1000) }}.forEach { allCandidates[it.id] = it }}
-        hashtagCandidates.filter { isValidMusic(it.title, it.durationMs / 1000) }}.forEach { allCandidates[it.id] = it }}
+        artistCandidates.filter { isValidMusic(it.title, it.durationMs / 1000) }.forEach { allCandidates[it.id] = it }
+        genreCandidates.filter { isValidMusic(it.title, it.durationMs / 1000) }.forEach { allCandidates[it.id] = it }
+        historyCandidates.filter { isValidMusic(it.title, it.durationMs / 1000) }.forEach { allCandidates[it.id] = it }
+        randomCandidates.filter { isValidMusic(it.title, it.durationMs / 1000) }.forEach { allCandidates[it.id] = it }
+        hashtagCandidates.filter { isValidMusic(it.title, it.durationMs / 1000) }.forEach { allCandidates[it.id] = it }
 
         if (allCandidates.isEmpty()) return emptyList()
 
@@ -302,13 +140,11 @@ class RecommendationEngineImpl @Inject constructor(
 
             // Strict filter: Do not play the exact same song or film song with just different text
             val titleSim = titleSimilarity(currentSong.title.lowercase(), candidate.title.lowercase())
-            if (titleSim > 0.25) return@mapNotNull null
-            val currentWords = currentSong.title.lowercase().split("\\s+".toRegex()).filter { it.length > 2 }
-            if (currentWords.size >= 2) {
-                val candLower = candidate.title.lowercase()
-                if (currentWords.all { candLower.contains(it) }) return@mapNotNull null
-            }
-            if (!isValidMusic(candidate.title, candidate.durationMs / 1000)) return@mapNotNull null // Drop highly similar titles outright
+            if (titleSim > 0.25) return@mapNotNull null // Drop highly similar titles outright
+
+            // Strict containment: if candidate contains all significant words of current title
+            val currentWords = currentSong.title.lowercase().split("\s+".toRegex()).filter { it.length > 2 }
+            if (currentWords.size >= 2 && currentWords.all { candidate.title.lowercase().contains(it) }) return@mapNotNull null
 
             // === Source scores (the 40/30/20/10 split) ===
             if (candidate.id in artistCandidates.map { it.id }) {
@@ -384,7 +220,7 @@ class RecommendationEngineImpl @Inject constructor(
             runCatching {
                 catalogRepository.search(query).firstOrNull()
                     ?.filter { it.id !in excludeIds }
-                    ?.filter { titleSimilarity(currentSong.title.lowercase(), it.title.lowercase()) < 0.45 }
+                    ?.filter { titleSimilarity(currentSong.title.lowercase(), it.title.lowercase()) < 0.20 }
                     ?.let { results.addAll(it.take(10)) }
             }
         }
@@ -402,7 +238,8 @@ class RecommendationEngineImpl @Inject constructor(
             runCatching {
                 catalogRepository.search(currentSong.artistName).firstOrNull()
                     ?.filter { it.id !in excludeIds }
-                    ?.filter { titleSimilarity(currentSong.title.lowercase(), it.title.lowercase()) < 0.45 }
+                    ?.filter { isValidMusic(it.title, it.durationMs / 1000) }
+                    ?.filter { titleSimilarity(currentSong.title.lowercase(), it.title.lowercase()) < 0.20 }
                     ?.let { results.addAll(it.take(15)) }
             }
         }
@@ -415,7 +252,8 @@ class RecommendationEngineImpl @Inject constructor(
             runCatching {
                 catalogRepository.search(trimmed).firstOrNull()
                     ?.filter { it.id !in excludeIds && it.id !in results.map { r -> r.id } }
-                    ?.filter { titleSimilarity(currentSong.title.lowercase(), it.title.lowercase()) < 0.45 }
+                    ?.filter { isValidMusic(it.title, it.durationMs / 1000) }
+                    ?.filter { titleSimilarity(currentSong.title.lowercase(), it.title.lowercase()) < 0.20 }
                     ?.let { results.addAll(it.take(8)) }
             }
         }

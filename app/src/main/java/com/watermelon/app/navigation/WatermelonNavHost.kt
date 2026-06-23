@@ -184,14 +184,6 @@ fun WatermelonNavHost(
             )
         }
         composable(Routes.HOME) {
-            val homeViewModel: com.watermelon.feature.home.HomeViewModel = hiltViewModel()
-            val openPlaylistId by homeViewModel.openPlaylistDetail.collectAsStateWithLifecycle()
-            LaunchedEffect(openPlaylistId) {
-                openPlaylistId?.let { playlistId ->
-                    navController.navigate("playlist_detail/$playlistId")
-                    homeViewModel.clearOpenPlaylistDetail()
-                }
-            }
             HomeScreen(
                 onSearchClick = { navController.navigate(Routes.SEARCH) },
                 onSettingsClick = { navController.navigate(Routes.SETTINGS) },
@@ -207,7 +199,9 @@ fun WatermelonNavHost(
                     navController.navigate("artist/$encoded")
                 },
                 onPlaylistClick = { playlist ->
-                    homeViewModel.openPlaylist(playlist)
+                    if (!playlist.id.startsWith("ytpl_")) {
+                        navController.navigate("playlist_detail/${playlist.id}")
+                    }
                 }
             )
         }

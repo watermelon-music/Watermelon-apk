@@ -383,13 +383,40 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private val _openPlaylistDetail = MutableStateFlow<String?>(null)
+    val openPlaylistDetail: kotlinx.coroutines.flow.StateFlow<String?> = _openPlaylistDetail.asStateFlow()
+
+    fun openPlaylist(playlist: CommunityPlaylist) {
+        viewModelScope.launch {
+            if (playlist.id.startsWith("ytpl_")) {
+                playlistRepository.saveCommunityPlaylist(playlist)
+                    .onSuccess { saved ->
+                        _openPlaylistDetail.value = saved.id
+                        _addToPlaylistMessage.value = "Saved "${playlist.name}" to your library"
+                    }
+                    .onFailure {
+                        _addToPlaylistMessage.value = "Failed to open playlist"
+                    }
+            } else {
+                _openPlaylistDetail.value = playlist.id
+            }
+        }
+    }
+
+    fun clearOpenPlaylistDetail() {
+        _openPlaylistDetail.value = null
+    }
+
     fun saveCommunityPlaylist(playlist: CommunityPlaylist) {
         viewModelScope.launch {
             playlistRepository.saveCommunityPlaylist(playlist)
                 .onSuccess {
+                    _addToPlaylistMessage.value = "Saved "${playlist.name}" to your library"
                     loadCommunityPlaylists()
                 }
-                .onFailure { Timber.e(it, "saveCommunityPlaylist failed") }
+                .onFailure {
+                    _addToPlaylistMessage.value = "Failed to save playlist"
+                }
         }
     }
 }

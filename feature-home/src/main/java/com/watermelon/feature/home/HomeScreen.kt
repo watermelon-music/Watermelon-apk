@@ -57,6 +57,7 @@ fun HomeScreen(
     onProfileClick: () -> Unit = {},
     onSongClick: (Song, List<Song>) -> Unit = { _, _ -> },
     onPlayerClick: () -> Unit = {},
+    onArtistClick: (Artist) -> Unit = {},
     playerViewModel: PlayerViewModel,
     viewModel: HomeViewModel = hiltViewModel()
 ) {

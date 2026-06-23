@@ -23,6 +23,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
@@ -642,6 +643,7 @@ private fun formatSubscriberCount(count: Long): String {
     }
 }
 
+@Composable
 private fun PlaylistResultItem(
     playlist: CommunityPlaylist,
     onClick: () -> Unit,

@@ -280,11 +280,11 @@ class RecommendationEngineImpl @Inject constructor(
 
         // Combine all candidates, dedup by ID, strict content filter
         val allCandidates = mutableMapOf<String, Song>()
-        artistCandidates.filter {{ isValidMusic(it.title, it.durationMs / 1000) }}.forEach {{ allCandidates[it.id] = it }}
-        genreCandidates.filter {{ isValidMusic(it.title, it.durationMs / 1000) }}.forEach {{ allCandidates[it.id] = it }}
-        historyCandidates.filter {{ isValidMusic(it.title, it.durationMs / 1000) }}.forEach {{ allCandidates[it.id] = it }}
-        randomCandidates.filter {{ isValidMusic(it.title, it.durationMs / 1000) }}.forEach {{ allCandidates[it.id] = it }}
-        hashtagCandidates.filter {{ isValidMusic(it.title, it.durationMs / 1000) }}.forEach {{ allCandidates[it.id] = it }}
+        artistCandidates.filter { isValidMusic(it.title, it.durationMs / 1000) }}.forEach { allCandidates[it.id] = it }}
+        genreCandidates.filter { isValidMusic(it.title, it.durationMs / 1000) }}.forEach { allCandidates[it.id] = it }}
+        historyCandidates.filter { isValidMusic(it.title, it.durationMs / 1000) }}.forEach { allCandidates[it.id] = it }}
+        randomCandidates.filter { isValidMusic(it.title, it.durationMs / 1000) }}.forEach { allCandidates[it.id] = it }}
+        hashtagCandidates.filter { isValidMusic(it.title, it.durationMs / 1000) }}.forEach { allCandidates[it.id] = it }}
 
         if (allCandidates.isEmpty()) return emptyList()
 
@@ -303,11 +303,11 @@ class RecommendationEngineImpl @Inject constructor(
             // Strict filter: Do not play the exact same song or film song with just different text
             val titleSim = titleSimilarity(currentSong.title.lowercase(), candidate.title.lowercase())
             if (titleSim > 0.25) return@mapNotNull null
-            val currentWords = currentSong.title.lowercase().split("\s+".toRegex()).filter {{ it.length > 2 }}
-            if (currentWords.size >= 2) {{
+            val currentWords = currentSong.title.lowercase().split("\\s+".toRegex()).filter { it.length > 2 }
+            if (currentWords.size >= 2) {
                 val candLower = candidate.title.lowercase()
-                if (currentWords.all {{ candLower.contains(it) }}) return@mapNotNull null
-            }}
+                if (currentWords.all { candLower.contains(it) }) return@mapNotNull null
+            }
             if (!isValidMusic(candidate.title, candidate.durationMs / 1000)) return@mapNotNull null // Drop highly similar titles outright
 
             // === Source scores (the 40/30/20/10 split) ===

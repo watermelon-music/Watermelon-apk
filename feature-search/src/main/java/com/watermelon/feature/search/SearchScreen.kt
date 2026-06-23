@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -37,6 +38,7 @@ import com.watermelon.core.designsystem.theme.WatermelonRed
 import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.Song
 import com.watermelon.domain.model.CommunityPlaylist
+import com.watermelon.domain.model.Artist
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +46,7 @@ fun SearchScreen(
     onBackClick: () -> Unit,
     onSongClick: (Song, Int, List<Song>) -> Unit,
     onPlaylistClick: () -> Unit = {},
+    onArtistClick: (Artist) -> Unit = {},
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
@@ -52,6 +55,7 @@ fun SearchScreen(
     val showSheet by viewModel.showAddToPlaylistSheet.collectAsStateWithLifecycle()
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val toastMessage by viewModel.addToPlaylistMessage.collectAsStateWithLifecycle()
+    val artistResults by viewModel.artistResults.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val playPlaylistEvent by viewModel.playPlaylistEvent.collectAsStateWithLifecycle()
@@ -102,7 +106,9 @@ fun SearchScreen(
             onPlaylistClick = viewModel::onPlaylistClick,
             playlistResults = viewModel.playlistResults.collectAsStateWithLifecycle().value,
             selectedCategory = viewModel.selectedCategory.collectAsStateWithLifecycle().value,
-            onCategorySelected = viewModel::onCategorySelected
+            onCategorySelected = viewModel::onCategorySelected,
+            artistResults = artistResults,
+            onArtistClick = onArtistClick
         )
     }
 
@@ -178,7 +184,9 @@ fun SearchScreenContent(
     onPlaylistClick: (CommunityPlaylist) -> Unit = {},
     playlistResults: List<CommunityPlaylist> = emptyList(),
     selectedCategory: SearchCategory = SearchCategory.ALL,
-    onCategorySelected: (SearchCategory) -> Unit = {}
+    onCategorySelected: (SearchCategory) -> Unit = {},
+    artistResults: List<Artist> = emptyList(),
+    onArtistClick: (Artist) -> Unit = {}
 ) {
     val maxWidth = adaptiveMaxContentWidth()
     val widthModifier = if (maxWidth == androidx.compose.ui.unit.Dp.Unspecified)
@@ -253,6 +261,15 @@ fun SearchScreenContent(
                     selectedLabelColor = Color.White
                 )
             )
+            FilterChip(
+                selected = selectedCategory == SearchCategory.ARTISTS,
+                onClick = { onCategorySelected(SearchCategory.ARTISTS) },
+                label = { Text("Artists") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = WatermelonRed,
+                    selectedLabelColor = Color.White
+                )
+            )
         }
 
         Spacer(modifier = Modifier.height(WatermelonSpacing.md))
@@ -281,6 +298,41 @@ fun SearchScreenContent(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+        } else if (selectedCategory == SearchCategory.ARTISTS) {
+            if (artistResults.isNotEmpty()) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    verticalArrangement = Arrangement.spacedBy(WatermelonSpacing.md),
+                    horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+                ) {
+                    items(artistResults, key = { it.id }) { artist ->
+                        ArtistResultItem(
+                            artist = artist,
+                            onClick = { onArtistClick(artist) }
+                        )
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(WatermelonSpacing.md))
+                        Text(
+                            text = "No artists found",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         } else if (selectedCategory == SearchCategory.PLAYLISTS) {
@@ -320,7 +372,32 @@ fun SearchScreenContent(
                 }
             }
         } else {
-            if (results.isEmpty() && playlistResults.isEmpty()) {
+            if (artistResults.isNotEmpty() && selectedCategory == SearchCategory.ALL) {
+                        Text(
+                            text = "Artists",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(
+                                start = adaptiveHorizontalPadding(),
+                                top = WatermelonSpacing.md,
+                                bottom = WatermelonSpacing.md
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding()),
+                            horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+                        ) {
+                            items(artistResults.take(10), key = { it.id }) { artist ->
+                                CompactArtistItem(
+                                    artist = artist,
+                                    onClick = { onArtistClick(artist) }
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(WatermelonSpacing.lg))
+                    }
+
+                    if (results.isEmpty() && playlistResults.isEmpty() && artistResults.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -484,6 +561,87 @@ private fun SearchResultItem(
 }
 
 @Composable
+private fun ArtistResultItem(
+    artist: Artist,
+    onClick: () -> Unit
+) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(artist.id) { visible = true }
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(300)) + slideInVertically(tween(300)) { it / 5 }
+    ) {
+        Column(
+            modifier = Modifier
+                .width(160.dp)
+                .clickable(onClick = onClick),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            AsyncImage(
+                model = artist.imageUrl?.takeIf { it.isNotBlank() }
+                    ?: com.watermelon.core.designsystem.R.drawable.app_logo,
+                contentDescription = artist.name,
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+            )
+            Spacer(modifier = Modifier.height(WatermelonSpacing.sm))
+            Text(
+                text = artist.name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = formatSubscriberCount(artist.subscriberCount),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompactArtistItem(
+    artist: Artist,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(80.dp)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        AsyncImage(
+            model = artist.imageUrl?.takeIf { it.isNotBlank() }
+                ?: com.watermelon.core.designsystem.R.drawable.app_logo,
+            contentDescription = artist.name,
+            modifier = Modifier
+                .size(64.dp)
+                .clip(CircleShape)
+        )
+        Spacer(modifier = Modifier.height(WatermelonSpacing.xs))
+        Text(
+            text = artist.name,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+private fun formatSubscriberCount(count: Long): String {
+    return when {
+        count >= 1_000_000 -> String.format("%.1fM subscribers", count / 1_000_000.0)
+        count >= 1_000 -> String.format("%.1fK subscribers", count / 1_000.0)
+        else -> "$count subscribers"
+    }
+}
+
 private fun PlaylistResultItem(
     playlist: CommunityPlaylist,
     onClick: () -> Unit,

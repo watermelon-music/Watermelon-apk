@@ -17,6 +17,7 @@ object Routes {
     const val QUEUE = "queue"
     const val DOWNLOADS = "downloads"
     const val PROFILE = "profile"
+    const val ARTIST = "artist/{channelUrl}"
     const val PREMIUM = "premium"
     const val SETTINGS = "settings"
     const val ABOUT = "about"

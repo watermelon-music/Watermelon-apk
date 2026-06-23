@@ -1,5 +1,6 @@
 package com.watermelon.data.di
 
+import com.watermelon.data.repository.ArtistRepositoryImpl
 import com.watermelon.data.repository.AuthRepositoryImpl
 import com.watermelon.data.repository.AutoplayRepositoryImpl
 import com.watermelon.data.repository.LeaderboardRepositoryImpl
@@ -19,6 +20,7 @@ import com.watermelon.domain.autoplay.AutoplayEngine
 import com.watermelon.domain.autoplay.RecommendationEngine
 import com.watermelon.domain.autoplay.RecommendationScorer
 import com.watermelon.domain.autoplay.TransitionTracker
+import com.watermelon.domain.repository.ArtistRepository
 import com.watermelon.domain.repository.LeaderboardRepository
 import com.watermelon.domain.repository.LyricsRepository
 import com.watermelon.domain.repository.AuthRepository
@@ -106,6 +108,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindRecommendationScorer(impl: AutoplayRepositoryImpl): RecommendationScorer
+
+    @Binds
+    @Singleton
+    abstract fun bindArtistRepository(impl: ArtistRepositoryImpl): ArtistRepository
 
     companion object {
         @Provides

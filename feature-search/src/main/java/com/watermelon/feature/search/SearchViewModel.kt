@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.watermelon.domain.model.Playlist
 import com.watermelon.domain.model.CommunityPlaylist
 import com.watermelon.domain.model.Song
+import com.watermelon.domain.model.Artist
+import com.watermelon.domain.repository.ArtistRepository
 import com.watermelon.domain.repository.MusicCatalogRepository
 import com.watermelon.domain.repository.PlaylistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,7 +33,8 @@ import javax.inject.Inject
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     private val musicCatalogRepository: MusicCatalogRepository,
-    private val playlistRepository: PlaylistRepository
+    private val playlistRepository: PlaylistRepository,
+    private val artistRepository: ArtistRepository
 ) : ViewModel() {
 
     private val _query = MutableStateFlow("")
@@ -74,6 +77,9 @@ class SearchViewModel @Inject constructor(
     private val _playlistResults = MutableStateFlow<List<CommunityPlaylist>>(emptyList())
     val playlistResults: StateFlow<List<CommunityPlaylist>> = _playlistResults.asStateFlow()
 
+    private val _artistResults = MutableStateFlow<List<Artist>>(emptyList())
+    val artistResults: StateFlow<List<Artist>> = _artistResults.asStateFlow()
+
     init {
         loadPlaylists()
         observeQueryChanges()
@@ -86,9 +92,14 @@ class SearchViewModel @Inject constructor(
                     when (_selectedCategory.value) {
                         SearchCategory.ALL, SearchCategory.PLAYLISTS -> searchPlaylists(query)
                         SearchCategory.SONGS -> { /* Song search handled by flow */ }
+                        SearchCategory.ARTISTS -> searchArtists(query)
+                    }
+                    if (_selectedCategory.value == SearchCategory.ALL) {
+                        searchArtists(query)
                     }
                 } else {
                     _playlistResults.value = emptyList()
+                    _artistResults.value = emptyList()
                 }
             }
         }
@@ -98,6 +109,14 @@ class SearchViewModel @Inject constructor(
         playlistRepository.searchPlaylists(query)
             .onSuccess { results -> _playlistResults.value = results }
             .onFailure { _playlistResults.value = emptyList() }
+    }
+
+    private fun searchArtists(query: String) {
+        viewModelScope.launch {
+            artistRepository.searchArtists(query)
+                .onSuccess { _artistResults.value = it }
+                .onFailure { _artistResults.value = emptyList() }
+        }
     }
 
     private fun loadPlaylists() {
@@ -146,6 +165,12 @@ class SearchViewModel @Inject constructor(
                 searchPlaylists(_query.value)
             }
         }
+        if (category == SearchCategory.ARTISTS && _query.value.length >= 2) {
+            searchArtists(_query.value)
+        }
+        if (category == SearchCategory.ALL && _query.value.length >= 2) {
+            searchArtists(_query.value)
+        }
     }
 
     fun onPlaylistClick(playlist: CommunityPlaylist) {
@@ -184,5 +209,5 @@ class SearchViewModel @Inject constructor(
 }
 
 enum class SearchCategory {
-    ALL, SONGS, PLAYLISTS
+    ALL, SONGS, PLAYLISTS, ARTISTS
 }

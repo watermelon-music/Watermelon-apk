@@ -11,5 +11,9 @@ data class Artist(
     val name: String,
     val bio: String?,
     val imageUrl: String?,
-    val genres: List<String> = emptyList()
+    val genres: List<String> = emptyList(),
+    val subscriberCount: Long = 0,
+    val songCount: Int = 0,
+    val verified: Boolean = false,
+    val bannerUrl: String? = null
 ) : Parcelable

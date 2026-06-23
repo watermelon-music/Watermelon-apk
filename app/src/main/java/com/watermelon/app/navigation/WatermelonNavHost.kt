@@ -47,6 +47,8 @@ import com.watermelon.app.screens.CreatePlaylistScreen
 import com.watermelon.app.screens.OnboardingScreen
 import com.watermelon.app.screens.PremiumScreen
 import com.watermelon.app.screens.ProfileScreen
+import com.watermelon.app.screens.ArtistScreen
+import com.watermelon.app.screens.ArtistViewModel
 import com.watermelon.app.screens.RadioScreen
 import com.watermelon.feature.settings.SettingsScreen
 import androidx.compose.runtime.rememberCoroutineScope
@@ -219,6 +221,10 @@ fun WatermelonNavHost(
                 onSongClick = { song: Song, index: Int, results: List<Song> ->
                     playerViewModel.playQueue(results, index)
                     navController.navigate(Routes.PLAYER)
+                },
+                onArtistClick = { artist ->
+                    val encoded = java.net.URLEncoder.encode(artist.id, "UTF-8")
+                    navController.navigate("artist/$encoded")
                 }
             )
         }
@@ -285,6 +291,21 @@ fun WatermelonNavHost(
             ProfileScreen(
                 viewModel = profileViewModel,
                 onBack = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = Routes.ARTIST,
+            arguments = listOf(navArgument("channelUrl") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val artistViewModel: ArtistViewModel = hiltViewModel()
+            ArtistScreen(
+                viewModel = artistViewModel,
+                playerViewModel = playerViewModel,
+                onBackClick = { navController.popBackStack() },
+                onSongClick = { song: Song, songs: List<Song> ->
+                    playerViewModel.playQueue(songs, songs.indexOf(song).takeIf { it >= 0 } ?: 0)
+                    navController.navigate(Routes.PLAYER)
+                }
             )
         }
         composable(Routes.SETTINGS) {

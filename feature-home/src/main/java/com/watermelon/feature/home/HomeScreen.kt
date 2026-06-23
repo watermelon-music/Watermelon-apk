@@ -47,6 +47,7 @@ import com.watermelon.core.designsystem.theme.WatermelonSpacing
 import com.watermelon.domain.model.Song
 import com.watermelon.domain.model.CommunityPlaylist
 import com.watermelon.domain.model.CuratedPlaylist
+import com.watermelon.domain.model.Artist
 import coil.request.ImageRequest
 
 @Composable
@@ -85,7 +86,8 @@ fun HomeScreen(
         onAddToPlaylist = viewModel::onAddToPlaylistClick,
         onLikeCommunityPlaylist = viewModel::likeCommunityPlaylist,
         onSaveCommunityPlaylist = viewModel::saveCommunityPlaylist,
-        snackbarHostState = snackbarHostState
+        snackbarHostState = snackbarHostState,
+        onArtistClick = { artist -> /* TODO: Navigate to artist detail */ }
     )
 
     if (showSheet) {
@@ -160,7 +162,8 @@ fun HomeScreenContent(
     onAddToPlaylist: (Song) -> Unit,
     onLikeCommunityPlaylist: (String) -> Unit = {},
     onSaveCommunityPlaylist: (com.watermelon.domain.model.CommunityPlaylist) -> Unit = {},
-    snackbarHostState: SnackbarHostState
+    snackbarHostState: SnackbarHostState,
+    onArtistClick: (Artist) -> Unit = {}
 ) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -253,6 +256,16 @@ fun HomeScreenContent(
                     }
                 }
 
+                if (uiState.trendingArtists.isNotEmpty()) {
+                    item {
+                        SectionHeader(title = "Trending Artists")
+                        TrendingArtistsRow(
+                            artists = uiState.trendingArtists,
+                            onArtistClick = onArtistClick
+                        )
+                    }
+                }
+
                 if (uiState.communityPlaylists.isNotEmpty()) {
                     item {
                         SectionHeader(title = "Community Playlists")
@@ -260,6 +273,16 @@ fun HomeScreenContent(
                             playlists = uiState.communityPlaylists,
                             onLikeClick = onLikeCommunityPlaylist,
                             onSaveClick = onSaveCommunityPlaylist
+                        )
+                    }
+                }
+
+                if (uiState.languagePlaylists.isNotEmpty()) {
+                    item {
+                        SectionHeader(title = "Trending by Language")
+                        LanguagePlaylistRow(
+                            playlists = uiState.languagePlaylists,
+                            onPlaylistClick = { /* TODO: Navigate to playlist detail */ }
                         )
                     }
                 }
@@ -793,6 +816,140 @@ private fun CuratedPlaylistCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TrendingArtistsRow(
+    artists: List<Artist>,
+    onArtistClick: (Artist) -> Unit
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding()),
+        horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+    ) {
+        items(artists, key = { it.id }) { artist ->
+            ArtistCircleItem(
+                artist = artist,
+                onClick = { onArtistClick(artist) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ArtistCircleItem(
+    artist: Artist,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(90.dp)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        AsyncImage(
+            model = artist.imageUrl?.takeIf { it.isNotBlank() }
+                ?: com.watermelon.core.designsystem.R.drawable.app_logo,
+            contentDescription = artist.name,
+            modifier = Modifier
+                .size(72.dp)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop
+        )
+        Spacer(modifier = Modifier.height(WatermelonSpacing.xs))
+        Text(
+            text = artist.name,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+    }
+}
+
+@Composable
+private fun LanguagePlaylistRow(
+    playlists: List<CommunityPlaylist>,
+    onPlaylistClick: (CommunityPlaylist) -> Unit
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = adaptiveHorizontalPadding()),
+        horizontalArrangement = Arrangement.spacedBy(WatermelonSpacing.md)
+    ) {
+        items(playlists, key = { it.id }) { playlist ->
+            LanguagePlaylistCard(
+                playlist = playlist,
+                onClick = { onPlaylistClick(playlist) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun LanguagePlaylistCard(
+    playlist: CommunityPlaylist,
+    cardWidth: androidx.compose.ui.unit.Dp = 160.dp,
+    onClick: () -> Unit
+) {
+    val languageEmoji = when {
+        playlist.name.contains("Hindi", ignoreCase = true) -> "🇮🇳"
+        playlist.name.contains("English", ignoreCase = true) -> "🇺🇸"
+        playlist.name.contains("Telugu", ignoreCase = true) -> "🇮🇳"
+        playlist.name.contains("Tamil", ignoreCase = true) -> "🇮🇳"
+        playlist.name.contains("Spanish", ignoreCase = true) -> "🇪🇸"
+        playlist.name.contains("Korean", ignoreCase = true) -> "🇰🇷"
+        playlist.name.contains("Japanese", ignoreCase = true) -> "🇯🇵"
+        playlist.name.contains("French", ignoreCase = true) -> "🇫🇷"
+        playlist.name.contains("German", ignoreCase = true) -> "🇩🇪"
+        playlist.name.contains("Chinese", ignoreCase = true) -> "🇨🇳"
+        else -> "🌐"
+    }
+
+    Column(
+        modifier = Modifier
+            .width(cardWidth)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.Start
+    ) {
+        Card(
+            modifier = Modifier.size(cardWidth, 100.dp),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(4.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = languageEmoji,
+                    style = MaterialTheme.typography.headlineLarge
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(WatermelonSpacing.sm))
+        Text(
+            text = playlist.name,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            text = "${playlist.songCount} songs",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

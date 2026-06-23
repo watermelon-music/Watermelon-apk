@@ -3,12 +3,14 @@ package com.watermelon.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.watermelon.data.remote.watermelon.WatermelonRepository
+import com.watermelon.domain.model.Artist
 import com.watermelon.domain.model.CommunityPlaylist
 import com.watermelon.domain.model.CuratedPlaylist
 import com.watermelon.domain.model.User
 import com.watermelon.domain.repository.AuthRepository
 import com.watermelon.domain.model.Playlist
 import com.watermelon.domain.model.Song
+import com.watermelon.domain.repository.ArtistRepository
 import com.watermelon.domain.repository.MusicCatalogRepository
 import com.watermelon.domain.repository.PlaylistRepository
 import com.watermelon.domain.repository.UserActionsRepository
@@ -34,6 +36,7 @@ class HomeViewModel @Inject constructor(
     private val musicCatalogRepository: MusicCatalogRepository,
     private val userActionsRepository: UserActionsRepository,
     private val playlistRepository: PlaylistRepository,
+    private val artistRepository: ArtistRepository,
     private val watermelonRepository: WatermelonRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
@@ -65,6 +68,8 @@ class HomeViewModel @Inject constructor(
         loadPlaylists()
         loadCommunityPlaylists()
         loadCuratedPlaylists()
+        loadTrendingArtists()
+        loadLanguagePlaylists()
         scheduleDailyTrendingRefresh()
     }
 
@@ -246,6 +251,37 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private fun loadTrendingArtists() {
+        viewModelScope.launch {
+            artistRepository.searchArtists("music")
+                .onSuccess { artists ->
+                    _uiState.update { it.copy(trendingArtists = artists.take(10)) }
+                }
+                .onFailure { Timber.e(it, "loadTrendingArtists failed") }
+        }
+    }
+
+    private fun loadLanguagePlaylists() {
+        viewModelScope.launch {
+            val queries = listOf(
+                "Hindi songs playlist",
+                "English hits playlist",
+                "Telugu songs playlist",
+                "Tamil songs playlist",
+                "Spanish music playlist",
+                "Korean music playlist"
+            )
+            val languagePlaylists = mutableListOf<CommunityPlaylist>()
+            for (query in queries) {
+                playlistRepository.searchPlaylists(query)
+                    .onSuccess { results ->
+                        results.firstOrNull()?.let { languagePlaylists.add(it) }
+                    }
+            }
+            _uiState.update { it.copy(languagePlaylists = languagePlaylists) }
+        }
+    }
+
     fun likeCommunityPlaylist(playlistId: String) {
         viewModelScope.launch {
             playlistRepository.likeCommunityPlaylist(playlistId)
@@ -282,6 +318,8 @@ data class HomeUiState(
     val electronic: List<Song> = emptyList(),
     val communityPlaylists: List<CommunityPlaylist> = emptyList(),
     val curatedPlaylists: List<CuratedPlaylist> = emptyList(),
+    val trendingArtists: List<Artist> = emptyList(),
+    val languagePlaylists: List<CommunityPlaylist> = emptyList(),
     val isLoading: Boolean = false
 )
 

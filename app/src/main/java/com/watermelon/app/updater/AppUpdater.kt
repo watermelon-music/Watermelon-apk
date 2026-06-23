@@ -38,7 +38,9 @@ object AppUpdater {
             connection.setRequestProperty("Accept", "application/vnd.github.v3+json")
             connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36")
 
-            if (connection.responseCode == 200) {
+            val responseCode = connection.responseCode
+            Timber.i("GitHub releases check: HTTP $responseCode")
+            if (responseCode == 200) {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
                 val json = JSONObject(response)
                 val tagName = json.getString("tag_name")

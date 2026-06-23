@@ -17,6 +17,7 @@ interface PlaylistRepository {
     suspend fun getPlaylistById(playlistId: String): Result<Playlist>
     suspend fun getCommunityPlaylists(): Result<List<CommunityPlaylist>>
     suspend fun likeCommunityPlaylist(playlistId: String): Result<Boolean>
-    suspend fun saveCommunityPlaylist(playlistId: String): Result<Playlist>
+    suspend fun saveCommunityPlaylist(playlist: CommunityPlaylist): Result<Playlist>
     suspend fun searchPlaylists(query: String): Result<List<CommunityPlaylist>>
+    suspend fun fetchPlaylistSongs(playlistUrl: String): Result<List<Song>>
 }

@@ -43,6 +43,7 @@ import com.watermelon.domain.model.CommunityPlaylist
 fun SearchScreen(
     onBackClick: () -> Unit,
     onSongClick: (Song, Int, List<Song>) -> Unit,
+    onPlaylistClick: () -> Unit = {},
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
@@ -53,7 +54,17 @@ fun SearchScreen(
     val toastMessage by viewModel.addToPlaylistMessage.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val playPlaylistEvent by viewModel.playPlaylistEvent.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    LaunchedEffect(playPlaylistEvent) {
+        playPlaylistEvent?.let { songs ->
+            if (songs.isNotEmpty()) {
+                onSongClick(songs.first(), 0, songs)
+            }
+            viewModel.clearPlayPlaylistEvent()
+        }
+    }
 
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
@@ -88,6 +99,7 @@ fun SearchScreen(
             onSongClick = onSongClick,
             onAddToPlaylist = viewModel::onAddToPlaylistClick,
             onSavePlaylist = viewModel::onSavePlaylist,
+            onPlaylistClick = viewModel::onPlaylistClick,
             playlistResults = viewModel.playlistResults.collectAsStateWithLifecycle().value,
             selectedCategory = viewModel.selectedCategory.collectAsStateWithLifecycle().value,
             onCategorySelected = viewModel::onCategorySelected
@@ -163,6 +175,7 @@ fun SearchScreenContent(
     onSongClick: (Song, Int, List<Song>) -> Unit,
     onAddToPlaylist: (Song) -> Unit,
     onSavePlaylist: (CommunityPlaylist) -> Unit = {},
+    onPlaylistClick: (CommunityPlaylist) -> Unit = {},
     playlistResults: List<CommunityPlaylist> = emptyList(),
     selectedCategory: SearchCategory = SearchCategory.ALL,
     onCategorySelected: (SearchCategory) -> Unit = {}
@@ -280,7 +293,7 @@ fun SearchScreenContent(
                     items(playlistResults, key = { it.id }) { playlist ->
                         PlaylistResultItem(
                             playlist = playlist,
-                            onClick = { /* TODO: Navigate to playlist */ },
+                            onClick = { onPlaylistClick(playlist) },
                             onSave = { onSavePlaylist(playlist) }
                         )
                     }
@@ -347,7 +360,7 @@ fun SearchScreenContent(
                             items(playlistResults, key = { it.id }) { playlist ->
                                 PlaylistResultItem(
                                     playlist = playlist,
-                                    onClick = { /* TODO */ },
+                                    onClick = { onPlaylistClick(playlist) },
                                     onSave = { onSavePlaylist(playlist) }
                                 )
                             }

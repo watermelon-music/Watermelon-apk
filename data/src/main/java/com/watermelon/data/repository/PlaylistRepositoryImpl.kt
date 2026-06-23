@@ -360,45 +360,78 @@ class PlaylistRepositoryImpl @Inject constructor(
         }.onFailure { Timber.e(it, "likeCommunityPlaylist failed") }
     }
 
-    override suspend fun saveCommunityPlaylist(playlistId: String): Result<Playlist> = withContext(Dispatchers.IO) {
+    override suspend fun saveCommunityPlaylist(playlist: CommunityPlaylist): Result<Playlist> = withContext(Dispatchers.IO) {
         runCatching {
-            val row = client.postgrest.from("playlists")
-                .select { filter { eq("id", playlistId) } }
-                .decodeSingle<PlaylistRow>()
-            val userId = getUserId() ?: throw IllegalStateException("Not authenticated")
-            val newRow = PlaylistRow(
-                id = java.util.UUID.randomUUID().toString(),
-                user_id = userId,
-                name = row.name,
-                description = row.description,
-                cover_url = row.cover_url,
-                share_code = generateShareCode(),
-                is_public = false
-            )
-            client.postgrest.from("playlists").insert(newRow)
+            val newPlaylist = createPlaylist(
+                name = playlist.name,
+                description = playlist.description,
+                coverUrl = playlist.coverUrl
+            ).getOrThrow()
 
-            val songs = client.postgrest.from("playlist_songs")
-                .select {
-                    filter { eq("playlist_id", playlistId) }
-                    order("position", Order.ASCENDING)
+            if (playlist.id.startsWith("ytpl_")) {
+                val url = playlist.id.removePrefix("ytpl_")
+                val songs = fetchPlaylistSongs(url).getOrNull() ?: emptyList()
+                songs.forEach { song ->
+                    addSongToPlaylist(newPlaylist.id, song)
                 }
-                .decodeList<PlaylistSongRow>()
-
-            songs.forEachIndexed { index, songRow ->
-                val psRow = PlaylistSongRow(
-                    playlist_id = newRow.id,
-                    song_id = songRow.song_id,
-                    title = songRow.title,
-                    artist = songRow.artist,
-                    cover_url = songRow.cover_url,
-                    audio_url = songRow.audio_url,
-                    position = index
-                )
-                client.postgrest.from("playlist_songs").insert(psRow)
+            } else {
+                val songs = client.postgrest.from("playlist_songs")
+                    .select {
+                        filter { eq("playlist_id", playlist.id) }
+                        order("position", Order.ASCENDING)
+                    }
+                    .decodeList<PlaylistSongRow>()
+                songs.forEachIndexed { index, songRow ->
+                    val song = Song(
+                        id = songRow.song_id,
+                        title = songRow.title,
+                        artistId = songRow.artist ?: "",
+                        artistName = songRow.artist ?: "",
+                        albumId = null,
+                        albumName = null,
+                        durationMs = 0L,
+                        coverUrl = songRow.cover_url,
+                        audioUrl = songRow.audio_url,
+                        genre = "",
+                        releaseDate = ""
+                    )
+                    addSongToPlaylist(newPlaylist.id, song)
+                }
             }
             refreshPlaylists()
-            getPlaylistById(newRow.id).getOrThrow()
+            getPlaylistById(newPlaylist.id).getOrThrow()
         }.onFailure { Timber.e(it, "saveCommunityPlaylist failed") }
+    }
+
+    override suspend fun fetchPlaylistSongs(playlistUrl: String): Result<List<Song>> = withContext(Dispatchers.IO) {
+        runCatching {
+            initializer.ensureInitialized()
+            val youtube = org.schabi.newpipe.extractor.ServiceList.YouTube
+            val info = org.schabi.newpipe.extractor.playlist.PlaylistInfo.getInfo(youtube, playlistUrl)
+            info.relatedItems
+                .filterIsInstance<org.schabi.newpipe.extractor.stream.StreamInfoItem>()
+                .map { item ->
+                    val fullUrl = if (item.url.startsWith("http")) item.url else "https://www.youtube.com${item.url}"
+                    val videoId = when {
+                        fullUrl.contains("v=") -> fullUrl.substringAfter("v=").substringBefore("&")
+                        fullUrl.contains("youtu.be/") -> fullUrl.substringAfter("youtu.be/")
+                        else -> item.url.hashCode().toString()
+                    }
+                    Song(
+                        id = videoId,
+                        title = item.name,
+                        artistId = item.uploaderName?.hashCode()?.toString() ?: videoId,
+                        artistName = item.uploaderName ?: "Unknown Artist",
+                        albumId = null,
+                        albumName = null,
+                        durationMs = if (item.duration > 0) item.duration * 1000L else 0L,
+                        coverUrl = "https://i.ytimg.com/vi/$videoId/maxresdefault.jpg",
+                        audioUrl = fullUrl,
+                        genre = "",
+                        releaseDate = ""
+                    )
+                }
+        }.onFailure { Timber.e(it, "fetchPlaylistSongs failed") }
     }
 
     override suspend fun searchPlaylists(query: String): Result<List<CommunityPlaylist>> = withContext(Dispatchers.IO) {

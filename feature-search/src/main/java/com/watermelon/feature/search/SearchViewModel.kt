@@ -148,9 +148,35 @@ class SearchViewModel @Inject constructor(
         }
     }
 
+    fun onPlaylistClick(playlist: CommunityPlaylist) {
+        viewModelScope.launch {
+            _addToPlaylistMessage.value = "Loading playlist..."
+            val url = playlist.id.removePrefix("ytpl_")
+            playlistRepository.fetchPlaylistSongs(url)
+                .onSuccess { songs ->
+                    _addToPlaylistMessage.value = null
+                    if (songs.isNotEmpty()) {
+                        _playPlaylistEvent.value = songs
+                    } else {
+                        _addToPlaylistMessage.value = "Playlist is empty"
+                    }
+                }
+                .onFailure {
+                    _addToPlaylistMessage.value = "Failed to load playlist"
+                }
+        }
+    }
+
+    private val _playPlaylistEvent = kotlinx.coroutines.flow.MutableStateFlow<List<Song>?>(null)
+    val playPlaylistEvent: kotlinx.coroutines.flow.StateFlow<List<Song>?> = _playPlaylistEvent.asStateFlow()
+
+    fun clearPlayPlaylistEvent() {
+        _playPlaylistEvent.value = null
+    }
+
     fun onSavePlaylist(playlist: CommunityPlaylist) {
         viewModelScope.launch {
-            playlistRepository.saveCommunityPlaylist(playlist.id)
+            playlistRepository.saveCommunityPlaylist(playlist)
                 .onSuccess { _addToPlaylistMessage.value = "Saved to your library" }
                 .onFailure { _addToPlaylistMessage.value = "Failed to save" }
         }
